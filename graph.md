@@ -1,6 +1,6 @@
 # Graph — Option A: Strategy Research & Backtest
 
-Status: **DRAFT — awaiting approval** (layer 1: pause after split)
+Status: **APPROVED 2026-10-11** — data option (a)
 
 ## Nodes
 
@@ -39,13 +39,14 @@ N0, N1, N2, N3, N4, N6. Model is used only in N5 (idea) and N7 (write-up).
   daily loss halt 2%; max 3 open positions; flat by 15:55 ET
 - Costs: $0 commission, slippage 0.02% per side
 - Windows: train = first 70% of available history, test = last 30%
-- Data: Robinhood MCP historicals (5-min, limited lookback) cached to `data/`;
-  `yfinance` fallback (5-min max ~60 days, 1h ~2 years)
+- Data: Robinhood MCP 5-min historicals → `data/raw/` (gitignored) → `data/bars_5m.csv.gz`
 
-## Open question
-Intraday history from free sources is short (~60 days of 5-min bars). Options:
-(a) accept short history and use 15m/1h bars for longer tests, or
-(b) bring a paid data source (Polygon, Alpaca, Databento).
+## Data decision (resolved: option a)
+- yfinance is blocked by this environment's network policy; Robinhood MCP is the only source.
+- Robinhood intraday bars before ~2026-02-23 are interpolated filler (all intervals), so real
+  history is ~160 sessions. 5-minute bars cover the same window, so we use 5-minute bars.
+- Fetch limits: 5,000 bars per request and one symbol per request (multi-symbol responses overflow).
+- Train = first 112 sessions (2026-02-23 → ~2026-08-03), test = last 48 sessions.
 
 ## Learned rules
 _(none yet — only added after an out-of-sample pass)_
