@@ -1,21 +1,28 @@
 # Progress
 
 ## Graph
-- **Done:** N0 risk (12/12 tests pass)
+- **Done:** N0 risk, N1 data, N2 backtester, N3 metrics, N4 baseline, N5/N6 × 3 iterations, N7 report
 - **Running:** —
-- **Blocked:** N1–N7 waiting on approval of `graph.md` (layer 1 pause)
+- **Blocked:** none. Run 1 ended at its limit of 3 iterations; **no strategy passed the out-of-sample gate.**
 
 ## Outputs
-- `src/risk.py`, `tests/test_risk.py`
-- `.claude/settings.json` — order/cancel/exercise tools denied
+- Code: `src/risk.py`, `src/data.py`, `src/backtest.py`, `src/metrics.py`, `src/evaluate.py`,
+  `src/iterations.py`, `src/strategies/orb.py` — 48 tests pass (`python -m pytest -q`)
+- Data: `data/bars_5m.csv.gz` (raw MCP JSON in `data/raw/`, gitignored)
+- Reports: `backtests/baseline.md`, `backtests/iter_1.md`, `iter_2.md`, `iter_3.md`, `backtests/report.md`
 
 ## Decisions
-- 2026-10-11: Option A (research & backtest only). Defaults: $25k paper equity, 1% risk/trade,
-  20% max position, 2% daily loss halt, 3 max open positions, flat by 15:55 ET.
-- Risk module built first so the backtester (N2) depends on it from day one.
+- 2026-10-11: Graph approved; data option (a). yfinance blocked by network policy → Robinhood MCP only.
+- Real intraday history starts 2026-02-23 (earlier bars are interpolated) → 160 sessions, 5-min bars.
+- Train/test = 112/48 sessions. Test evaluated exactly once per iteration.
+- iter_1 (long-only) rejected: overfit. iter_2 (60m range) rejected. iter_3 (RVOL ≥ 1.0) rejected
+  vs. SPY but the best candidate; recorded as an observation in `graph.md`, not a rule.
 
 ## Open issues
-- Intraday data history length (see "Open question" in `graph.md`).
+- Short single-regime history (biggest limitation).
+- Alphabetical priority when the 3-position cap binds (fix in N2: rank signals).
+- Push to GitHub fails with 403 (Claude GitHub App lacks access to the repo).
 
 ## Next action
-Approve or edit `graph.md`, then run Wave 1: N1 data + N3 metrics (parallel).
+User decision: add a multi-year intraday data source, then run 2 = capacity-bias fix + walk-forward
+retest of the RVOL filter.

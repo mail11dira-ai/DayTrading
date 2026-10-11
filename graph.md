@@ -7,7 +7,7 @@ Status: **APPROVED 2026-10-11** — data option (a)
 | id | type | input | output | check |
 |----|------|-------|--------|-------|
 | N0 risk | code | limits in `src/risk.py` | `src/risk.py`, `tests/test_risk.py` | `pytest tests/test_risk.py` passes |
-| N1 data | code | ticker list, date range | `data/*.csv` (OHLCV, 5-min + daily) | no gaps > 1 session, no NaNs, timestamps in US/Eastern, monotonic |
+| N1 data | code | saved MCP responses in `data/raw/` | `data/bars_5m.csv.gz` (5-min OHLCV) | no gaps > 1 session, no NaNs, timestamps in US/Eastern, monotonic |
 | N2 backtester | code | bars + signal fn + `risk.py` | `src/backtest.py`, `tests/test_backtest.py` | known-answer tests pass; lookahead test (shifted-future signal must not improve results) passes |
 | N3 metrics | code | trade list, equity curve | `src/metrics.py`, `tests/test_metrics.py` | Sharpe / max DD / win rate / profit factor match hand-computed fixtures |
 | N4 baseline | code | N1, N2, N3 | `backtests/baseline.md` | SPY buy-and-hold + opening-range-breakout (ORB) default params, train & test windows reported |
@@ -50,3 +50,8 @@ N0, N1, N2, N3, N4, N6. Model is used only in N5 (idea) and N7 (write-up).
 
 ## Learned rules
 _(none yet — only added after an out-of-sample pass)_
+
+### Run 1 observations (not rules — failed the out-of-sample gate)
+- Relative-volume filter (RVOL ≥ 1.0) improved ORB in both train and test; worth retesting on more data.
+- Long-only ORB is regime-fitting: train Sharpe 1.23 → test -2.96.
+- With ~160 sessions, train-window improvements are not trustworthy on their own.
