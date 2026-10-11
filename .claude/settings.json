@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "deny": [
+      "mcp__Robinhood_Agentic__place_equity_order",
+      "mcp__Robinhood_Agentic__place_option_order",
+      "mcp__Robinhood_Agentic__place_crypto_order",
+      "mcp__Robinhood_Agentic__cancel_equity_order",
+      "mcp__Robinhood_Agentic__cancel_option_order",
+      "mcp__Robinhood_Agentic__cancel_crypto_order",
+      "mcp__Robinhood_Agentic__exercise_option",
+      "mcp__Robinhood_Agentic__cancel_option_exercise"
+    ]
+  }
+}
