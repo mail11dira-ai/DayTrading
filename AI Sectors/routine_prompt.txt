@@ -28,7 +28,7 @@ Many tickers repeat across ecosystems: fetch and compute each unique symbol ONCE
 Times are US Central (market hours 8:30am-3:00pm CT). OTC ADRs (BESIY, DSCSY, ASMVY, ABBNY) trade thinly: show their price/day %, mark RVOL/VWAP "thin" when volume is tiny.
 
 DATA (batch requests to keep the run fast; split a batch if a response overflows; save raw results and compute everything in python, not by eye):
-1. Quotes: get_equity_quotes for all unique symbols + benchmarks in batches of <=20. Day % uses adjusted_previous_close. Before the open (the 7:58 run), use extended-hours price and say "pre-market".
+1. Quotes: get_equity_quotes for all unique symbols + benchmarks in batches of <=20. Day % uses adjusted_previous_close. Before the open (the 8:00 run), use extended-hours price and say "pre-market".
 2. Intraday: get_equity_historicals 5-minute bars for TODAY (batches of ~10 symbols). Compute % from open, VWAP, price vs VWAP, high/low of day.
 3. Daily: get_equity_historicals daily bars, ~12 months (batches of ~10). Compute 20/50/200-day SMA, RSI14, distance from 52-week high, 20-day realized vol, and RVOL = today's cumulative volume / (10-day average daily volume x fraction of the session elapsed).
 4. Context: get_earnings_calendar for the next 14 days (flag any universe names); get_equity_analyst_ratings only for the 5 biggest movers.
