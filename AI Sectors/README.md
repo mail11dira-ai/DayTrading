@@ -4,7 +4,7 @@ An hourly, research-only report on AI-sector stocks, built from Robinhood data a
 mail11dira@gmail.com. Same setup as `../MAG 7`. **No orders are ever placed.**
 
 ## What it does
-- **Universe: 3 ecosystems × 5 layers × 6 tickers** (about 75 unique symbols; repeats are fetched once):
+- **Universe: 3 ecosystems × 5 layers — 59 unique stocks.** Each ticker is listed once (first occurrence), and the MAG 7 (AAPL, MSFT, NVDA, AMZN, META, GOOGL, TSLA) are excluded because the MAG 7 agent covers them.
 
   **1. Memory Ecosystem**
   | Layer | Sector | Tickers |
@@ -12,8 +12,8 @@ mail11dira@gmail.com. Same setup as `../MAG 7`. **No orders are ever placed.**
   | 1 | Equipment | ASML, AMAT, LRCX, KLAC, TER, ONTO |
   | 2 | Memory Makers | MU, SK Hynix*, Samsung*, WDC, SNDK, Kioxia* |
   | 3 | Packaging & Test | TSM, AMKR, ASE (ASX), BESI*, DISCO*, ASMPT* |
-  | 4 | Storage Platforms | PSTG, NTAP, DELL, HPE, WDC, SNDK |
-  | 5 | AI Demand | NVDA, AVGO, AMD, META, AMZN, GOOGL |
+  | 4 | Storage Platforms | PSTG*, NTAP, DELL, HPE |
+  | 5 | AI Demand | AVGO, AMD |
 
   **2. AI Power Stack**
   | Layer | Sector | Tickers |
@@ -21,17 +21,19 @@ mail11dira@gmail.com. Same setup as `../MAG 7`. **No orders are ever placed.**
   | 1 | Generation | VST, CEG, NRG, NEE, DUK, SO |
   | 2 | Nuclear | CCJ, UEC, BWXT, LEU, SMR, OKLO |
   | 3 | Grid | ETN, PWR, HUBB, GEV, ABB*, SGRE* |
-  | 4 | Power Management | ENB†, GNRC, CAT, CMI, NVT, VRT |
-  | 5 | Demand Centers | AMZN, MSFT, GOOGL, META, ORCL, DLR |
+  | 4 | Power Management | ENB, GNRC, CAT, CMI, NVT, VRT |
+  | 5 | Demand Centers | ORCL, DLR |
 
   **3. Data Center Ecosystem**
   | Layer | Sector | Tickers |
   |---|---|---|
-  | 1 | Power | VST, CEG, ETN, PWR, GEV, ENB† |
-  | 2 | Compute | NVDA, AMD, AVGO, INTC, ARM, MU |
+  | 1 | Power | — all covered in AI Power Stack (VST, CEG, ETN, PWR, GEV, ENB) |
+  | 2 | Compute | INTC, ARM |
   | 3 | Networking | ANET, MRVL, CRDO, CSCO, LITE, AAOI |
-  | 4 | Cooling | VRT, TT, MOD, CARR, JCI, NVT |
-  | 5 | Operators | DLR, EQIX, AMZN, MSFT, GOOGL, ORCL |
+  | 4 | Cooling | TT, MOD, CARR, JCI |
+  | 5 | Operators | EQIX |
+
+  Removed as duplicates: WDC/SNDK (Storage), MU/AMD/AVGO (Compute), VRT/NVT (Cooling), DLR/ORCL (Operators), all Data Center Power names. Removed as MAG 7: NVDA, META, AMZN, GOOGL, MSFT.
 
   Benchmarks: SPY, QQQ, SMH (semis), XLU (utilities).
 
@@ -50,7 +52,7 @@ mail11dira@gmail.com. Same setup as `../MAG 7`. **No orders are ever placed.**
   price vs VWAP, relative volume vs the same time of day over 10 sessions, RSI14, 20/50/200-day
   SMAs, distance from the 52-week high, 20-day realized volatility, analyst targets, P/E, and
   earnings in the next 14 days.
-- **Email (per ecosystem):** layer scoreboard L1→L5 (equal-weight avg day %, vs QQQ, best/worst),
+- **Email (same look as MAG 7: bordered tables, green/red numbers, cards):** per ecosystem — layer scoreboard L1→L5 (equal-weight avg day %, vs QQQ, best/worst),
   ticker table, and a one-line read of where money is flowing along the chain. Then the top 5
   movers overall and risks/catalysts (earnings, RVOL > 2, gaps > 3%, RSI extremes). Narrative under ~400 words.
 
