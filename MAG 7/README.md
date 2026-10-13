@@ -11,6 +11,9 @@ mail11dira@gmail.com. **No orders are ever placed.**
   MAG 7 earnings in the next 14 days.
 - **Email:** results table + top 3 moves of the hour + risks/catalysts, under ~400 words.
 
+## Technical analysis (every run)
+Volume (time-of-day RVOL, up/down volume, spikes) · VWAP (±1/2σ bands, slope, reclaim/loss) · Support/resistance & price action (PDH/PDL/PDC, pre-market H/L, opening range, floor pivots, swing & 52-wk levels, gap, structure, breakouts) · Moving averages (5-min EMA 9/21; daily EMA 9/21, SMA 20/50/200, stack, crosses) · RSI 14 (5-min & daily, zones, divergence) · ATR 14 (daily & 5-min, range used, expected range left). A deterministic **bias score (−6…+6)** labels each stock BULLISH / NEUTRAL / BEARISH, with watch levels (bullish-above / bearish-below, target, invalidation, reward/risk in ATR). Full definitions: `technical_analysis.md`.
+
 ## How it runs
 | Setting | Value |
 |---|---|
