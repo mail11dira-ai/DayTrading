@@ -4,20 +4,55 @@ An hourly, research-only report on AI-sector stocks, built from Robinhood data a
 mail11dira@gmail.com. Same setup as `../MAG 7`. **No orders are ever placed.**
 
 ## What it does
-- **Universe (15 stocks, 4 sectors):**
-  | Sector | Tickers |
+- **Universe: 3 ecosystems × 5 layers × 6 tickers** (about 75 unique symbols; repeats are fetched once):
+
+  **1. Memory Ecosystem**
+  | Layer | Sector | Tickers |
+  |---|---|---|
+  | 1 | Equipment | ASML, AMAT, LRCX, KLAC, TER, ONTO |
+  | 2 | Memory Makers | MU, SK Hynix*, Samsung*, WDC, SNDK, Kioxia* |
+  | 3 | Packaging & Test | TSM, AMKR, ASE (ASX), BESI*, DISCO*, ASMPT* |
+  | 4 | Storage Platforms | PSTG, NTAP, DELL, HPE, WDC, SNDK |
+  | 5 | AI Demand | NVDA, AVGO, AMD, META, AMZN, GOOGL |
+
+  **2. AI Power Stack**
+  | Layer | Sector | Tickers |
+  |---|---|---|
+  | 1 | Generation | VST, CEG, NRG, NEE, DUK, SO |
+  | 2 | Nuclear | CCJ, UEC, BWXT, LEU, SMR, OKLO |
+  | 3 | Grid | ETN, PWR, HUBB, GEV, ABB*, SGRE* |
+  | 4 | Power Management | ENB†, GNRC, CAT, CMI, NVT, VRT |
+  | 5 | Demand Centers | AMZN, MSFT, GOOGL, META, ORCL, DLR |
+
+  **3. Data Center Ecosystem**
+  | Layer | Sector | Tickers |
+  |---|---|---|
+  | 1 | Power | VST, CEG, ETN, PWR, GEV, ENB† |
+  | 2 | Compute | NVDA, AMD, AVGO, INTC, ARM, MU |
+  | 3 | Networking | ANET, MRVL, CRDO, CSCO, LITE, AAOI |
+  | 4 | Cooling | VRT, TT, MOD, CARR, JCI, NVT |
+  | 5 | Operators | DLR, EQIX, AMZN, MSFT, GOOGL, ORCL |
+
+  Benchmarks: SPY, QQQ, SMH (semis), XLU (utilities).
+
+  **\* Foreign listings — Robinhood mapping (checked 2026-10-13):**
+  | Name | Robinhood symbol |
   |---|---|
-  | AI Chips | NVDA, AMD, AVGO, TSM, MU |
-  | AI Infrastructure (networking, servers, power) | ANET, VRT, SMCI, CEG |
-  | AI Cloud | ORCL, CRWV |
-  | AI Software | PLTR, NOW, CRM, SNOW |
-  Benchmarks: SPY, QQQ, SMH (semiconductor ETF). MSFT/GOOGL/AMZN/META are left out because the MAG 7 agent already covers them.
+  | SK Hynix | SKHY (ADR) |
+  | BESI | BESIY (OTC) |
+  | DISCO | DSCSY (OTC) |
+  | ASMPT | ASMVY (OTC, thin) |
+  | ABB | ABBNY (OTC) |
+  | Samsung, Kioxia, Siemens Gamesa (SGRE, delisted) | not on Robinhood — shown as n/a, excluded from averages |
+
+  † ENB trades on the NYSE and is tracked normally; the † is kept as you listed it.
 - **Each run computes (in Python, from Robinhood data):** price and day %, strength vs QQQ,
   price vs VWAP, relative volume vs the same time of day over 10 sessions, RSI14, 20/50/200-day
   SMAs, distance from the 52-week high, 20-day realized volatility, analyst targets, P/E, and
   earnings in the next 14 days.
-- **Email:** sector scoreboard (equal-weight avg day % per sector, vs QQQ, best/worst) + results
-  table grouped by sector + top 3 moves of the hour + risks/catalysts, under ~500 words.
+- **Email (per ecosystem):** layer scoreboard L1→L5 (equal-weight avg day %, vs QQQ, best/worst),
+  ticker table, and a one-line read of where money is flowing along the chain. Then the top 5
+  movers overall and risks/catalysts (earnings, RVOL > 2, gaps > 3%, RSI extremes). Narrative under ~400 words.
 
 ## How it runs
 | Setting | Value |
