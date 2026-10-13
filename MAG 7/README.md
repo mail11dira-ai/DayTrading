@@ -18,7 +18,7 @@ mail11dira@gmail.com. **No orders are ever placed.**
 | Schedule | Mon–Fri at ~8:00am, 9:00am, 9:30am US Central (runs 1 minute early: 7:59, 8:59, 9:29 — exact `:00` schedules get shifted by the server). 3 emails/day. The 8:00 run is pre-market |
 | Connectors | Robinhood_Agentic (read-only use) + Gmail (send only to mail11dira@gmail.com) — **must be attached to both routines** in claude.ai |
 | Delivery | Gmail `send_message`, HTML table; sender is your own address (lands in Sent + Inbox) |
-| Built-in notification | Off on all routines (one email per run) |
+| Built-in notification | Off on the 9:30 routine. **Still ON for the main MAG 7 routine** — turn Email off in its claude.ai settings for one email per run |
 | Cost | ~$0.27–0.35 per run (test runs) |
 
 Each firing starts a fresh cloud session with the prompt in `routine_prompt.txt`.
