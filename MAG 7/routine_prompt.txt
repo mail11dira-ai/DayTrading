@@ -23,7 +23,7 @@ B. VWAP
  - Events: reclaimed VWAP (crossed above and held 2+ bars) or lost VWAP (crossed below and held 2+ bars) today.
 C. SUPPORT / RESISTANCE & PRICE ACTION
  - Levels: prior-day high/low/close (PDH/PDL/PDC), pre-market high/low (PMH/PML), opening range high/low (first 15 min, 8:30-8:45 CT; n/a before 8:45), classic floor pivots from the prior day (P, R1, R2, S1, S2), 20-day swing high/low, 52-week high/low, and round numbers within 1 daily ATR.
- - Nearest support below and nearest resistance above current price (from the levels above), each with distance in % and in ATR.
+ - Nearest meaningful support below and resistance above current price (see WATCH LEVELS filter), each with distance in % and in ATR.
  - Gap % = today's open (or pre-market price) vs PDC; gap filled yes/no.
  - Intraday structure from 5-min swing points: higher highs + higher lows (uptrend), lower highs + lower lows (downtrend), or range. Note an opening-range breakout/breakdown or a break of PDH/PDL/PMH/PML.
 D. MOVING AVERAGES
@@ -42,9 +42,11 @@ BIAS SCORE (deterministic, -6..+6): +1 each when true, -1 when the opposite is t
  Score >= +3 = BULLISH, <= -3 = BEARISH, otherwise NEUTRAL. Do not override the score with judgment; add any judgment as a separate one-line note.
 
 WATCH LEVELS (research levels, not trade instructions):
- - Bullish above: the nearest resistance; next target: the following resistance or VWAP +2 sigma; invalidation: nearest support or VWAP, whichever is closer below.
- - Bearish below: the nearest support; next target: the following support or VWAP -2 sigma; invalidation: nearest resistance or VWAP, whichever is closer above.
- - Show the move to target and to invalidation in ATR units (reward/risk ratio to 1 decimal).
+ - Meaningful levels only: take every level from section C (plus VWAP and its +/-2 sigma bands); merge levels within 0.10 daily ATR of each other into one zone (use the zone midpoint, label it with all merged names); then drop any level/zone within 0.15 daily ATR of the current price. The scoreboard "Nearest S / R" column uses these meaningful levels too.
+ - Bullish: trigger = first meaningful level above price. Target = first meaningful level at least 0.50 daily ATR above the trigger; if none exists, target = trigger + 0.75 x daily ATR, labelled "ATR projection". Invalidation = first meaningful level below the trigger that is at least 0.25 daily ATR below it (VWAP counts if it qualifies); if none, trigger - 0.50 x daily ATR, labelled "ATR stop".
+ - Bearish: mirror image (trigger = first meaningful level below price; target >= 0.50 ATR below the trigger; invalidation >= 0.25 ATR above the trigger).
+ - Show trigger, target and invalidation with their labels, the distances in ATR units, and reward/risk = (target distance) / (invalidation distance) to 1 decimal. By construction reward >= 0.5 ATR and risk >= 0.25 ATR, so R/R is never 0 or inflated by a tiny stop. Mark R/R < 1.0 as "poor".
+ - Top setups: rank by |bias score|, then RVOL, then the bias-side R/R; exclude setups whose bias-side R/R < 1.0 and say so if fewer remain than requested.
  Pre-market (8:00) run: VWAP, opening range, intraday EMAs and RVOL use pre-market bars where possible, otherwise "n/a (pre-market)"; lean on PDH/PDL/PDC, PMH/PML, gap and daily MAs.
 
 REPORT
@@ -59,7 +61,7 @@ Title: "MAG 7 Research - <date> <time> CT"
    - RSI: 5-min and daily value + zone, divergence.
    - ATR: daily ATR (value and %), range used, expected range left.
    - Bias + watch levels: bullish-above / bearish-below, targets, invalidation, reward/risk in ATR.
-4. Top 3 setups across the 7 (highest |bias score| with RVOL > 1, best reward/risk), with the supporting numbers.
+4. Top 3 setups across the 7 (ranked by the "Top setups" rule in WATCH LEVELS), with the supporting numbers.
 5. Risks / catalysts: earnings within 14 days, RSI extremes or divergences, range used > 1.0, gaps > 2%.
 Footer: "Research only, not financial advice. No orders placed."
 

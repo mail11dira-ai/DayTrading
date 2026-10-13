@@ -43,7 +43,7 @@ mail11dira@gmail.com. Same setup as `../MAG 7`. **No orders are ever placed.**
   | DISCO | DSCSY (OTC) |
   | ASMPT | ASMVY (OTC, thin) |
   | ABB | ABBNY (OTC) |
-  | Samsung, Kioxia, Siemens Gamesa (SGRE, delisted) | not on Robinhood — shown as n/a, excluded from averages |
+  | Samsung, Kioxia, Siemens Gamesa (SGRE, delisted), Pure Storage (PSTG) | not on Robinhood — shown as n/a, excluded from averages |
 
   † ENB trades on the NYSE and is tracked normally; the † is kept as you listed it.
 - **Each run computes (in Python, from Robinhood data):** price and day %, strength vs QQQ,
