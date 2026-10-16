@@ -41,8 +41,8 @@ UNIVERSE - 4 ecosystems, 32 liquid stocks (20-day avg dollar volume >= ~$1B; low
  L2 AI Hosting / HPC: IREN, CIFR (Cipher), APLD (Applied Digital)
 
 Benchmarks: SPY, QQQ, SMH (semis), XLU (utilities).
-Times are US Central (market hours 8:30am-3:00pm CT). 
-Runs at ~8:00 (pre-market), ~9:00 and ~9:30 CT.
+Times are US Central (market hours 8:30am-3:00pm CT).
+Runs at ~8:00 (pre-market) and ~9:00 CT.
 
 DATA (batch requests to keep the run fast; split a batch if a response overflows):
 1. get_equity_quotes for all unique symbols + benchmarks in batches of <=20 (day % uses adjusted_previous_close; pre-market uses the extended-hours price).
@@ -101,8 +101,8 @@ STYLE (use these exact conventions):
  - Bullet lists (<ul><li>) for the market snapshot and risks. Footer in <p><i>...</i></p>.
 SECTIONS
 1. Market snapshot (<ul>): SPY, QQQ, SMH, XLU - price, colored day %, price vs VWAP, bias, RVOL; then a one-line "Tape:" read naming which ecosystem leads and which lags (with their averages).
-2. One <h3> per ecosystem (Memory, AI Power Stack, Data Center), in that order:
-   * Layer scoreboard table: Layer | Sector | Avg Day % | vs QQQ | Avg bias | Best | Worst (L1-L5 order, supply chain top to bottom).
+2. One <h3> per ecosystem (Memory, AI Power Stack, Data Center, Neo-Cloud), in that order:
+   * Layer scoreboard table: Layer | Sector | Avg Day % | vs QQQ | Avg bias | Best | Worst (layer order, supply chain top to bottom).
    * Ticker table: Layer | Ticker | Price | Day % | vs QQQ | Bias | vs VWAP | RVOL | RSI 5m/D | ATR% | Range used | Nearest S / R | MA stack. n/a tickers get one row with "n/a - not on Robinhood" spanning the data columns.
    * One <p> line: "Money flow:" where money is flowing along this chain.
 3. Top 5 setups across all ecosystems (ranked by the "Top setups" rule in WATCH LEVELS): one card each, plus analyst rating summary and P/E if available:
