@@ -69,7 +69,7 @@ def _row(r, first=None):
     return lead + [f"<b>{r['sym']}</b>", R.num(r["price"]), R.pct(r["day_pct"]), R.pct(r["vs_qqq"]),
                    R.bias(r), R.vw_cell(r), R.rvol_cell(r), f"{R.rsi(r['rsi_5'])} / {R.rsi(r['rsi_d'])}",
                    R.ratio(r["atr_pct"]) + ("%" if r["atr_pct"] else ""), R.ratio(r["range_used"]),
-                   f"{R.short_lvl(r['sup'])} / {R.short_lvl(r['res'])}", r["stack"] or R.NA]
+                   f"{R.short_lvl(r['sup'])} / {R.short_lvl(r['res'])}", R.tone(r["stack"])]
 
 
 HDR = ["Ticker", "Price", "Day %", "vs QQQ", "Bias", "vs VWAP", "RVOL", "RSI 5m/D", "ATR%",
@@ -112,7 +112,7 @@ def _risks(res, syms, earn, gap_thr, rng_thr, rsi_hi, rsi_lo):
     items.append(f"Gaps &gt; {gap_thr:g}%: " + lst([r for r in ok if r["gap_pct"] is not None and abs(r["gap_pct"]) > gap_thr], lambda r: f"{r['sym']} {r['gap_pct']:+.1f}%"))
     ext = [r for r in ok if any(x is not None and (x > rsi_hi or x < rsi_lo) for x in (r["rsi_5"], r["rsi_d"]))]
     items.append(f"RSI &gt; {rsi_hi} or &lt; {rsi_lo}: " + lst(ext, lambda r: f"{r['sym']} ({R.rsi(r['rsi_5'])}/{R.rsi(r['rsi_d'])})"))
-    items.append("5m divergences: " + lst([r for r in ok if r["div"] in ("bullish", "bearish")], lambda r: f"{r['sym']} {r['div']}"))
+    items.append("5m divergences: " + lst([r for r in ok if r["div"] in ("bullish", "bearish")], lambda r: f"{r['sym']} {R.tone(r['div'])}"))
     items.append(f"Range used &gt; {rng_thr:g}: " + lst([r for r in ok if (r["range_used"] or 0) > rng_thr], lambda r: f"{r['sym']} {r['range_used']:.2f}"))
     return "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
 
@@ -141,7 +141,7 @@ def _top_html(top, note):
     items = []
     for r in top:
         s = r["setup"]
-        side = "bull above" if r["bias"] > 0 else "bear below"
+        side = R.tone("bull above" if r["bias"] > 0 else "bear below")
         items.append(f"<li><b>{r['sym']}</b> {R.bias(r)}, RVOL {R.rvol_cell(r)}; {side} {R.num(s['trigger'])} "
                      f"&rarr; {R.num(s['target'])}, invalid {R.num(s['stop'])}; reward {s['reward_atr']:.2f} ATR vs "
                      f"risk {s['risk_atr']:.2f} ATR (R/R {s['rr']:.2f}); RSI5 {R.rsi(r['rsi_5'])}, VWAP {R.vw_cell(r)}</li>")
@@ -169,7 +169,7 @@ def _ai(res, syms, bench, earn, ds):
             best = max(live, key=lambda r: r["day_pct"]) if live else None
             worst = min(live, key=lambda r: r["day_pct"]) if live else None
             lay_stats.append((code, name, a, vq))
-            score_rows.append([code, name, R.pct(a), R.pct(vq), R.NA if ab is None else f"{ab:+.1f}",
+            score_rows.append([code, name, R.pct(a), R.pct(vq), R.score(ab),
                                f"{best['sym']} {R.pct(best['day_pct'])}" if best else R.NA,
                                f"{worst['sym']} {R.pct(worst['day_pct'])}" if worst else R.NA])
             for disp, s in tickers:

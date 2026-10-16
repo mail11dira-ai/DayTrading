@@ -32,6 +32,24 @@ def pct(x, d=2, unit="%"):
     return f'<span class="{cls(x)}">{x:+.{d}f}{unit}</span>'
 
 
+BULL_WORDS = {"bull", "bullish", "uptrend", "golden", "reclaimed", "up", "bull above", "bullish above"}
+BEAR_WORDS = {"bear", "bearish", "downtrend", "death", "lost", "down", "bear below", "bearish below"}
+
+
+def tone(text):
+    """Wrap a bullish word in green and a bearish word in red; other text unchanged."""
+    if text is None:
+        return NA
+    k = str(text).strip().lower()
+    c = "g" if k in BULL_WORDS else "r" if k in BEAR_WORDS else None
+    return f'<span class="{c}">{text}</span>' if c else str(text)
+
+
+def score(x, d=1):
+    """Signed bias number: green when > 0, red when < 0."""
+    return NA if x is None else f'<span class="{cls(x)}">{x:+.{d}f}</span>'
+
+
 def bias(r):
     c = {"BULLISH": "g", "BEARISH": "r"}.get(r["bias_label"], "z")
     return f'<span class="{c}">{r["bias"]:+d} {r["bias_label"]}</span>'
@@ -103,22 +121,23 @@ def card(r, extra=""):
     trend = NA if r["vol_trend"] is None else f"{r['vol_trend']:.1f}x session avg ({'rising' if r['vol_trend'] >= 1 else 'falling'})"
     if r["vwap"] and not r["thin"]:
         sd = r["vwap_sd"] or 0
-        ev = f"{r['vwap_event'][0]} VWAP @ {r['vwap_event'][1]} CT" if r["vwap_event"] else "no reclaim/loss"
+        ev = f"{tone(r['vwap_event'][0])} VWAP @ {r['vwap_event'][1]} CT" if r["vwap_event"] else "no reclaim/loss"
         vw = (f"{num(r['vwap'])}, px {pct(r['vs_vwap'])} / {ratio(r['vs_vwap_atr'])} ATR; "
               f"&plusmn;1&sigma; {num(r['vwap'] - sd)}&ndash;{num(r['vwap'] + sd)}, "
               f"&plusmn;2&sigma; {num(r['vwap'] - 2 * sd)}&ndash;{num(r['vwap'] + 2 * sd)}; "
-              f"slope {r['vwap_slope'] or NA}; {ev}")
+              f"slope {tone(r['vwap_slope'])}; {ev}")
     else:
         vw = "thin (OTC / low volume)" if r["thin"] else NA
     gap = NA if r["gap_pct"] is None else (
         f"{r['gap_pct']:+.2f}%" + ("" if r["gap_filled"] is None else f" (filled: {'yes' if r['gap_filled'] else 'no'})"))
     ema5 = NA
     if r["ema_bull"] is not None:
-        ema5 = (f"EMA9 {num(r['ema9_5'])} {'&gt;' if r['ema_bull'] else '&lt;'} EMA21 {num(r['ema21_5'])}"
-                f" ({'cross ' + r['ema_cross'] + ' in last 30m' if r['ema_cross'] else 'no cross in last 30m'})")
+        ema5 = (f"{tone('bullish' if r['ema_bull'] else 'bearish')}: EMA9 {num(r['ema9_5'])} "
+                f"{'&gt;' if r['ema_bull'] else '&lt;'} EMA21 {num(r['ema21_5'])}"
+                f" ({'cross ' + tone(r['ema_cross']) + ' in last 30m' if r['ema_cross'] else 'no cross in last 30m'})")
     rng = NA if r["range_used"] is None else f"{r['range_used']:.2f}"
     exp = NA if r["exp_lo"] is None else f"{num(r['exp_lo'])}&ndash;{num(r['exp_hi'])}"
-    comp = ", ".join(f"{k} {v:+d}" for k, v in r["bias_comp"].items())
+    comp = ", ".join(f'{k} <span class="{cls(v)}">{v:+d}</span>' for k, v in r["bias_comp"].items())
     lines = [
         f"<b>Volume:</b> RVOL {rvol_cell(r)}; last-3-bar vol {trend}; up/down vol {ratio(r['ud'])}; spikes (&gt;3x slot avg): {spikes}",
         f"<b>VWAP:</b> {vw}",
@@ -126,15 +145,15 @@ def card(r, extra=""):
         f"ORH {g('ORH')} / ORL {g('ORL')}; P {g('P')}, R1 {g('R1')}, R2 {g('R2')}, S1 {g('S1')}, S2 {g('S2')}; "
         f"20d {g('20dL')}&ndash;{g('20dH')}; 52w {g('52wL')}&ndash;{g('52wH')}",
         f"<b>Price action:</b> S {lvl(r['sup'], p, atr)} / R {lvl(r['res'], p, atr)}; gap {gap}; "
-        f"structure {r['struct'] or NA}; breaks: {', '.join(r['breaks']) or 'none'}",
+        f"structure {tone(r['struct'])}; breaks: {', '.join(r['breaks']) or 'none'}",
         f"<b>MAs:</b> 5m {ema5}; daily EMA9 {num(r['d_ema9'])}, EMA21 {num(r['d_ema21'])}, SMA20 {num(r['sma20'])}, "
-        f"SMA50 {num(r['sma50'])}, SMA200 {num(r['sma200'])} &rarr; stack {r['stack'] or NA}"
-        + (f"; {r['cross']} cross (SMA50/200) in last 10d" if r["cross"] else ""),
-        f"<b>RSI:</b> 5m {rsi(r['rsi_5'])}, daily {rsi(r['rsi_d'])}; 5m divergence: {r['div'] or NA}",
+        f"SMA50 {num(r['sma50'])}, SMA200 {num(r['sma200'])} &rarr; stack {tone(r['stack'])}"
+        + (f"; {tone(r['cross'])} cross (SMA50/200) in last 10d" if r["cross"] else ""),
+        f"<b>RSI:</b> 5m {rsi(r['rsi_5'])}, daily {rsi(r['rsi_d'])}; 5m divergence: {tone(r['div'])}",
         f"<b>ATR:</b> daily {num(atr)} ({ratio(r['atr_pct'])}%), 5m {num(r['atr_5'])}; range used {rng}; expected range left {exp}",
         f"<b>Bias {bias(r)}</b> ({comp}){extra}",
-        setup_line("bull", r["watch"]["bull"], "Bullish above"),
-        setup_line("bear", r["watch"]["bear"], "Bearish below"),
+        setup_line("bull", r["watch"]["bull"], '<span class="g">Bullish above</span>'),
+        setup_line("bear", r["watch"]["bear"], '<span class="r">Bearish below</span>'),
     ]
     return (f"<h4>{escape(r['sym'])} &mdash; ${num(p)} ({pct(r['day_pct'])})</h4>"
             f'<div class="c">' + "<br>\n".join(lines) + "</div>\n")

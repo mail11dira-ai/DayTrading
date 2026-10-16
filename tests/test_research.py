@@ -212,3 +212,15 @@ def test_end_to_end_intraday_mode_uses_today():
     now = datetime(2026, 10, 12, 9, 0, tzinfo=CT)  # bars after 9:00 exist in fixture but mode is driven by 'today'
     mode, sday = detect_mode(ds, now)
     assert (mode, sday) == ("intraday", session)
+
+
+def test_bullish_green_bearish_red():
+    from research import render as R
+    assert R.tone("bullish") == '<span class="g">bullish</span>'
+    assert R.tone("uptrend") == '<span class="g">uptrend</span>'
+    assert R.tone("bearish") == '<span class="r">bearish</span>'
+    assert R.tone("death") == '<span class="r">death</span>'
+    assert R.tone("mixed") == "mixed" and R.tone(None) == "n/a"
+    assert R.score(1.5) == '<span class="g">+1.5</span>' and R.score(-2) == '<span class="r">-2.0</span>'
+    html = R.table(["Ticker", "MA stack"], [["<b>X</b>", R.tone("bullish")], ["<b>Y</b>", R.tone("bearish")]])
+    assert '<td class="g">bullish</td>' in html and '<td class="r">bearish</td>' in html
