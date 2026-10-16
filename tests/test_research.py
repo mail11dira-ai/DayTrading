@@ -120,9 +120,10 @@ def test_ma_stack_and_cross():
 
 def test_universe_unique_and_excludes_mag7():
     syms = ai_symbols()
-    assert len(syms) == 59
+    assert len(syms) == 32
     assert not set(syms) & set(MAG7)
-    assert sum(len(t) for _, layers in AI_SECTORS for _, _, t in layers) == 63  # 59 + 4 n/a
+    assert {"CRWV", "NBIS", "IREN", "CIFR", "APLD"} <= set(syms)
+    assert sum(len(t) for _, layers in AI_SECTORS for _, _, t in layers) == 32  # no n/a left
 
 
 def test_collect_reads_inline_and_saved_results(tmp_path):
@@ -200,7 +201,7 @@ def test_end_to_end_report_closed_session(agent):
         assert f"<b>{s}</b>" in html
     assert "Research only, not financial advice. No orders placed." in html
     if agent == "aisectors":
-        assert "n/a - not on Robinhood" in html and "covered in AI Power Stack" in html
+        assert "Neo-Cloud ecosystem" in html
         assert not any(f"<b>{m}</b>" in html for m in MAG7)
 
 

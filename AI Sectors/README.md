@@ -4,50 +4,47 @@ An hourly, research-only report on AI-sector stocks, built from Robinhood data a
 mail11dira@gmail.com. Same setup as `../MAG 7`. **No orders are ever placed.**
 
 ## What it does
-- **Universe: 3 ecosystems × 5 layers — 59 unique stocks.** Each ticker is listed once (first occurrence), and the MAG 7 (AAPL, MSFT, NVDA, AMZN, META, GOOGL, TSLA) are excluded because the MAG 7 agent covers them.
+- **Universe: 4 ecosystems — 32 liquid stocks.** Each ticker is listed once, and the MAG 7 (AAPL, MSFT, NVDA, AMZN, META, GOOGL, TSLA) are excluded because the MAG 7 agent covers them.
 
   **1. Memory Ecosystem**
   | Layer | Sector | Tickers |
   |---|---|---|
-  | 1 | Equipment | ASML, AMAT, LRCX, KLAC, TER, ONTO |
-  | 2 | Memory Makers | MU, SK Hynix*, Samsung*, WDC, SNDK, Kioxia* |
-  | 3 | Packaging & Test | TSM, AMKR, ASE (ASX), BESI*, DISCO*, ASMPT* |
-  | 4 | Storage Platforms | PSTG*, NTAP, DELL, HPE |
+  | 1 | Equipment | ASML, AMAT, LRCX, KLAC |
+  | 2 | Memory Makers | MU, SK Hynix (SKHY), WDC, SNDK |
+  | 3 | Packaging & Test | TSM |
+  | 4 | Storage Platforms | DELL, HPE |
   | 5 | AI Demand | AVGO, AMD |
 
   **2. AI Power Stack**
   | Layer | Sector | Tickers |
   |---|---|---|
-  | 1 | Generation | VST, CEG, NRG, NEE, DUK, SO |
-  | 2 | Nuclear | CCJ, UEC, BWXT, LEU, SMR, OKLO |
-  | 3 | Grid | ETN, PWR, HUBB, GEV, ABB*, SGRE* |
-  | 4 | Power Management | ENB, GNRC, CAT, CMI, NVT, VRT |
-  | 5 | Demand Centers | ORCL, DLR |
+  | 1 | Generation | VST, CEG |
+  | 3 | Grid | GEV |
+  | 4 | Power Management | CAT, VRT |
+  | 5 | Demand Centers | ORCL |
 
   **3. Data Center Ecosystem**
   | Layer | Sector | Tickers |
   |---|---|---|
-  | 1 | Power | — all covered in AI Power Stack (VST, CEG, ETN, PWR, GEV, ENB) |
   | 2 | Compute | INTC, ARM |
   | 3 | Networking | ANET, MRVL, CRDO, CSCO, LITE, AAOI |
-  | 4 | Cooling | TT, MOD, CARR, JCI |
-  | 5 | Operators | EQIX |
 
-  Removed as duplicates: WDC/SNDK (Storage), MU/AMD/AVGO (Compute), VRT/NVT (Cooling), DLR/ORCL (Operators), all Data Center Power names. Removed as MAG 7: NVDA, META, AMZN, GOOGL, MSFT.
+  **4. Neo-Cloud Ecosystem** (added 2026-10-16: top 5 neo-clouds by 20-day avg dollar volume)
+  | Layer | Sector | Tickers |
+  |---|---|---|
+  | 1 | GPU Clouds | CRWV (CoreWeave ~$2.9B/day), NBIS (Nebius ~$3.9B/day) |
+  | 2 | AI Hosting / HPC | IREN (~$1.7B/day), CIFR (~$0.6B/day), APLD (~$0.6B/day) |
+
+  Next by volume (not added): WULF ~$0.43B, CORZ ~$0.20B, GLXY ~$0.12B.
+
+  **Trim (2026-10-16):** stocks with 20-day average dollar volume below ~$1B were removed, plus the 4
+  names not on Robinhood. 36 removed: ASMVY, BESIY, DSCSY, ABBNY (OTC), UEC, LEU, AMKR, BWXT, ENB,
+  HUBB, ONTO, MOD, SMR, CCJ, NVT, ASX, DLR, GNRC, NRG, CARR, OKLO, JCI, EQIX, DUK, SO, TT, NTAP, CMI,
+  PWR, ETN, TER, NEE, and n/a Samsung, Kioxia, PSTG, SGRE. Layers left empty (AI Power L2 Nuclear,
+  Data Center L1 Power / L4 Cooling / L5 Operators) are no longer shown; layer numbers are kept.
 
   Benchmarks: SPY, QQQ, SMH (semis), XLU (utilities).
 
-  **\* Foreign listings — Robinhood mapping (checked 2026-10-13):**
-  | Name | Robinhood symbol |
-  |---|---|
-  | SK Hynix | SKHY (ADR) |
-  | BESI | BESIY (OTC) |
-  | DISCO | DSCSY (OTC) |
-  | ASMPT | ASMVY (OTC, thin) |
-  | ABB | ABBNY (OTC) |
-  | Samsung, Kioxia, Siemens Gamesa (SGRE, delisted), Pure Storage (PSTG) | not on Robinhood — shown as n/a, excluded from averages |
-
-  † ENB trades on the NYSE and is tracked normally; the † is kept as you listed it.
 - **Each run computes (in Python, from Robinhood data):** price and day %, strength vs QQQ,
   price vs VWAP, relative volume vs the same time of day over 10 sessions, RSI14, 20/50/200-day
   SMAs, distance from the 52-week high, 20-day realized volatility, analyst targets, P/E, and
