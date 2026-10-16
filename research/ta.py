@@ -303,3 +303,129 @@ def bias_score(vwap_side, ema_bull, stack, rsi5, rvol, ud_ratio, struct, vwap_ok
     score = sum(comp.values())
     label = "BULLISH" if score >= 3 else "BEARISH" if score <= -3 else "NEUTRAL"
     return score, label, comp
+
+
+def macd_series(closes, fast=12, slow=26, signal=9):
+    """MACD line, signal line and histogram (None until computable)."""
+    ef, es = ema_series(closes, fast), ema_series(closes, slow)
+    line = [None if (a is None or b is None) else a - b for a, b in zip(ef, es)]
+    vals = [x for x in line if x is not None]
+    sig_vals = ema_series(vals, signal)
+    sig = [None] * (len(line) - len(vals)) + sig_vals
+    hist = [None if (m is None or s is None) else m - s for m, s in zip(line, sig)]
+    return line, sig, hist
+
+
+def adx_series(highs, lows, closes, n=14):
+    """Wilder ADX with +DI / -DI. Returns (adx, pdi, mdi) lists; ADX first at index 2n-1."""
+    m = len(closes)
+    adx, pdi, mdi = [None] * m, [None] * m, [None] * m
+    if m <= 2 * n:
+        return adx, pdi, mdi
+    tr, pdm, mdm = [], [], []
+    for i in range(1, m):
+        up, dn = highs[i] - highs[i - 1], lows[i - 1] - lows[i]
+        pdm.append(up if up > dn and up > 0 else 0.0)
+        mdm.append(dn if dn > up and dn > 0 else 0.0)
+        tr.append(max(highs[i] - lows[i], abs(highs[i] - closes[i - 1]), abs(lows[i] - closes[i - 1])))
+    st, sp, sm = sum(tr[:n]), sum(pdm[:n]), sum(mdm[:n])
+    dxs = []
+    for j in range(n - 1, len(tr)):
+        if j >= n:
+            st, sp, sm = st - st / n + tr[j], sp - sp / n + pdm[j], sm - sm / n + mdm[j]
+        p, q = (100 * sp / st, 100 * sm / st) if st else (0.0, 0.0)
+        pdi[j + 1], mdi[j + 1] = p, q
+        dxs.append(100 * abs(p - q) / (p + q) if p + q else 0.0)
+        if len(dxs) == n:
+            a = sum(dxs) / n
+            adx[j + 1] = a
+        elif len(dxs) > n:
+            a = (a * (n - 1) + dxs[-1]) / n
+            adx[j + 1] = a
+    return adx, pdi, mdi
+
+
+def squeeze(highs, lows, closes, n=20, bb=2.0, kc=1.5, lookback=6):
+    """TTM-style squeeze: Bollinger(n, bb) inside Keltner(SMA n +/- kc*ATR n).
+
+    Returns ('on', bars_on) | ('fired up'/'fired down', bars_ago) | ('off', 0) | None.
+    """
+    m = len(closes)
+    if m < n + lookback + 1:
+        return None
+    atr = atr_series(highs, lows, closes, n)
+    states = []
+    for i in range(m - lookback - 1, m):
+        w = closes[i - n + 1:i + 1]
+        mu = sum(w) / n
+        sd = math.sqrt(sum((x - mu) ** 2 for x in w) / n)
+        a = atr[i]
+        states.append(a is not None and mu + bb * sd < mu + kc * a and mu - bb * sd > mu - kc * a)
+    if states[-1]:
+        k = 0
+        for s in reversed(states):
+            if not s:
+                break
+            k += 1
+        return ("on", k)
+    for ago in range(1, len(states)):
+        if states[-1 - ago]:
+            mu = sum(closes[-n:]) / n
+            return ("fired up" if closes[-1] > mu else "fired down", ago)
+    return ("off", 0)
+
+
+def volume_profile(bars, step, value_area=0.70):
+    """POC / VAH / VAL from bars (dicts h, l, v); each bar's volume is spread
+    evenly over the price bins its high-low range touches."""
+    if not bars or not step or step <= 0:
+        return None
+    vol = {}
+    for b in bars:
+        lo, hi = math.floor(b["l"] / step), math.floor(b["h"] / step)
+        k = hi - lo + 1
+        for i in range(lo, hi + 1):
+            vol[i] = vol.get(i, 0.0) + b["v"] / k
+    total = sum(vol.values())
+    if total <= 0:
+        return None
+    poc = max(vol, key=lambda i: (vol[i], -i))
+    lo = hi = poc
+    acc = vol[poc]
+    while acc < value_area * total and (lo > min(vol) or hi < max(vol)):
+        below = vol.get(lo - 1, 0.0) if lo > min(vol) else -1
+        above = vol.get(hi + 1, 0.0) if hi < max(vol) else -1
+        if above >= below:
+            hi += 1
+            acc += max(above, 0)
+        else:
+            lo -= 1
+            acc += max(below, 0)
+    mid = lambda i: (i + 0.5) * step
+    return {"POC": mid(poc), "VAH": (hi + 1) * step, "VAL": lo * step}
+
+
+def daily_pattern(highs, lows, n=7):
+    """Compression patterns of the LAST completed daily bar: 'inside day', 'NR7', both, or None."""
+    out = []
+    if len(highs) >= 2 and highs[-1] <= highs[-2] and lows[-1] >= lows[-2]:
+        out.append("inside day")
+    if len(highs) >= n:
+        rng = [h - l for h, l in zip(highs[-n:], lows[-n:])]
+        if rng[-1] <= min(rng[:-1]):
+            out.append(f"NR{n}")
+    return " + ".join(out) or None
+
+
+def confirmations(bias, macd_hist, macd_prev, adx, pdi, mdi, adx_min=20):
+    """How many momentum/trend filters agree with the bias direction (0-2):
+    MACD histogram on the bias side and expanding; ADX >= adx_min with DI on the bias side."""
+    if not bias:
+        return 0
+    s = 1 if bias > 0 else -1
+    n = 0
+    if macd_hist is not None and macd_prev is not None and macd_hist * s > 0 and abs(macd_hist) >= abs(macd_prev):
+        n += 1
+    if None not in (adx, pdi, mdi) and adx >= adx_min and (pdi - mdi) * s > 0:
+        n += 1
+    return n

@@ -32,8 +32,8 @@ def pct(x, d=2, unit="%"):
     return f'<span class="{cls(x)}">{x:+.{d}f}{unit}</span>'
 
 
-BULL_WORDS = {"bull", "bullish", "uptrend", "golden", "reclaimed", "up", "bull above", "bullish above"}
-BEAR_WORDS = {"bear", "bearish", "downtrend", "death", "lost", "down", "bear below", "bearish below"}
+BULL_WORDS = {"fired up", "trending up", "bull", "bullish", "uptrend", "golden", "reclaimed", "up", "bull above", "bullish above"}
+BEAR_WORDS = {"fired down", "trending down", "bear", "bearish", "downtrend", "death", "lost", "down", "bear below", "bearish below"}
 
 
 def tone(text):
@@ -43,6 +43,14 @@ def tone(text):
     k = str(text).strip().lower()
     c = "g" if k in BULL_WORDS else "r" if k in BEAR_WORDS else None
     return f'<span class="{c}">{text}</span>' if c else str(text)
+
+
+def tone_pair(text):
+    """'bullish, expanding' -> colors the first word."""
+    if not text:
+        return NA
+    head, _, tail = text.partition(", ")
+    return tone(head) + (f", {tail}" if tail else "")
 
 
 def score(x, d=1):
@@ -94,6 +102,39 @@ def table(headers, rows, left=1):
     return SPAN_TD.sub(r'<td class="\1">\2</td>', out)
 
 
+def adx_trend(r):
+    """'trending up/down' (ADX >= 25), 'developing up/down' (20-25) or 'choppy'."""
+    a, p, m = r.get("adx"), r.get("pdi"), r.get("mdi")
+    if None in (a, p, m):
+        return None
+    if a < 20:
+        return "choppy"
+    d = "up" if p > m else "down"
+    return f"{'trending' if a >= 25 else 'developing'} {d}"
+
+
+def adx_cell(r):
+    """ADX value colored by DI direction once ADX >= 20 (trend strong enough to matter)."""
+    a = r.get("adx")
+    if a is None:
+        return NA
+    t = adx_trend(r)
+    if t == "choppy":
+        return f"{a:.0f}"
+    return f'<span class="{"g" if t.endswith("up") else "r"}">{a:.0f}{" &uarr;" if t.endswith("up") else " &darr;"}</span>'
+
+
+def sqz_text(q):
+    if not q:
+        return NA
+    state, k = q
+    if state == "on":
+        return f"ON for {k} bar{'s' if k != 1 else ''} (compression - breakout pending)"
+    if state.startswith("fired"):
+        return f"{tone(state)} {k} bar{'s' if k != 1 else ''} ago"
+    return "off"
+
+
 def vw_cell(r):
     if r["thin"]:
         return "thin"
@@ -143,6 +184,7 @@ def card(r, extra=""):
         f"<b>VWAP:</b> {vw}",
         f"<b>Levels:</b> PDH {g('PDH')} / PDL {g('PDL')} / PDC {g('PDC')}; PMH {g('PMH')} / PML {g('PML')}; "
         f"ORH {g('ORH')} / ORL {g('ORL')}; P {g('P')}, R1 {g('R1')}, R2 {g('R2')}, S1 {g('S1')}, S2 {g('S2')}; "
+        f"prior-day volume profile POC {g('POC')}, VAH {g('VAH')}, VAL {g('VAL')}; PWH {g('PWH')} / PWL {g('PWL')}; "
         f"20d {g('20dL')}&ndash;{g('20dH')}; 52w {g('52wL')}&ndash;{g('52wH')}",
         f"<b>Price action:</b> S {lvl(r['sup'], p, atr)} / R {lvl(r['res'], p, atr)}; gap {gap}; "
         f"structure {tone(r['struct'])}; breaks: {', '.join(r['breaks']) or 'none'}",
@@ -150,8 +192,13 @@ def card(r, extra=""):
         f"SMA50 {num(r['sma50'])}, SMA200 {num(r['sma200'])} &rarr; stack {tone(r['stack'])}"
         + (f"; {tone(r['cross'])} cross (SMA50/200) in last 10d" if r["cross"] else ""),
         f"<b>RSI:</b> 5m {rsi(r['rsi_5'])}, daily {rsi(r['rsi_d'])}; 5m divergence: {tone(r['div'])}",
+        f"<b>Momentum:</b> 5m MACD(12,26,9) hist {num(r.get('macd_hist'), 3)} ({tone_pair(r.get('macd_state'))})"
+        + (f", {tone(r['macd_cross'])} cross in last 30m" if r.get("macd_cross") else "")
+        + f"; ADX {adx_cell(r)} (+DI {num(r.get('pdi'), 0)} / &minus;DI {num(r.get('mdi'), 0)}) &rarr; {tone(adx_trend(r))}"
+        + f"; squeeze {sqz_text(r.get('sqz'))}",
+        f"<b>Daily pattern:</b> " + (f"{escape(r['pattern'])} (range compression - breakout watch)" if r.get("pattern") else "none"),
         f"<b>ATR:</b> daily {num(atr)} ({ratio(r['atr_pct'])}%), 5m {num(r['atr_5'])}; range used {rng}; expected range left {exp}",
-        f"<b>Bias {bias(r)}</b> ({comp}){extra}",
+        f"<b>Bias {bias(r)}</b> ({comp}); confirmations {r.get('conf', 0)}/2 (MACD, ADX/DMI){extra}",
         setup_line("bull", r["watch"]["bull"], '<span class="g">Bullish above</span>'),
         setup_line("bear", r["watch"]["bear"], '<span class="r">Bearish below</span>'),
     ]

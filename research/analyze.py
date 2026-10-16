@@ -195,6 +195,21 @@ def analyze(ds, sym, mode, sday, now):
     a5 = ta.atr_series([b["h"] for b in series5], [b["l"] for b in series5], c5, 14)
     r["atr_5"] = a5[-1] if a5 else None
     r["div"] = ta.divergence([b["h"] for b in series5], [b["l"] for b in series5], rs5) if mode != "premarket" else None
+    h5, l5 = [b["h"] for b in series5], [b["l"] for b in series5]
+    _, msig, mh = ta.macd_series(c5)
+    r["macd_hist"] = mh[-1] if mh else None
+    r["macd_prev"] = mh[-2] if len(mh) > 1 else None
+    r["macd_state"] = None
+    if r["macd_hist"] is not None and r["macd_prev"] is not None:
+        side = "bullish" if r["macd_hist"] > 0 else "bearish"
+        grow = abs(r["macd_hist"]) >= abs(r["macd_prev"])
+        r["macd_state"] = f"{side}, {'expanding' if grow else 'fading'}"
+    r["macd_cross"] = None
+    if len(mh) > 7 and None not in (mh[-7], mh[-1]) and (mh[-7] > 0) != (mh[-1] > 0):
+        r["macd_cross"] = "bull" if mh[-1] > 0 else "bear"
+    adx, pdi, mdi = ta.adx_series(h5, l5, c5, 14)
+    r["adx"], r["pdi"], r["mdi"] = (adx[-1], pdi[-1], mdi[-1]) if adx else (None, None, None)
+    r["sqz"] = ta.squeeze(h5, l5, c5)
 
     # --- levels
     lv = {}
@@ -205,6 +220,17 @@ def analyze(ds, sym, mode, sday, now):
         lv["PMH"], lv["PML"] = max(b["h"] for b in pre_today), min(b["l"] for b in pre_today)
     if len(today_reg) >= 3:
         lv["ORH"], lv["ORL"] = max(b["h"] for b in today_reg[:3]), min(b["l"] for b in today_reg[:3])
+    if daily:
+        wk0 = sday - timedelta(days=sday.weekday())
+        prev_wk = [b for b in daily if b["d"] < wk0]
+        if prev_wk:
+            mon = prev_wk[-1]["d"] - timedelta(days=prev_wk[-1]["d"].weekday())
+            wk = [b for b in prev_wk if b["d"] >= mon]
+            lv["PWH"], lv["PWL"] = max(b["h"] for b in wk), min(b["l"] for b in wk)
+    if prior_dates and atr:
+        vp = ta.volume_profile(prior[prior_dates[-1]], atr / 20)
+        if vp:
+            lv.update(vp)
     if len(daily) >= 20:
         lv["20dH"], lv["20dL"] = max(b["h"] for b in daily[-20:]), min(b["l"] for b in daily[-20:])
     if daily:
@@ -212,6 +238,7 @@ def analyze(ds, sym, mode, sday, now):
         ls = [b["l"] for b in daily[-252:]] + ([r["lo"]] if r["lo"] else [])
         lv["52wH"], lv["52wL"] = max(hs), min(ls)
     r["levels"] = lv
+    r["pattern"] = ta.daily_pattern([b["h"] for b in daily], [b["l"] for b in daily])
     pts = [(v, k) for k, v in lv.items() if v]
     if atr:
         pts += ta.round_levels(price, atr)
@@ -237,6 +264,7 @@ def analyze(ds, sym, mode, sday, now):
     r["bias"], r["bias_label"], r["bias_comp"] = ta.bias_score(
         side, r["ema_bull"], r["stack"], r["rsi_5"], r["rvol"], r["ud"], r["struct"],
         vwap_ok=not r["thin"])
+    r["conf"] = ta.confirmations(r["bias"], r["macd_hist"], r["macd_prev"], r["adx"], r["pdi"], r["mdi"])
     side_key = "bull" if r["bias"] > 0 else "bear" if r["bias"] < 0 else None
     r["setup"] = r["watch"].get(side_key) if side_key else None
     return r

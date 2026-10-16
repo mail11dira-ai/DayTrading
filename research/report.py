@@ -65,21 +65,21 @@ def _snapshot(res, bench, extra_line):
 def _row(r, first=None):
     lead = [first] if first is not None else []
     if not r["ok"]:
-        return lead + [f"<b>{r['sym']}</b>"] + [R.NA] * 11
+        return lead + [f"<b>{r['sym']}</b>"] + [R.NA] * 12
     return lead + [f"<b>{r['sym']}</b>", R.num(r["price"]), R.pct(r["day_pct"]), R.pct(r["vs_qqq"]),
                    R.bias(r), R.vw_cell(r), R.rvol_cell(r), f"{R.rsi(r['rsi_5'])} / {R.rsi(r['rsi_d'])}",
                    R.ratio(r["atr_pct"]) + ("%" if r["atr_pct"] else ""), R.ratio(r["range_used"]),
-                   f"{R.short_lvl(r['sup'])} / {R.short_lvl(r['res'])}", R.tone(r["stack"])]
+                   f"{R.short_lvl(r['sup'])} / {R.short_lvl(r['res'])}", R.tone(r["stack"]), R.adx_cell(r)]
 
 
 HDR = ["Ticker", "Price", "Day %", "vs QQQ", "Bias", "vs VWAP", "RVOL", "RSI 5m/D", "ATR%",
-       "Range used", "Nearest S / R", "MA stack"]
+       "Range used", "Nearest S / R", "MA stack", "ADX"]
 
 
 def _top(res, syms, n):
     cands = [res[s] for s in syms if res[s]["ok"] and res[s]["bias_label"] != "NEUTRAL" and res[s]["setup"]]
     good = [r for r in cands if r["setup"]["rr"] is not None and r["setup"]["rr"] >= 1.0]
-    good.sort(key=lambda r: (-abs(r["bias"]), -(r["rvol"] or 0), -(r["setup"]["rr"] or 0)))
+    good.sort(key=lambda r: (-abs(r["bias"]), -r.get("conf", 0), -(r["rvol"] or 0), -(r["setup"]["rr"] or 0)))
     note = ""
     if len(good) < n:
         note = (f"Only {len(good)} setup(s) qualify (BULLISH/BEARISH bias with bias-side R/R &ge; 1.0); "
@@ -113,6 +113,8 @@ def _risks(res, syms, earn, gap_thr, rng_thr, rsi_hi, rsi_lo):
     ext = [r for r in ok if any(x is not None and (x > rsi_hi or x < rsi_lo) for x in (r["rsi_5"], r["rsi_d"]))]
     items.append(f"RSI &gt; {rsi_hi} or &lt; {rsi_lo}: " + lst(ext, lambda r: f"{r['sym']} ({R.rsi(r['rsi_5'])}/{R.rsi(r['rsi_d'])})"))
     items.append("5m divergences: " + lst([r for r in ok if r["div"] in ("bullish", "bearish")], lambda r: f"{r['sym']} {R.tone(r['div'])}"))
+    items.append("Squeeze fired (5m): " + lst([r for r in ok if r.get("sqz") and r["sqz"][0].startswith("fired")], lambda r: f"{r['sym']} {R.tone(r['sqz'][0])}"))
+    items.append("Inside day / NR7 (breakout watch): " + lst([r for r in ok if r.get("pattern")], lambda r: f"{r['sym']} ({r['pattern']})"))
     items.append(f"Range used &gt; {rng_thr:g}: " + lst([r for r in ok if (r["range_used"] or 0) > rng_thr], lambda r: f"{r['sym']} {r['range_used']:.2f}"))
     return "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
 
@@ -144,7 +146,8 @@ def _top_html(top, note):
         side = R.tone("bull above" if r["bias"] > 0 else "bear below")
         items.append(f"<li><b>{r['sym']}</b> {R.bias(r)}, RVOL {R.rvol_cell(r)}; {side} {R.num(s['trigger'])} "
                      f"&rarr; {R.num(s['target'])}, invalid {R.num(s['stop'])}; reward {s['reward_atr']:.2f} ATR vs "
-                     f"risk {s['risk_atr']:.2f} ATR (R/R {s['rr']:.2f}); RSI5 {R.rsi(r['rsi_5'])}, VWAP {R.vw_cell(r)}</li>")
+                     f"risk {s['risk_atr']:.2f} ATR (R/R {s['rr']:.2f}); confirmations {r.get('conf', 0)}/2; ADX {R.adx_cell(r)}; "
+                     f"RSI5 {R.rsi(r['rsi_5'])}, VWAP {R.vw_cell(r)}</li>")
     return (f"<ol>{''.join(items)}</ol>" if items else "") + (f"<p>{note}</p>" if note else "")
 
 
@@ -175,7 +178,7 @@ def _ai(res, syms, bench, earn, ds):
             for disp, s in tickers:
                 if not s:
                     tick_rows.append(f'<tr><td class="l">{code}</td><td class="l"><b>{escape(disp)}</b></td>'
-                                     f'<td class="l" colspan="11">n/a - not on Robinhood</td></tr>')
+                                     f'<td class="l" colspan="12">n/a - not on Robinhood</td></tr>')
                 else:
                     tick_rows.append(_row(res[s], code))
         eco_avg = _avg([x[2] for x in lay_stats])

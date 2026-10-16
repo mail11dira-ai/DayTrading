@@ -224,3 +224,51 @@ def test_bullish_green_bearish_red():
     assert R.score(1.5) == '<span class="g">+1.5</span>' and R.score(-2) == '<span class="r">-2.0</span>'
     html = R.table(["Ticker", "MA stack"], [["<b>X</b>", R.tone("bullish")], ["<b>Y</b>", R.tone("bearish")]])
     assert '<td class="g">bullish</td>' in html and '<td class="r">bearish</td>' in html
+
+
+def test_macd_constant_and_trend():
+    _, _, h = ta.macd_series([100.0] * 60)
+    assert h[-1] == pytest.approx(0.0)
+    line, sig, h = ta.macd_series([100 + 0.5 * i for i in range(60)])
+    assert line[-1] > 0 and h[-1] == pytest.approx(0.0, abs=1e-9)  # steady trend: line == signal
+    assert h[:33] == [None] * 33 and h[33] is not None  # 26 + 9 - 2
+
+
+def test_adx_pure_uptrend_is_100():
+    n = 40
+    hi = [101.0 + i for i in range(n)]
+    lo = [99.0 + i for i in range(n)]
+    cl = [100.0 + i for i in range(n)]
+    adx, pdi, mdi = ta.adx_series(hi, lo, cl, 14)
+    assert adx[27] == pytest.approx(100.0) and adx[26] is None
+    assert pdi[-1] > 0 and mdi[-1] == 0
+    adx2, pdi2, mdi2 = ta.adx_series(lo[::-1], [x - 2 for x in lo[::-1]], cl[::-1], 14)
+    assert mdi2[-1] > pdi2[-1]
+
+
+def test_squeeze_on_and_fired():
+    n = 40
+    cl = [100.0 + (0.01 if i % 2 else -0.01) for i in range(n)]
+    hi, lo = [c + 1 for c in cl], [c - 1 for c in cl]  # wide bars, tiny close dispersion
+    assert ta.squeeze(hi, lo, cl)[0] == "on"
+    cl2 = cl[:-1] + [112.0]
+    hi2, lo2 = hi[:-1] + [112.5], lo[:-1] + [111.5]
+    assert ta.squeeze(hi2, lo2, cl2) == ("fired up", 1)
+    assert ta.squeeze(hi[:10], lo[:10], cl[:10]) is None
+
+
+def test_volume_profile_poc_and_value_area():
+    bars = [{"h": 10.9, "l": 10.0, "v": 100}, {"h": 11.9, "l": 11.0, "v": 600},
+            {"h": 12.9, "l": 12.0, "v": 200}, {"h": 13.9, "l": 13.0, "v": 100}]
+    vp = ta.volume_profile(bars, 1.0)
+    assert vp["POC"] == pytest.approx(11.5)
+    assert (vp["VAL"], vp["VAH"]) == (pytest.approx(11.0), pytest.approx(13.0))  # 800/1000 >= 70%
+
+
+def test_daily_pattern_and_confirmations():
+    assert ta.daily_pattern([15, 16, 16, 16, 16, 16, 15.5], [10, 12, 12, 12, 12, 12, 12]) == "inside day + NR7"
+    assert ta.daily_pattern([10, 12], [9, 8]) is None
+    assert ta.confirmations(4, 0.2, 0.1, 30, 25, 10) == 2
+    assert ta.confirmations(-4, 0.2, 0.1, 30, 25, 10) == 0
+    assert ta.confirmations(-4, -0.2, -0.3, 15, 10, 25) == 0  # fading MACD, weak ADX
+    assert ta.confirmations(0, 1, 0, 50, 40, 0) == 0
