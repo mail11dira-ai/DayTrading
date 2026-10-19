@@ -86,12 +86,13 @@ gap, breaks · 5m EMA 9/21; daily EMA 9/21, SMA 20/50/200, stack, golden/death c
 - Top setups: rank |bias| → confirmations → RVOL → R/R; exclude R/R < 1. MAG 7 top 3, AI Sectors top 5.
 - Colors: every bullish word/number green (#0a7d2c), bearish red (#c0392b), neutral grey.
 
-- **Modern AI Sectors (84 = 39 ETFs + 45 stocks, 12 sectors; `--agent modern`):** see `Modern AI Sectors/README.md`.
+- **Modern AI Sectors (57 = 19 ETFs + 38 stocks after the 2026-10-19 day-trading screen, was 84; `--agent modern`):** see `Modern AI Sectors/README.md`.
   01 Semis/Memory · 02 AI Infra/Data Centers · 03 Software/Cyber · 04 Power/Grid/Nuclear · 05 Crypto/Fintech ·
   06 Space/Defense · 07 Quantum · 08 Robotics · 09 Real Assets · 10 Economy/Risk · 11 Health/Biotech · 12 Neo-Cloud.
   Dedup first listing (IGV, CIBR shown in 03; VRT in 02; PLTR in 03); NVDA, TSLA excluded (MAG 7); PSTG n/a.
   Extra section "Weekend checklist" (new highs, 8/21 hold, 20d outperformance, sector RS, base breakout, volume expansion).
-  43 Robinhood calls/run; email ≈ 52 KB (3 parts).
+  Screen: ETFs ≥ $150M/day; stocks ≥ $200M/day, price ≥ $5, ATR ≥ 2.5% (`DAYTRADE_REMOVED` in universe.py).
+  29 Robinhood calls/run; email ≈ 43 KB (2 parts).
 
 ## Change log (this session)
 - Built both agents → script-based flow (cost cut) → dropped 9:30 run → watch-level fixes → AI Sectors dedupe/no MAG 7

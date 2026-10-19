@@ -4,26 +4,28 @@ A research-only day-trading report on 11 modern market sectors plus Neo-Cloud �
 leader stocks — built from Robinhood data and emailed to mail11dira@gmail.com. Same setup and technicals as
 `../MAG 7` and `../AI Sectors`. **No orders are ever placed.**
 
-## Universe — 12 sectors, 84 symbols (39 ETFs + 45 stocks), benchmarks SPY & QQQ
-Source: the user's sector map (2026-10-19) + Neo-Cloud. Each ticker is shown once (first listing);
-NVDA and TSLA are excluded because the MAG 7 agent covers them.
+## Universe — 12 sectors, 57 day-tradable symbols (19 ETFs + 38 stocks), benchmarks SPY & QQQ
+Source: the user's sector map (2026-10-19) + Neo-Cloud, then a **day-trading screen** (2026-10-19, 20-day
+averages from Robinhood): ETFs ≥ $150M/day; stocks ≥ $200M/day, price ≥ $5 and daily ATR ≥ 2.5%.
+Each ticker is shown once; NVDA and TSLA are excluded because the MAG 7 agent covers them.
 
-| # | Sector | Sector ETFs | Leader stocks |
-|---|---|---|---|
-| 01 | Semiconductors / Memory | SMH, DRAM, SOXX, XSD | AMD, AVGO, MU, SNDK, INTC (NVDA → MAG 7) |
-| 02 | AI Infrastructure / Data Centers | DTCR, PSI, PSTG (n/a — not on Robinhood) | DELL, SMCI, VRT, ANET |
-| 03 | Software / Cybersecurity | IGV, CIBR, HACK, SKYY | PLTR, CRWD, PANW, FTNT, NET |
-| 04 | Power / Grid / Nuclear | GRID, XLI, NLR, PAVE, URA | GEV, CEG, ETN, OKLO (VRT → 02) |
-| 05 | Crypto / Fintech | ARKF, WGMI, BLOK, BITO, IBIT | HOOD, COIN, CRCL, MSTR |
-| 06 | Space / Defense | ARKX, ITA, UFO, XAR | ASTS, RKLB, LMT, RTX, BA |
-| 07 | Quantum | QTUM | IONQ, RGTI, QBTS, QUBT |
-| 08 | Robotics / Automation | BOTZ, ARKQ | ACHR, TER (TSLA → MAG 7, PLTR → 03) |
-| 09 | Real Assets / Resources | GLD, SLV, COPX, REMX | FCX, TECK, SCCO, MP, ALB |
-| 10 | Economy / Risk | IWM, XLF, XLE, JETS | (same as the ETFs; SPY/QQQ are the benchmarks) |
-| 11 | Health / Biotech | XBI, XLV, IBB, ARKG | VRTX, LLY, MRNA, ABBV |
-| 12 | Neo-Cloud | — | NBIS, CRWV, IREN |
+| # | Sector | Sector ETFs | Leader stocks | Removed for day trading |
+|---|---|---|---|---|
+| 01 | Semiconductors / Memory | SMH, DRAM, SOXX | AMD, AVGO, MU, SNDK, INTC | XSD |
+| 02 | AI Infrastructure / Data Centers | — | DELL, SMCI, VRT, ANET | DTCR, PSI (PSTG not on Robinhood) |
+| 03 | Software / Cybersecurity | IGV, CIBR | PLTR, CRWD, PANW, FTNT, NET | HACK, SKYY |
+| 04 | Power / Grid / Nuclear | XLI | GEV, CEG, ETN, OKLO | GRID, NLR, PAVE, URA |
+| 05 | Crypto / Fintech | BITO, IBIT | HOOD, COIN, CRCL, MSTR | ARKF, WGMI, BLOK |
+| 06 | Space / Defense | ITA | ASTS, RKLB, BA | ARKX, UFO, XAR; LMT, RTX (ATR < 2.5%) |
+| 07 | Quantum | — | IONQ, RGTI, QBTS | QTUM, QUBT |
+| 08 | Robotics / Automation | — | TER | BOTZ, ARKQ; ACHR (price < $5) |
+| 09 | Real Assets / Resources | GLD, SLV, COPX | FCX, MP, ALB | REMX, TECK, SCCO |
+| 10 | Economy / Risk | IWM, XLF, XLE | (same as ETFs) | JETS |
+| 11 | Health / Biotech | XBI, XLV, IBB, ARKG | VRTX, LLY, MRNA | ABBV (ATR < 2.5%) |
+| 12 | Neo-Cloud | — | NBIS, CRWV, IREN | — |
 
-IGV and CIBR were also listed under 02 (AI infra / AI exposure); they are shown once, in 03.
+Removed names stay in `research/universe.py` (`MODERN`) and are listed in each sector's email notes; to
+bring one back, delete it from `DAYTRADE_REMOVED`. Duplicates: VRT shown in 02; PLTR, IGV, CIBR in 03.
 
 ## Email
 1. Market snapshot (SPY, QQQ) + tape (leading / lagging sector)
@@ -49,5 +51,5 @@ Same engine as MAG 7 / AI Sectors: Volume (time-of-day RVOL, up/down volume, spi
 | Routine | **Modern AI Sectors Research Agent** — Mon–Fri 7:59 and 8:59 CT (`CRON_TZ=America/Chicago 59 7,8 * * 1-5`) |
 | Connectors | Robinhood_Agentic (read-only use) + Gmail (send only to mail11dira@gmail.com) — attach both to the routine in claude.ai |
 | Prompt | `routine_prompt.txt` (script-first: `research.plan --agent modern` → calls → `research.report --agent modern` → Gmail) |
-| Data per run | 43 read-only Robinhood calls (5 quotes, 18 + 9 five-minute, 9 daily, earnings, ratings) |
+| Data per run | 29 read-only Robinhood calls (3 quotes, 12 + 6 five-minute, 6 daily, earnings, ratings) |
 | Test | `python -m pytest -q`; sample from real data: `sample_reports/2026-10-16_close_test.html` |

@@ -14,17 +14,17 @@ STEP 5 - final message: one line with the subject, "sent", and the "missing" lis
 
 If STEP 2-4 fail after one retry (script error, empty report), use FALLBACK.
 
-FALLBACK (only if the script cannot be used): if the repo is available, follow "Modern AI Sectors/technical_analysis.md" for the indicator rules. Otherwise do the analysis yourself, RESEARCH-ONLY, with read-only Robinhood_Agentic tools, for this universe (each ticker once; NVDA and TSLA excluded - covered by the MAG 7 agent; PSTG not on Robinhood = n/a):
-01 Semiconductors / Memory - ETFs SMH, DRAM, SOXX, XSD | AMD, AVGO, MU, SNDK, INTC
-02 AI Infrastructure / Data Centers - ETFs DTCR, PSI, PSTG(n/a) | DELL, SMCI, VRT, ANET
-03 Software / Cybersecurity - ETFs IGV, CIBR, HACK, SKYY | PLTR, CRWD, PANW, FTNT, NET
-04 Power / Grid / Nuclear - ETFs GRID, XLI, NLR, PAVE, URA | GEV, CEG, ETN, OKLO
-05 Crypto / Fintech - ETFs ARKF, WGMI, BLOK, BITO, IBIT | HOOD, COIN, CRCL, MSTR
-06 Space / Defense - ETFs ARKX, ITA, UFO, XAR | ASTS, RKLB, LMT, RTX, BA
-07 Quantum - ETF QTUM | IONQ, RGTI, QBTS, QUBT
-08 Robotics / Automation - ETFs BOTZ, ARKQ | ACHR, TER
-09 Real Assets / Resources - ETFs GLD, SLV, COPX, REMX | FCX, TECK, SCCO, MP, ALB
-10 Economy / Risk - ETFs IWM, XLF, XLE, JETS
-11 Health / Biotech - ETFs XBI, XLV, IBB, ARKG | VRTX, LLY, MRNA, ABBV
+FALLBACK (only if the script cannot be used): if the repo is available, follow "Modern AI Sectors/technical_analysis.md" for the indicator rules. Otherwise do the analysis yourself, RESEARCH-ONLY, with read-only Robinhood_Agentic tools, for this universe (day-tradable names only; each ticker once; NVDA and TSLA excluded - covered by the MAG 7 agent):
+01 Semiconductors / Memory - ETFs SMH, DRAM, SOXX | AMD, AVGO, MU, SNDK, INTC
+02 AI Infrastructure / Data Centers - DELL, SMCI, VRT, ANET
+03 Software / Cybersecurity - ETFs IGV, CIBR | PLTR, CRWD, PANW, FTNT, NET
+04 Power / Grid / Nuclear - ETF XLI | GEV, CEG, ETN, OKLO
+05 Crypto / Fintech - ETFs BITO, IBIT | HOOD, COIN, CRCL, MSTR
+06 Space / Defense - ETF ITA | ASTS, RKLB, BA
+07 Quantum - IONQ, RGTI, QBTS
+08 Robotics / Automation - TER
+09 Real Assets / Resources - ETFs GLD, SLV, COPX | FCX, MP, ALB
+10 Economy / Risk - ETFs IWM, XLF, XLE
+11 Health / Biotech - ETFs XBI, XLV, IBB, ARKG | VRTX, LLY, MRNA
 12 Neo-Cloud - NBIS, CRWV, IREN
 Benchmarks: SPY, QQQ. Times US Central. Sections: market snapshot; sector scoreboard (ETF avg day %, leaders avg day %, vs QQQ, 20-day RS vs SPY, holding 8/21); weekend checklist (new highs, holding daily EMA 8/21, outperforming SPY/QQQ over 20 days, relative strength by sector, breaking out of a base, volume expanding); one table per sector; top 5 setups; risks/catalysts (earnings within 14 days). HTML email with bordered tables, bullish green (#0a7d2c) / bearish red (#c0392b), title "Modern AI Sectors Research - <date> <time> CT", footer "Research only, not financial advice. No orders placed." Send with mcp__Gmail__send_message to mail11dira@gmail.com only. Do not commit or push anything.

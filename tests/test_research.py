@@ -137,14 +137,16 @@ def test_universe_unique_and_excludes_mag7():
 
 def test_modern_universe_dedup_and_mag7():
     syms = modern_symbols()
-    assert len(syms) == 84 and len(modern_symbols("ETF")) == 39 and len(modern_symbols("Stock")) == 45
+    assert len(syms) == 57 and len(modern_symbols("ETF")) == 19 and len(modern_symbols("Stock")) == 38
+    assert not {"ARKF", "UFO", "QTUM", "ACHR", "QUBT", "LMT", "ABBV", "JETS"} & set(syms)  # day-trading screen
     assert not set(syms) & set(MAG7) and "PSTG" not in syms
     assert {"NBIS", "CRWV", "IREN"} <= set(syms)
     secs = {s["num"]: s for s in modern_layout()}
     assert len(secs) == 12
     assert any("NVDA" in n for n in secs["01"]["notes"]) and any("TSLA" in n for n in secs["08"]["notes"])
     assert any("VRT (in 02)" in n for n in secs["04"]["notes"]) and any("PLTR (in 03)" in n for n in secs["08"]["notes"])
-    assert ("PSTG", "n/a", "Compute Infra") in secs["02"]["members"]
+    assert any("PSTG (not on Robinhood)" in n for n in secs["02"]["notes"])
+    assert any("JETS (low volume)" in n and "JETS, JETS" not in n for n in secs["10"]["notes"])
 
 
 def test_collect_reads_inline_and_saved_results(tmp_path):
@@ -226,7 +228,7 @@ def test_end_to_end_report_closed_session(agent):
         assert "Neo-Cloud ecosystem" in html
         assert not any(f"<b>{m}</b>" in html for m in MAG7)
     if agent == "modern":
-        assert "Weekend checklist" in html and "Sector scoreboard" in html and "n/a - not on Robinhood" in html
+        assert "Weekend checklist" in html and "Sector scoreboard" in html and "removed for day trading" in html
         assert "12 Neo-Cloud" in html and not any(f"<b>{m}</b>" in html for m in MAG7)
 
 

@@ -101,6 +101,19 @@ MODERN = [
      ["NBIS", "CRWV", "IREN"]),
 ]
 NOT_ON_ROBINHOOD = {"PSTG"}
+
+# 2026-10-19 day-trading screen (20-day averages from Robinhood bars). Kept: ETFs >= $150M/day;
+# stocks >= $200M/day, price >= $5 and daily ATR >= 2.5% of price. Removed names stay in MODERN
+# (the user's map) and are listed in each sector's notes.
+DAYTRADE_REMOVED = {
+    # ETFs below $150M/day: wide spreads, thin 5-minute bars
+    **{e: "low volume" for e in ("ARKF", "UFO", "ARKQ", "ARKX", "BLOK", "DTCR", "BOTZ", "WGMI", "SKYY", "NLR",
+                                 "HACK", "REMX", "QTUM", "PSI", "XSD", "PAVE", "XAR", "GRID", "JETS", "URA")},
+    "QUBT": "low volume", "TECK": "low volume", "SCCO": "low volume",
+    "ACHR": "price < $5",
+    "LMT": "low range, ATR < 2.5%", "RTX": "low range, ATR < 2.5%", "ABBV": "low range, ATR < 2.5%",
+    "PSTG": "not on Robinhood",
+}
 MODERN_NOTES = {"02": "IGV (Software - AI infra) and CIBR (Cyber - AI exposure) are shown once, in 03"}
 
 
@@ -110,7 +123,11 @@ def modern_layout():
     seen, out = {}, []
     for num, name, sub, etfs, leaders in MODERN:
         members, notes, dup = [], [], []
+        cut = list(dict.fromkeys(x for x in [e for e, _ in etfs] + leaders if x in DAYTRADE_REMOVED and x not in seen))
         for sym, desc in etfs:
+            if sym in DAYTRADE_REMOVED:
+                seen.setdefault(sym, num)
+                continue
             if sym in seen:
                 dup.append(f"{sym} (in {seen[sym]})")
                 continue
@@ -118,6 +135,9 @@ def modern_layout():
             members.append((sym, "n/a" if sym in NOT_ON_ROBINHOOD else "ETF", desc))
         mag = []
         for sym in leaders:
+            if sym in DAYTRADE_REMOVED:
+                seen.setdefault(sym, num)
+                continue
             if sym in MAG7:
                 mag.append(sym)
             elif sym in seen:
@@ -130,6 +150,11 @@ def modern_layout():
             notes.append(f"{', '.join(mag)}: covered by the MAG 7 agent")
         if dup:
             notes.append("shown once: " + ", ".join(dup))
+        if cut:
+            by = {}
+            for x in cut:
+                by.setdefault(DAYTRADE_REMOVED[x], []).append(x)
+            notes.append("removed for day trading: " + "; ".join(f"{', '.join(v)} ({k})" for k, v in by.items()))
         if num in MODERN_NOTES:
             notes.append(MODERN_NOTES[num])
         out.append({"num": num, "name": name, "sub": sub, "members": members, "notes": notes})
