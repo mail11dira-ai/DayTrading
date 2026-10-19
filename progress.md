@@ -40,7 +40,7 @@ changes the next run). PRs: none (not requested).
 |---|---|---|---|
 | MAG 7 Research Agent | `trig_012DY3peEQUikJ9MBxYuLXpG` | `CRON_TZ=America/Chicago 59 7,8 * * 1-5` (7:59, 8:59) | enabled; last run 2026-10-15 OK |
 | AI Sectors Research Agent | `trig_01BSEzw8DL1JRFyRSmVnQK6B` | same | enabled; last run 2026-10-15 OK |
-| Modern AI Sectors Research Agent | `trig_01D3Gr9p5a4cJvwRkuHVThUg` | same (created 2026-10-19) | enabled; **needs Robinhood + Gmail connectors and the DayTrading repo attached in the claude.ai UI** |
+| Modern AI Sectors Research Agent | `trig_01D3Gr9p5a4cJvwRkuHVThUg` | same (created 2026-10-19) | enabled; connectors + repo attached by user 2026-10-19 |
 | MAG 7 (9:30) | `trig_01TZoDuVzveBgkv4RqgL2pSs` | `29 9 * * 1-5` | **disabled** (old full prompt) |
 | AI Sectors (9:30) | `trig_01BRGe391GXt4kzok9eotfwp` | `29 9 * * 1-5` | **disabled** (old full prompt, 59-stock universe) |
 
@@ -103,7 +103,7 @@ gap, breaks · 5m EMA 9/21; daily EMA 9/21, SMA 20/50/200, stack, golden/death c
 - 2026-10-19: new Modern AI Sectors agent; watch-level targets capped at 2 daily ATR for all agents (e07d5dd)
 
 ## Next actions (proceed in the next run)
-0. Confirm the user attached connectors + repo to `trig_01D3Gr9p5a4cJvwRkuHVThUg`, then check its first run.
+0. Check the first Modern AI Sectors run (`trig_01D3Gr9p5a4cJvwRkuHVThUg`, 2026-10-19 7:59 CT).
 1. Check the first emails with the new indicators (2026-10-16 7:59 and 8:59 CT) — use `list_triggers` for the
    `last_run.session_id`, then `list_events` on it to confirm "sent" and an empty `missing` list.
 2. If the user wants a test now: fire the routines (`fire_trigger`) or run the plan + report locally with `--test`.
