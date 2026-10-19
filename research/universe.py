@@ -54,9 +54,105 @@ def ai_symbols():
     return out
 
 
+# Modern AI Sectors agent: 11 sectors from the user's sector map + Neo-Cloud.
+# (number, sector, subtitle, [(ETF, description)], [leader stocks]). Symbols not on
+# Robinhood are listed in NOT_ON_ROBINHOOD. Duplicates keep their first listing and MAG 7
+# stocks are excluded (the MAG 7 agent covers them); modern_layout() records both as notes.
+MODERN_BENCHMARKS = ["SPY", "QQQ"]
+MODERN = [
+    ("01", "Semiconductors / Memory", "Chips | Memory | Broad Semis",
+     [("SMH", "Semiconductors"), ("DRAM", "Memory"), ("SOXX", "Semis (broad)"), ("XSD", "Semis (small caps)")],
+     ["NVDA", "AMD", "AVGO", "MU", "SNDK", "INTC"]),
+    ("02", "AI Infrastructure / Data Centers", "Data Centers | Cloud | AI Infrastructure",
+     [("DTCR", "Data Centers"), ("PSI", "Infrastructure"), ("PSTG", "Compute Infra")],
+     ["DELL", "SMCI", "VRT", "ANET"]),
+    ("03", "Software / Cybersecurity", "Software | Cyber | Cloud",
+     [("IGV", "Software"), ("CIBR", "Cybersecurity"), ("HACK", "Cyber (broad)"), ("SKYY", "Cloud Software")],
+     ["PLTR", "CRWD", "PANW", "FTNT", "NET"]),
+    ("04", "Power / Grid / Nuclear", "Grid | Electrical | Nuclear | Industrials",
+     [("GRID", "Grid / Electrical"), ("XLI", "Industrials"), ("NLR", "Nuclear"), ("PAVE", "Infrastructure"),
+      ("URA", "Uranium (nuclear)")],
+     ["GEV", "CEG", "ETN", "VRT", "OKLO"]),
+    ("05", "Crypto / Fintech", "Fintech | Blockchain | Digital Assets",
+     [("ARKF", "Fintech"), ("WGMI", "Digital Assets"), ("BLOK", "Blockchain"), ("BITO", "Bitcoin"),
+      ("IBIT", "Bitcoin (spot)")],
+     ["HOOD", "COIN", "CRCL", "MSTR"]),
+    ("06", "Space / Defense", "Space | Aerospace | Defense",
+     [("ARKX", "Space & Defense"), ("ITA", "Aerospace & Defense"), ("UFO", "Aerospace (broad)"),
+      ("XAR", "Defense (broad)")],
+     ["ASTS", "RKLB", "LMT", "RTX", "BA"]),
+    ("07", "Quantum", "Quantum Computing | Next Gen Tech",
+     [("QTUM", "Quantum Computing")],
+     ["IONQ", "RGTI", "QBTS", "QUBT"]),
+    ("08", "Robotics / Automation", "Robotics | Automation | AI Physical",
+     [("BOTZ", "Robotics"), ("ARKQ", "AI & Robotics")],
+     ["TSLA", "PLTR", "ACHR", "TER"]),
+    ("09", "Real Assets / Resources", "Gold | Silver | Copper | Critical Minerals",
+     [("GLD", "Gold"), ("SLV", "Silver"), ("COPX", "Copper"), ("REMX", "Critical Minerals")],
+     ["FCX", "TECK", "SCCO", "MP", "ALB"]),
+    ("10", "Economy / Risk", "Small Caps | Financials | Energy | Travel",
+     [("IWM", "Small Caps"), ("XLF", "Financials"), ("XLE", "Energy"), ("JETS", "Airlines / Travel")],
+     ["IWM", "XLF", "XLE", "JETS"]),  # SPY / QQQ (context) are the benchmarks in the snapshot
+    ("11", "Health / Biotech", "Biotech | Healthcare | Genomics",
+     [("XBI", "Biotech"), ("XLV", "Healthcare"), ("IBB", "Biotech (broad)"), ("ARKG", "Genomics")],
+     ["VRTX", "LLY", "MRNA", "ABBV"]),
+    ("12", "Neo-Cloud", "GPU Clouds | AI Hosting",
+     [],
+     ["NBIS", "CRWV", "IREN"]),
+]
+NOT_ON_ROBINHOOD = {"PSTG"}
+MODERN_NOTES = {"02": "IGV (Software - AI infra) and CIBR (Cyber - AI exposure) are shown once, in 03"}
+
+
+def modern_layout():
+    """Sectors after de-duplication: list of dicts
+    {num, name, sub, members: [(sym, kind, desc)], notes: [str]}; kind is 'ETF', 'Stock' or 'n/a'."""
+    seen, out = {}, []
+    for num, name, sub, etfs, leaders in MODERN:
+        members, notes, dup = [], [], []
+        for sym, desc in etfs:
+            if sym in seen:
+                dup.append(f"{sym} (in {seen[sym]})")
+                continue
+            seen[sym] = num
+            members.append((sym, "n/a" if sym in NOT_ON_ROBINHOOD else "ETF", desc))
+        mag = []
+        for sym in leaders:
+            if sym in MAG7:
+                mag.append(sym)
+            elif sym in seen:
+                if seen[sym] != num:
+                    dup.append(f"{sym} (in {seen[sym]})")
+            else:
+                seen[sym] = num
+                members.append((sym, "Stock", ""))
+        if mag:
+            notes.append(f"{', '.join(mag)}: covered by the MAG 7 agent")
+        if dup:
+            notes.append("shown once: " + ", ".join(dup))
+        if num in MODERN_NOTES:
+            notes.append(MODERN_NOTES[num])
+        out.append({"num": num, "name": name, "sub": sub, "members": members, "notes": notes})
+    return out
+
+
+def modern_symbols(kind=None):
+    out = [s for sec in modern_layout() for s, k, _ in sec["members"] if k != "n/a" and (kind is None or k == kind)]
+    assert len(out) == len(set(out)), "Modern universe has duplicates"
+    assert not set(out) & set(MAG7), "Modern universe must exclude MAG 7"
+    return out
+
+
+def ratings_symbols(agent):
+    """Analyst ratings only make sense for stocks (not ETFs)."""
+    return modern_symbols("Stock") if agent == "modern" else symbols(agent)[0]
+
+
 def symbols(agent):
     if agent == "mag7":
         return MAG7, MAG7_BENCHMARKS
     if agent == "aisectors":
         return ai_symbols(), AI_BENCHMARKS
+    if agent == "modern":
+        return modern_symbols(), MODERN_BENCHMARKS
     raise ValueError(f"unknown agent {agent!r}")

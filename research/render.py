@@ -32,7 +32,7 @@ def pct(x, d=2, unit="%"):
     return f'<span class="{cls(x)}">{x:+.{d}f}{unit}</span>'
 
 
-BULL_WORDS = {"fired up", "trending up", "bull", "bullish", "uptrend", "golden", "reclaimed", "up", "bull above", "bullish above"}
+BULL_WORDS = {"holding", "fired up", "trending up", "bull", "bullish", "uptrend", "golden", "reclaimed", "up", "bull above", "bullish above"}
 BEAR_WORDS = {"fired down", "trending down", "bear", "bearish", "downtrend", "death", "lost", "down", "bear below", "bearish below"}
 
 

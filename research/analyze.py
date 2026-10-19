@@ -100,6 +100,7 @@ def analyze(ds, sym, mode, sday, now):
 
     # --- daily indicators (completed bars + today's price as the last close)
     dc = [b["c"] for b in daily] + [price]
+    r["d_ema8"] = ta.ema_series(dc, 8)[-1]
     r["d_ema9"] = ta.ema_series(dc, 9)[-1]
     r["d_ema21"] = ta.ema_series(dc, 21)[-1]
     r["sma20"], r["sma50"], r["sma200"] = ta.sma(dc, 20), ta.sma(dc, 50), ta.sma(dc, 200)
@@ -110,6 +111,25 @@ def analyze(ds, sym, mode, sday, now):
     atr = atrs[-1] if atrs else None
     r["atr"] = atr
     r["atr_pct"] = atr / price * 100 if atr else None
+    # weekend-checklist fields (daily): 8/21 trend, 20d return, new highs, base breakout, volume expansion
+    e8, e21 = r["d_ema8"], r["d_ema21"]
+    r["hold_821"] = (None if None in (e8, e21) else
+                     "holding" if price > e8 > e21 else "lost" if price < e21 else "testing")
+    r["ret20"] = (price / dc[-21] - 1) * 100 if len(dc) >= 21 else None
+    r["new_high"] = None
+    if len(daily) >= 20:
+        if len(daily) >= 120 and price >= max(b["h"] for b in daily[-252:]):
+            r["new_high"] = "52w"
+        elif price >= max(b["h"] for b in daily[-20:]):
+            r["new_high"] = "20d"
+    r["breakout"] = False
+    if atr and len(daily) >= 20:
+        bh, bl = max(b["h"] for b in daily[-20:]), min(b["l"] for b in daily[-20:])
+        r["base_tight"] = (bh - bl) <= 5 * atr  # 20-day range within 5 daily ATRs = a base
+        r["breakout"] = r["base_tight"] and price > bh
+    vols = [b["v"] for b in daily]
+    v5, v50 = ta.sma(vols, 5), ta.sma(vols, 50)
+    r["vol_exp"] = v5 / v50 if (v5 and v50) else None
     avg20v = ta.sma([b["v"] for b in daily], 20)
     if avg20v is not None and avg20v < THIN_DAILY_VOL:
         r["thin"] = True

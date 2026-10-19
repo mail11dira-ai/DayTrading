@@ -13,9 +13,9 @@ from html import escape
 
 from . import collect, render as R
 from .analyze import analyze, detect_mode, earnings_within, now_ct
-from .universe import (AI_SECTORS, EMPTY_LAYER_NOTE, symbols)
+from .universe import (AI_SECTORS, EMPTY_LAYER_NOTE, modern_layout, symbols)
 
-TITLES = {"mag7": "MAG 7", "aisectors": "AI Sectors"}
+TITLES = {"mag7": "MAG 7", "aisectors": "AI Sectors", "modern": "Modern AI Sectors"}
 
 
 def build(agent, ds, now, test=False):
@@ -44,7 +44,7 @@ def build(agent, ds, now, test=False):
     if missing:
         note += f" No data for: {', '.join(missing)}."
 
-    body = (_mag7 if agent == "mag7" else _ai)(res, syms, bench, earn, ds)
+    body = {"mag7": _mag7, "aisectors": _ai, "modern": _modern}[agent](res, syms, bench, earn, ds)
     return title, R.doc(title, note, body), missing, mode
 
 
@@ -216,6 +216,108 @@ def _flow(stats):
             f"{beat}/{len(s)} layers beat QQQ; upstream L1-L2 {R.pct(up)} vs downstream L4-L5 {R.pct(dn)}.")
 
 
+M_HDR = ["Type", "Ticker", "Price", "Day %", "vs QQQ", "20d RS", "Bias", "vs VWAP", "RVOL", "RSI 5m/D",
+         "8/21", "Nearest S / R", "ADX"]
+
+
+def _rs(r, spy20):
+    return r["ret20"] - spy20 if (r.get("ok") and r.get("ret20") is not None and spy20 is not None) else None
+
+
+def _m_row(r, kind, spy20):
+    if not r["ok"]:
+        return [kind, f"<b>{r['sym']}</b>"] + [R.NA] * 11
+    return [kind, f"<b>{r['sym']}</b>", R.num(r["price"]), R.pct(r["day_pct"]), R.pct(r["vs_qqq"]),
+            R.pct(_rs(r, spy20), 1), R.bias(r), R.vw_cell(r), R.rvol_cell(r),
+            f"{R.rsi(r['rsi_5'])} / {R.rsi(r['rsi_d'])}", R.tone(r.get("hold_821")),
+            f"{R.short_lvl(r['sup'])} / {R.short_lvl(r['res'])}", R.adx_cell(r)]
+
+
+def _modern(res, syms, bench, earn, ds):
+    spy = res.get("SPY", {})
+    qqq = res.get("QQQ", {})
+    spy20 = spy.get("ret20") if spy.get("ok") else None
+    qqq20 = qqq.get("ret20") if qqq.get("ok") else None
+    secs = modern_layout()
+    score_rows, stats = [], []
+    for sec in secs:
+        live = [res[s] for s, k, _ in sec["members"] if k != "n/a" and res[s]["ok"]]
+        etf = _avg([res[s]["day_pct"] for s, k, _ in sec["members"] if k == "ETF" and res[s]["ok"]])
+        stk = _avg([res[s]["day_pct"] for s, k, _ in sec["members"] if k == "Stock" and res[s]["ok"]])
+        a = _avg([r["day_pct"] for r in live])
+        vq = _avg([r["vs_qqq"] for r in live])
+        rs = _avg([_rs(r, spy20) for r in live])
+        ab = _avg([r["bias"] for r in live])
+        hold = [r for r in live if r.get("hold_821") == "holding"]
+        best = max(live, key=lambda r: r["day_pct"]) if live else None
+        worst = min(live, key=lambda r: r["day_pct"]) if live else None
+        stats.append((sec, a, rs))
+        score_rows.append([sec["num"], escape(sec["name"]), R.pct(etf), R.pct(stk), R.pct(vq), R.pct(rs, 1),
+                           R.score(ab), f"{len(hold)}/{len(live)}",
+                           f"{best['sym']} {R.pct(best['day_pct'])}" if best else R.NA,
+                           f"{worst['sym']} {R.pct(worst['day_pct'])}" if worst else R.NA])
+    valid = [x for x in stats if x[1] is not None]
+    lead = max(valid, key=lambda x: x[1]) if valid else None
+    lag = min(valid, key=lambda x: x[1]) if valid else None
+    tape = "Tape: " + (f"leader {lead[0]['num']} {escape(lead[0]['name'])} {R.pct(lead[1])}, "
+                       f"laggard {lag[0]['num']} {escape(lag[0]['name'])} {R.pct(lag[1])}." if lead else R.NA)
+    out = _snapshot(res, bench, tape)
+    out += "<h3>2. Sector scoreboard</h3>" + R.table(
+        ["#", "Sector", "ETFs Day %", "Leaders Day %", "vs QQQ", "20d RS vs SPY", "Avg bias", "Holding 8/21",
+         "Best", "Worst"], score_rows, left=2)
+    out += "<h3>3. Weekend checklist</h3>" + _checklist(res, syms, stats, spy20, qqq20)
+    n = 4
+    for sec in secs:
+        rows = []
+        for s, k, desc in sec["members"]:
+            if k == "n/a":
+                rows.append(f'<tr><td class="l">ETF</td><td class="l"><b>{s}</b></td>'
+                            f'<td class="l" colspan="11">n/a - not on Robinhood ({escape(desc)})</td></tr>')
+            else:
+                rows.append(_m_row(res[s], k, spy20))
+        out += f"<h3>{n}. {sec['num']} {escape(sec['name'])}</h3><p><i>{escape(sec['sub'])}</i></p>"
+        out += R.table(M_HDR, rows, left=2)
+        if sec["notes"]:
+            out += "<p><i>" + "; ".join(escape(x) for x in sec["notes"]) + ".</i></p>"
+        n += 1
+    top, note = _top(res, syms, 5)
+    out += f"<h3>{n}. Top 5 setups</h3>" + _top_html(top, note) + "".join(R.card(r, _ratings_extra(ds, r)) for r in top)
+    out += f"<h3>{n + 1}. Risks / catalysts</h3>" + _risks(res, syms, earn, 3, 1.2, 75, 25)
+    return out
+
+
+def _checklist(res, syms, stats, spy20, qqq20, k=10):
+    ok = [res[s] for s in syms if res[s]["ok"]]
+
+    def names(rs, f=lambda r: r["sym"]):
+        return ", ".join(f(r) for r in rs[:k]) + (f" (+{len(rs) - k} more)" if len(rs) > k else "") if rs else "none"
+    hi52 = [r for r in ok if r.get("new_high") == "52w"]
+    hi20 = [r for r in ok if r.get("new_high") == "20d"]
+    hold = [r for r in ok if r.get("hold_821") == "holding"]
+    lost = [r for r in ok if r.get("hold_821") == "lost"]
+    bar = max(x for x in (spy20, qqq20) if x is not None) if (spy20 is not None or qqq20 is not None) else None
+    outp = sorted([r for r in ok if bar is not None and r.get("ret20") is not None and r["ret20"] > bar],
+                  key=lambda r: -r["ret20"])
+    secs = sorted([x for x in stats if x[2] is not None], key=lambda x: -x[2])
+    brk = sorted([r for r in ok if r.get("breakout")], key=lambda r: -(r.get("vol_exp") or 0))
+    vexp = sorted([r for r in ok if (r.get("vol_exp") or 0) >= 1.3 or (r.get("rvol") or 0) >= 1.5],
+                  key=lambda r: -max(r.get("vol_exp") or 0, r.get("rvol") or 0))
+    items = [
+        f"<b>1. Making new highs:</b> 52-week: {names(hi52)}; 20-day: {names(hi20)}",
+        f"<b>2. Holding the 8/21 trend</b> (price &gt; daily EMA8 &gt; EMA21): {len(hold)}/{len(ok)} "
+        f"&mdash; <span class=\"g\">holding</span> {names(hold)}; <span class=\"r\">lost EMA21</span> {names(lost)}",
+        f"<b>3. Outperforming SPY / QQQ</b> (20-day return; SPY {R.pct(spy20, 1)}, QQQ {R.pct(qqq20, 1)}): "
+        + names(outp, lambda r: f"{r['sym']} {R.pct(r['ret20'], 1)}"),
+        "<b>4. Relative strength by sector</b> (avg 20-day return vs SPY): strongest "
+        + (", ".join(f"{x[0]['num']} {escape(x[0]['name'])} {R.pct(x[2], 1)}" for x in secs[:3]) or "n/a")
+        + "; weakest " + (", ".join(f"{x[0]['num']} {escape(x[0]['name'])} {R.pct(x[2], 1)}" for x in secs[-3:][::-1]) or "n/a"),
+        "<b>5. Breaking out of a base</b> (20-day range &le; 5 ATR, price above its high): " + names(brk),
+        "<b>6. Volume expanding</b> (5-day avg vol &ge; 1.3x 50-day, or RVOL &ge; 1.5): "
+        + names(vexp, lambda r: f"{r['sym']} {max(r.get('vol_exp') or 0, r.get('rvol') or 0):.1f}x"),
+    ]
+    return "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
+
+
 def _write_parts(out, html, limit):
     """Split html on line boundaries into <=limit-char files so each can be `cat`-ed whole."""
     chunks, cur = [], ""
@@ -237,7 +339,7 @@ def _write_parts(out, html, limit):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--agent", required=True, choices=["mag7", "aisectors"])
+    ap.add_argument("--agent", required=True, choices=["mag7", "aisectors", "modern"])
     ap.add_argument("--transcript", help="session transcript (.jsonl); default: newest")
     ap.add_argument("--data", help="directory of raw tool-result JSON files (instead of / in addition to transcript)")
     ap.add_argument("--now", help="override current time (ISO, CT if no offset)")

@@ -8,7 +8,7 @@ import pytest
 from research import collect, ta
 from research.analyze import CT, detect_mode
 from research.report import build
-from research.universe import AI_SECTORS, MAG7, ai_symbols
+from research.universe import AI_SECTORS, MAG7, ai_symbols, modern_layout, modern_symbols
 
 
 def test_ema_linear_series_lags_by_one():
@@ -81,6 +81,15 @@ def test_watch_levels_minimum_distances():
         assert side["reward_atr"] >= 0.5 and side["risk_atr"] >= 0.25
 
 
+def test_watch_levels_target_capped_at_two_atr():
+    zones = [(50.0, "52wL"), (98.0, "S"), (101.0, "R"), (130.0, "52wH")]
+    w = ta.watch_levels(100.0, 2.0, zones)
+    assert w["bear"]["target_label"] == "ATR projection" and w["bear"]["target"] == pytest.approx(96.5)
+    assert w["bull"]["target_label"] == "ATR projection" and w["bull"]["target"] == pytest.approx(102.5)
+    w2 = ta.watch_levels(100.0, 2.0, [(94.5, "S2"), (98.0, "S"), (101.0, "R")])
+    assert w2["bear"]["target_label"] == "S2"  # 1.75 ATR away: within the cap
+
+
 def test_watch_levels_atr_stop_fallback():
     w = ta.watch_levels(100.0, 2.0, [(101.0, "R")])
     assert w["bull"]["stop_label"] == "ATR stop" and w["bull"]["stop"] == pytest.approx(100.0)
@@ -124,6 +133,18 @@ def test_universe_unique_and_excludes_mag7():
     assert not set(syms) & set(MAG7)
     assert {"CRWV", "NBIS", "IREN", "CIFR", "APLD"} <= set(syms)
     assert sum(len(t) for _, layers in AI_SECTORS for _, _, t in layers) == 32  # no n/a left
+
+
+def test_modern_universe_dedup_and_mag7():
+    syms = modern_symbols()
+    assert len(syms) == 84 and len(modern_symbols("ETF")) == 39 and len(modern_symbols("Stock")) == 45
+    assert not set(syms) & set(MAG7) and "PSTG" not in syms
+    assert {"NBIS", "CRWV", "IREN"} <= set(syms)
+    secs = {s["num"]: s for s in modern_layout()}
+    assert len(secs) == 12
+    assert any("NVDA" in n for n in secs["01"]["notes"]) and any("TSLA" in n for n in secs["08"]["notes"])
+    assert any("VRT (in 02)" in n for n in secs["04"]["notes"]) and any("PLTR (in 03)" in n for n in secs["08"]["notes"])
+    assert ("PSTG", "n/a", "Compute Infra") in secs["02"]["members"]
 
 
 def test_collect_reads_inline_and_saved_results(tmp_path):
@@ -188,9 +209,10 @@ def _synthetic_dataset(symbols, session):
     return ds
 
 
-@pytest.mark.parametrize("agent", ["mag7", "aisectors"])
+@pytest.mark.parametrize("agent", ["mag7", "aisectors", "modern"])
 def test_end_to_end_report_closed_session(agent):
-    syms = MAG7 + ["SPY", "QQQ"] if agent == "mag7" else ai_symbols() + ["SPY", "QQQ", "SMH", "XLU"]
+    syms = {"mag7": MAG7 + ["SPY", "QQQ"], "aisectors": ai_symbols() + ["SPY", "QQQ", "SMH", "XLU"],
+            "modern": modern_symbols() + ["SPY", "QQQ"]}[agent]
     session = date(2026, 10, 12)
     ds = _synthetic_dataset(syms, session)
     now = datetime(2026, 10, 13, 1, 0, tzinfo=CT)
@@ -203,6 +225,9 @@ def test_end_to_end_report_closed_session(agent):
     if agent == "aisectors":
         assert "Neo-Cloud ecosystem" in html
         assert not any(f"<b>{m}</b>" in html for m in MAG7)
+    if agent == "modern":
+        assert "Weekend checklist" in html and "Sector scoreboard" in html and "n/a - not on Robinhood" in html
+        assert "12 Neo-Cloud" in html and not any(f"<b>{m}</b>" in html for m in MAG7)
 
 
 def test_end_to_end_intraday_mode_uses_today():

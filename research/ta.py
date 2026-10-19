@@ -189,8 +189,10 @@ def nearest(zones, price):
     return (below[-1] if below else None), (above[0] if above else None)
 
 
-def watch_levels(price, atr, zones):
-    """Bullish/bearish watch levels per the WATCH LEVELS rules.
+def watch_levels(price, atr, zones, max_target_atr=2.0):
+    """Bullish/bearish watch levels per the WATCH LEVELS rules. A target level must lie
+    0.5-max_target_atr daily ATRs beyond the trigger (a day-trading horizon); otherwise the
+    target is the +/-0.75 ATR projection.
 
     Each side: dict(trigger, trigger_label, target, target_label,
     stop, stop_label, reward_atr, risk_atr, rr) or None.
@@ -203,6 +205,7 @@ def watch_levels(price, atr, zones):
     if above:
         trig, tl = above[0]
         tgt = next((z for z in above[1:] if z[0] >= trig + 0.5 * atr), None)
+        tgt = tgt if (tgt and tgt[0] <= trig + max_target_atr * atr) else None
         tgt = tgt or (trig + 0.75 * atr, "ATR projection")
         stop = next((z for z in below if z[0] <= trig - 0.25 * atr), None)
         stop = stop or (trig - 0.5 * atr, "ATR stop")
@@ -210,6 +213,7 @@ def watch_levels(price, atr, zones):
     if below:
         trig, tl = below[0]
         tgt = next((z for z in below[1:] if z[0] <= trig - 0.5 * atr), None)
+        tgt = tgt if (tgt and tgt[0] >= trig - max_target_atr * atr) else None
         tgt = tgt or (trig - 0.75 * atr, "ATR projection")
         stop = next((z for z in above if z[0] >= trig + 0.25 * atr), None)
         stop = stop or (trig + 0.5 * atr, "ATR stop")
