@@ -40,6 +40,7 @@ changes the next run). PRs: none (not requested).
 |---|---|---|---|
 | MAG 7 Research Agent | `trig_012DY3peEQUikJ9MBxYuLXpG` | `CRON_TZ=America/Chicago 59 7,8 * * 1-5` (7:59, 8:59) | enabled; last run 2026-10-15 OK |
 | AI Sectors Research Agent | `trig_01BSEzw8DL1JRFyRSmVnQK6B` | same | enabled; last run 2026-10-15 OK |
+| Modern AI Sectors Research Agent | `trig_01D3Gr9p5a4cJvwRkuHVThUg` | same (created 2026-10-19) | enabled; **needs Robinhood + Gmail connectors and the DayTrading repo attached in the claude.ai UI** |
 | MAG 7 (9:30) | `trig_01TZoDuVzveBgkv4RqgL2pSs` | `29 9 * * 1-5` | **disabled** (old full prompt) |
 | AI Sectors (9:30) | `trig_01BRGe391GXt4kzok9eotfwp` | `29 9 * * 1-5` | **disabled** (old full prompt, 59-stock universe) |
 
@@ -85,13 +86,23 @@ gap, breaks · 5m EMA 9/21; daily EMA 9/21, SMA 20/50/200, stack, golden/death c
 - Top setups: rank |bias| → confirmations → RVOL → R/R; exclude R/R < 1. MAG 7 top 3, AI Sectors top 5.
 - Colors: every bullish word/number green (#0a7d2c), bearish red (#c0392b), neutral grey.
 
+- **Modern AI Sectors (84 = 39 ETFs + 45 stocks, 12 sectors; `--agent modern`):** see `Modern AI Sectors/README.md`.
+  01 Semis/Memory · 02 AI Infra/Data Centers · 03 Software/Cyber · 04 Power/Grid/Nuclear · 05 Crypto/Fintech ·
+  06 Space/Defense · 07 Quantum · 08 Robotics · 09 Real Assets · 10 Economy/Risk · 11 Health/Biotech · 12 Neo-Cloud.
+  Dedup first listing (IGV, CIBR shown in 03; VRT in 02; PLTR in 03); NVDA, TSLA excluded (MAG 7); PSTG n/a.
+  Extra section "Weekend checklist" (new highs, 8/21 hold, 20d outperformance, sector RS, base breakout, volume expansion).
+  43 Robinhood calls/run; email ≈ 52 KB (3 parts).
+
 ## Change log (this session)
 - Built both agents → script-based flow (cost cut) → dropped 9:30 run → watch-level fixes → AI Sectors dedupe/no MAG 7
 - 2026-10-16: AI Sectors 59 → 32 stocks + Neo-Cloud ecosystem (c52d8d8, 847ec15)
 - 2026-10-16: bullish green / bearish red everywhere (be1a14c)
 - 2026-10-16: MACD, ADX/DMI, squeeze, volume profile, PWH/PWL, inside day/NR7, confirmation ranking (7c54987)
 
+- 2026-10-19: new Modern AI Sectors agent; watch-level targets capped at 2 daily ATR for all agents (e07d5dd)
+
 ## Next actions (proceed in the next run)
+0. Confirm the user attached connectors + repo to `trig_01D3Gr9p5a4cJvwRkuHVThUg`, then check its first run.
 1. Check the first emails with the new indicators (2026-10-16 7:59 and 8:59 CT) — use `list_triggers` for the
    `last_run.session_id`, then `list_events` on it to confirm "sent" and an empty `missing` list.
 2. If the user wants a test now: fire the routines (`fire_trigger`) or run the plan + report locally with `--test`.
