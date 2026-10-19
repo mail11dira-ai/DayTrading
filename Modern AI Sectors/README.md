@@ -4,8 +4,8 @@ A research-only day-trading report on 11 modern market sectors plus Neo-Cloud �
 leader stocks — built from Robinhood data and emailed to mail11dira@gmail.com. Same setup and technicals as
 `../MAG 7` and `../AI Sectors`. **No orders are ever placed.**
 
-## Universe — 12 sectors, 57 day-tradable symbols (19 ETFs + 38 stocks), benchmarks SPY & QQQ
-Source: the user's sector map (2026-10-19) + Neo-Cloud, then a **day-trading screen** (2026-10-19, 20-day
+## Universe — 19 sectors, 94 day-tradable symbols (34 ETFs + 60 stocks), benchmarks SPY & QQQ
+Source: the user's sector map (2026-10-19) + Neo-Cloud + 7 day-trading sectors (13-19), then a **day-trading screen** (2026-10-19, 20-day
 averages from Robinhood): ETFs ≥ $150M/day; stocks ≥ $200M/day, price ≥ $5 and daily ATR ≥ 2.5%.
 Each ticker is shown once; NVDA and TSLA are excluded because the MAG 7 agent covers them.
 
@@ -23,6 +23,19 @@ Each ticker is shown once; NVDA and TSLA are excluded because the MAG 7 agent co
 | 10 | Economy / Risk | IWM, XLF, XLE | (same as ETFs) | JETS |
 | 11 | Health / Biotech | XBI, XLV, IBB, ARKG | VRTX, LLY, MRNA | ABBV (ATR < 2.5%) |
 | 12 | Neo-Cloud | — | NBIS, CRWV, IREN | — |
+| 13 | Leveraged / Volatility | TQQQ, SQQQ, SOXL, SOXS, TNA, UVXY | — | — |
+| 14 | Consumer / Internet | XLY, XLC | SHOP, NFLX, UBER, RDDT, CVNA | — |
+| 15 | China Tech | KWEB, FXI | BABA, BIDU | — |
+| 16 | Banks / Lending | KRE | GS, SOFI, AFRM | — |
+| 17 | Travel / Airlines / Cruise | — | UAL, DAL, AAL, CCL, RCL | — |
+| 18 | Gold & Silver Miners | GDX, GDXJ | NEM, AEM, CDE, HL | — |
+| 19 | Housing / Homebuilders | ITB, XHB | DHI, LEN, PHM | — |
+
+**Sectors 13-19 (added 2026-10-19)** are the most-traded day-trading groups the original map did not cover.
+Candidates were screened with the same rule on 20-day Robinhood data. Failed the screen: YINN, KBE, SIL (thin ETFs);
+PDD, JD (ATR / volume), NIO, LCID (price < $5), UPST, PAAS (volume), JPM (ATR 1.9%). Passed but not added to keep
+the run lean: XRT, ABNB, DKNG, RIVN, F, GM. **SQQQ, SOXS, UVXY** are inverse / volatility hedges: they are shown in
+sector 13 but excluded from sector averages and the weekend checklist (they rise when the market falls).
 
 Removed names stay in `research/universe.py` (`MODERN`) and are listed in each sector's email notes; to
 bring one back, delete it from `DAYTRADE_REMOVED`. Duplicates: VRT shown in 02; PLTR, IGV, CIBR in 03.
@@ -51,5 +64,5 @@ Same engine as MAG 7 / AI Sectors: Volume (time-of-day RVOL, up/down volume, spi
 | Routine | **Modern AI Sectors Research Agent** — Mon–Fri 7:59 and 8:59 CT (`CRON_TZ=America/Chicago 59 7,8 * * 1-5`) |
 | Connectors | Robinhood_Agentic (read-only use) + Gmail (send only to mail11dira@gmail.com) — attach both to the routine in claude.ai |
 | Prompt | `routine_prompt.txt` (script-first: `research.plan --agent modern` → calls → `research.report --agent modern` → Gmail) |
-| Data per run | 29 read-only Robinhood calls (3 quotes, 12 + 6 five-minute, 6 daily, earnings, ratings) |
+| Data per run | 47 read-only Robinhood calls (5 quotes, 20 + 10 five-minute, 10 daily, earnings, ratings) |
 | Test | `python -m pytest -q`; sample from real data: `sample_reports/2026-10-16_close_test.html` |

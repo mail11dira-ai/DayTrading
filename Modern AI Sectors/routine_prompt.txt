@@ -27,4 +27,11 @@ FALLBACK (only if the script cannot be used): if the repo is available, follow "
 10 Economy / Risk - ETFs IWM, XLF, XLE
 11 Health / Biotech - ETFs XBI, XLV, IBB, ARKG | VRTX, LLY, MRNA
 12 Neo-Cloud - NBIS, CRWV, IREN
+13 Leveraged / Volatility - ETFs TQQQ, SQQQ, SOXL, SOXS, TNA, UVXY (SQQQ, SOXS, UVXY are inverse hedges: exclude from averages and the checklist)
+14 Consumer / Internet - ETFs XLY, XLC | SHOP, NFLX, UBER, RDDT, CVNA
+15 China Tech - ETFs KWEB, FXI | BABA, BIDU
+16 Banks / Lending - ETF KRE | GS, SOFI, AFRM
+17 Travel / Airlines / Cruise - UAL, DAL, AAL, CCL, RCL
+18 Gold & Silver Miners - ETFs GDX, GDXJ | NEM, AEM, CDE, HL
+19 Housing / Homebuilders - ETFs ITB, XHB | DHI, LEN, PHM
 Benchmarks: SPY, QQQ. Times US Central. Sections: market snapshot; sector scoreboard (ETF avg day %, leaders avg day %, vs QQQ, 20-day RS vs SPY, holding 8/21); weekend checklist (new highs, holding daily EMA 8/21, outperforming SPY/QQQ over 20 days, relative strength by sector, breaking out of a base, volume expanding); one table per sector; top 5 setups; risks/catalysts (earnings within 14 days). HTML email with bordered tables, bullish green (#0a7d2c) / bearish red (#c0392b), title "Modern AI Sectors Research - <date> <time> CT", footer "Research only, not financial advice. No orders placed." Send with mcp__Gmail__send_message to mail11dira@gmail.com only. Do not commit or push anything.

@@ -13,7 +13,7 @@ from html import escape
 
 from . import collect, render as R
 from .analyze import analyze, detect_mode, earnings_within, now_ct
-from .universe import (AI_SECTORS, EMPTY_LAYER_NOTE, modern_layout, symbols)
+from .universe import (AI_SECTORS, EMPTY_LAYER_NOTE, INVERSE, modern_layout, symbols)
 
 TITLES = {"mag7": "MAG 7", "aisectors": "AI Sectors", "modern": "Modern AI Sectors"}
 
@@ -241,9 +241,10 @@ def _modern(res, syms, bench, earn, ds):
     secs = modern_layout()
     score_rows, stats = [], []
     for sec in secs:
-        live = [res[s] for s, k, _ in sec["members"] if k != "n/a" and res[s]["ok"]]
-        etf = _avg([res[s]["day_pct"] for s, k, _ in sec["members"] if k == "ETF" and res[s]["ok"]])
-        stk = _avg([res[s]["day_pct"] for s, k, _ in sec["members"] if k == "Stock" and res[s]["ok"]])
+        mem = [(s, k) for s, k, _ in sec["members"] if k != "n/a" and s not in INVERSE]
+        live = [res[s] for s, k in mem if res[s]["ok"]]
+        etf = _avg([res[s]["day_pct"] for s, k in mem if k == "ETF" and res[s]["ok"]])
+        stk = _avg([res[s]["day_pct"] for s, k in mem if k == "Stock" and res[s]["ok"]])
         a = _avg([r["day_pct"] for r in live])
         vq = _avg([r["vs_qqq"] for r in live])
         rs = _avg([_rs(r, spy20) for r in live])
@@ -287,7 +288,7 @@ def _modern(res, syms, bench, earn, ds):
 
 
 def _checklist(res, syms, stats, spy20, qqq20, k=10):
-    ok = [res[s] for s in syms if res[s]["ok"]]
+    ok = [res[s] for s in syms if res[s]["ok"] and s not in INVERSE]
 
     def names(rs, f=lambda r: r["sym"]):
         return ", ".join(f(r) for r in rs[:k]) + (f" (+{len(rs) - k} more)" if len(rs) > k else "") if rs else "none"

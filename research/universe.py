@@ -99,6 +99,29 @@ MODERN = [
     ("12", "Neo-Cloud", "GPU Clouds | AI Hosting",
      [],
      ["NBIS", "CRWV", "IREN"]),
+    # 13-19 added 2026-10-19: high-volume day-trading groups missing from the map (all passed the screen below)
+    ("13", "Leveraged / Volatility", "3x Nasdaq | 3x Semis | 3x Small Caps | VIX",
+     [("TQQQ", "3x Nasdaq 100"), ("SQQQ", "-3x Nasdaq 100"), ("SOXL", "3x Semis"), ("SOXS", "-3x Semis"),
+      ("TNA", "3x Small Caps"), ("UVXY", "1.5x VIX futures")],
+     []),
+    ("14", "Consumer / Internet", "E-commerce | Streaming | Social | Mobility",
+     [("XLY", "Consumer Discretionary"), ("XLC", "Communication Services")],
+     ["SHOP", "NFLX", "UBER", "RDDT", "CVNA"]),
+    ("15", "China Tech", "China Internet | Large Caps",
+     [("KWEB", "China Internet"), ("FXI", "China Large Caps")],
+     ["BABA", "BIDU"]),
+    ("16", "Banks / Lending", "Regional Banks | Investment Banks | Consumer Lending",
+     [("KRE", "Regional Banks")],
+     ["GS", "SOFI", "AFRM"]),
+    ("17", "Travel / Airlines / Cruise", "Airlines | Cruise Lines",
+     [],
+     ["UAL", "DAL", "AAL", "CCL", "RCL"]),
+    ("18", "Gold & Silver Miners", "Gold Miners | Junior Miners | Silver",
+     [("GDX", "Gold Miners"), ("GDXJ", "Junior Gold Miners")],
+     ["NEM", "AEM", "CDE", "HL"]),
+    ("19", "Housing / Homebuilders", "Homebuilders | Rate-sensitive",
+     [("ITB", "Home Construction"), ("XHB", "Homebuilders")],
+     ["DHI", "LEN", "PHM"]),
 ]
 NOT_ON_ROBINHOOD = {"PSTG"}
 
@@ -114,7 +137,12 @@ DAYTRADE_REMOVED = {
     "LMT": "low range, ATR < 2.5%", "RTX": "low range, ATR < 2.5%", "ABBV": "low range, ATR < 2.5%",
     "PSTG": "not on Robinhood",
 }
-MODERN_NOTES = {"02": "IGV (Software - AI infra) and CIBR (Cyber - AI exposure) are shown once, in 03"}
+# Inverse / volatility products rise when the market falls: shown in their sector table, but kept out of
+# sector averages and the weekend checklist (they would read as false "strength").
+INVERSE = {"SQQQ", "SOXS", "UVXY"}
+MODERN_NOTES = {"13": "SQQQ, SOXS and UVXY are inverse / volatility hedges: shown here, excluded from sector "
+                      "averages and the weekend checklist",
+                "02": "IGV (Software - AI infra) and CIBR (Cyber - AI exposure) are shown once, in 03"}
 
 
 def modern_layout():
