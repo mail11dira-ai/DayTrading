@@ -265,7 +265,10 @@ def test_bullish_green_bearish_red():
     assert R.tone("bearish") == '<span class="r">bearish</span>'
     assert R.tone("death") == '<span class="r">death</span>'
     assert R.tone("mixed") == "mixed" and R.tone(None) == "n/a"
-    assert R.score(1.5) == '<span class="g">+1.5</span>' and R.score(-2) == '<span class="r">-2.0</span>'
+    assert R.score(1.5) == '<span class="p pg">+1.5</span>' and R.score(-2) == '<span class="p pr">-2.0</span>'
+    assert R.score(0.1) == '<span class="p pz">+0.1</span>'
+    rows = R.table(["T", "B"], [["<b>X</b>", R.score(2)], ["<b>Y</b>", R.score(-2)], ["<b>Z</b>", R.score(0)]])
+    assert '<tr class="bu">' in rows and '<tr class="be">' in rows and rows.count("<tr>") == 2  # header + neutral row
     html = R.table(["Ticker", "MA stack"], [["<b>X</b>", R.tone("bullish")], ["<b>Y</b>", R.tone("bearish")]])
     assert '<td class="g">bullish</td>' in html and '<td class="r">bearish</td>' in html
 
@@ -316,3 +319,10 @@ def test_daily_pattern_and_confirmations():
     assert ta.confirmations(-4, 0.2, 0.1, 30, 25, 10) == 0
     assert ta.confirmations(-4, -0.2, -0.3, 15, 10, 25) == 0  # fading MACD, weak ADX
     assert ta.confirmations(0, 1, 0, 50, 40, 0) == 0
+
+
+def test_table_tint_column_overrides_bias_pill():
+    from research import render as R
+    html = R.table(["S", "Day", "Bias"], [["A", R.pct(1.0), R.score(-3)], ["B", R.pct(-1.0), R.score(3)]], tint=1)
+    assert html.index('<tr class="bu">') < html.index("<td>") and html.count('<tr class="bu">') == 1
+    assert html.count('<tr class="be">') == 1 and "A</td>" in html.split('<tr class="be">')[0]  # row A (day +) is green

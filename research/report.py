@@ -270,7 +270,8 @@ def _modern(res, syms, bench, earn, ds, agent="modern"):
     out = _snapshot(res, bench, tape)
     out += "<h3>2. Sector scoreboard</h3>" + R.table(
         ["#", "Sector"] + (["ETFs Day %", "Leaders Day %"] if has_etf else ["Avg Day %"])
-        + ["vs QQQ", "20d RS vs SPY", "Avg bias", "Holding 8/21", "Best", "Worst"], score_rows, left=2)
+        + ["vs QQQ", "20d RS vs SPY", "Avg bias", "Holding 8/21", "Best", "Worst"], score_rows, left=2,
+        tint=3 if has_etf else 2)  # leaders' / average day % column
     out += "<h3>3. Weekend checklist</h3>" + _checklist(res, syms, stats, spy20, qqq20)
     n = 4
     compact = agent == "ai100"  # short email: no per-sector tables (scoreboard already has best/worst per sector)

@@ -6,13 +6,23 @@ because the agent has to pass the whole body to Gmail.
 import re
 from html import escape
 
-STYLE = ("<style>body{font-family:Arial,sans-serif;font-size:13px;color:#222}"
-         "table{border-collapse:collapse;font-size:12px;margin:4px 0 8px}"
-         "td,th{border:1px solid #bbb;padding:3px 5px;text-align:right;white-space:nowrap}"
-         "th{background:#f2f2f2}td.l,th.l{text-align:left}"
-         ".g{color:#0a7d2c}.r{color:#c0392b}.z{color:#555}.c{font-size:13px;margin:0 0 10px}"
-         "h4{margin:10px 0 2px}</style>")
+STYLE = ("<style>body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#222;background:#f4f6f9;margin:0;padding:12px}"
+         "h2{margin:0 0 6px;padding:10px 14px;background:#1f2d3d;color:#fff;border-radius:6px;font-size:18px}"
+         "h3{margin:18px 0 6px;padding-bottom:3px;border-bottom:2px solid #dfe5ec;color:#1f2d3d;font-size:15px}"
+         "h4{margin:0 0 3px;font-size:14px}p,ul{margin:4px 0 8px}li{margin:2px 0}"
+         "table{border-collapse:collapse;font-size:12px;margin:4px 0 10px;background:#fff}"
+         "td,th{border:1px solid #d5dbe3;padding:4px 6px;text-align:right;white-space:nowrap}"
+         "th{background:#1f2d3d;color:#fff;font-weight:600}td.l,th.l{text-align:left}"
+         "tr.bu td{background:#eef8f1}tr.bu td:first-child{border-left:4px solid #0a7d2c}"
+         "tr.be td{background:#fdf0ee}tr.be td:first-child{border-left:4px solid #c0392b}"
+         ".g{color:#0a7d2c;font-weight:600}.r{color:#c0392b;font-weight:600}.z{color:#555}"
+         ".p{display:inline-block;padding:1px 8px;border-radius:10px;font-weight:700;font-size:11px}"
+         ".pg{background:#d4f0dc;color:#0a7d2c}.pr{background:#fad9d5;color:#c0392b}.pz{background:#e6e9ee;color:#555}"
+         ".k{margin:0 0 12px;padding:8px 12px;border-radius:6px;background:#fff;border:1px solid #d5dbe3;border-left:5px solid #9aa5b1}"
+         ".kg{border-left-color:#0a7d2c;background:#f6fbf7}.kr{border-left-color:#c0392b;background:#fdf6f5}"
+         ".c{font-size:13px;line-height:1.55}.lg{font-size:12px;color:#555}</style>")
 NA = "n/a"
+PILL = re.compile(r'class="p p(\w)"')
 SPAN_TD = re.compile(r'<td><span class="(\w)">([^<]*)</span></td>')
 
 
@@ -53,14 +63,20 @@ def tone_pair(text):
     return tone(head) + (f", {tail}" if tail else "")
 
 
+def pill(text, c):
+    return f'<span class="p p{c}">{text}</span>'
+
+
 def score(x, d=1):
-    """Signed bias number: green when > 0, red when < 0."""
-    return NA if x is None else f'<span class="{cls(x)}">{x:+.{d}f}</span>'
+    """Signed average bias as a pill: green >= +0.5, red <= -0.5, else grey."""
+    if x is None:
+        return NA
+    return pill(f"{x:+.{d}f}", "g" if x >= 0.5 else "r" if x <= -0.5 else "z")
 
 
 def bias(r):
     c = {"BULLISH": "g", "BEARISH": "r"}.get(r["bias_label"], "z")
-    return f'<span class="{c}">{r["bias"]:+d} {r["bias_label"]}</span>'
+    return pill(f'{r["bias"]:+d} {r["bias_label"]}', c)
 
 
 def rsi(x):
@@ -89,14 +105,18 @@ def short_lvl(z):
     return NA if not z else f"{num(z[0])}"
 
 
-def table(headers, rows, left=1):
+def table(headers, rows, left=1, tint=None):
+    """tint: index of the cell whose green/red colour shades the row (default: the row's first bias pill)."""
     h = "".join(f'<th class="l">{x}</th>' if i < left else f"<th>{x}</th>" for i, x in enumerate(headers))
     body = []
     for row in rows:
         if isinstance(row, str):
             body.append(row)
             continue
-        body.append("<tr>" + "".join(
+        m = (re.search(r'class="([gr])"', str(row[tint])) if tint is not None
+             else PILL.search("".join(map(str, row))))
+        tr = {"g": ' class="bu"', "r": ' class="be"'}.get(m.group(1), "") if m else ""
+        body.append(f"<tr{tr}>" + "".join(
             f'<td class="l">{x}</td>' if i < left else f"<td>{x}</td>" for i, x in enumerate(row)) + "</tr>\n")
     out = f'<table border="1"><tr>{h}</tr>{"".join(body)}</table>'
     return SPAN_TD.sub(r'<td class="\1">\2</td>', out)
@@ -202,11 +222,16 @@ def card(r, extra=""):
         setup_line("bull", r["watch"]["bull"], '<span class="g">Bullish above</span>'),
         setup_line("bear", r["watch"]["bear"], '<span class="r">Bearish below</span>'),
     ]
-    return (f"<h4>{escape(r['sym'])} &mdash; ${num(p)} ({pct(r['day_pct'])})</h4>"
-            f'<div class="c">' + "<br>\n".join(lines) + "</div>\n")
+    k = {"BULLISH": "kg", "BEARISH": "kr"}.get(r["bias_label"], "")
+    return (f'<div class="k {k}"><h4>{escape(r["sym"])} &mdash; ${num(p)} ({pct(r["day_pct"])}) {bias(r)}</h4>'
+            f'<div class="c">' + "<br>\n".join(lines) + "</div></div>\n")
+
+
+LEGEND = (f'<p class="lg">{pill("Bullish", "g")} {pill("Bearish", "r")} {pill("Neutral", "z")} '
+          "&nbsp;green = bullish / up, red = bearish / down</p>")
 
 
 def doc(title, note, body):
     return (f"<html><head><meta charset=\"utf-8\">{STYLE}</head><body>"
-            f"<h2>{escape(title)}</h2><p><i>{escape(note)}</i></p>{body}"
+            f"<h2>{escape(title)}</h2><p><i>{escape(note)}</i></p>{LEGEND}{body}"
             "<p><i>Research only, not financial advice. No orders placed.</i></p></body></html>")

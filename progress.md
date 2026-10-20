@@ -84,7 +84,9 @@ gap, breaks · 5m EMA 9/21; daily EMA 9/21, SMA 20/50/200, stack, golden/death c
   bias side & expanding; ADX ≥ 20 with matching DI).
 - Watch levels: merge 0.10 ATR, drop within 0.15 ATR, target ≥ 0.5 ATR (else +0.75 ATR), stop ≥ 0.25 ATR (else 0.5 ATR).
 - Top setups: rank |bias| → confirmations → RVOL → R/R; exclude R/R < 1. MAG 7 top 3, AI Sectors top 5.
-- Colors: every bullish word/number green (#0a7d2c), bearish red (#c0392b), neutral grey.
+- Colors: every bullish word/number green (#0a7d2c), bearish red (#c0392b), neutral grey. Look & feel (2026-10-20): dark header
+  bar + legend, tinted bias pills (BULLISH green / BEARISH red / NEUTRAL grey), rows shaded green/red (ticker tables by bias,
+  sector scoreboard by day move), cards with a green/red left border, dark table headers. All in `render.py` STYLE (class-based, ~2 KB).
 
 - **Modern AI Sectors (94 = 34 ETFs + 60 stocks, 19 sectors; `--agent modern`):** see `Modern AI Sectors/README.md`.
   01 Semis/Memory · 02 AI Infra/Data Centers · 03 Software/Cyber · 04 Power/Grid/Nuclear · 05 Crypto/Fintech ·
