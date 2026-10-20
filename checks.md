@@ -20,3 +20,6 @@ Completion checklist (Option A). Each item must point to observable evidence.
 | all | Full test suite | pass | `python -m pytest -q` → 48 passed |
 | research agents | bias score (>= +3 / <= -3) predicts the next 60-min market-adjusted return (65 sessions, 8:59 CT, no look-ahead) | fail | backtests/bias_validation.md (spread -0.13%/day, t = -1.2; top-5 ranking -0.06%/day, t = -0.6; no signal supported) |
 | research agents | every bias component can change the score at 8:59 CT | fail | backtests/bias_validation.md section 0: intraday structure is neutral on 99% of stock-days |
+| research agents | decision on the failed bias-score gate (2026-10-20) | unresolved | user chose to keep the score as a descriptive chart-state summary; emails carry the validation note; the two fail rows above stand. Re-test with `python -m research.validate` after ~60 more sessions |
+| research agents | full test suite after review pass (breadth regime, validation note, expected range) | pass | `python -m pytest -q` → 87 passed |
+| research agents | ad-hoc end-to-end runs, 2026-10-20 00:28 / 00:31 CT | pass | `research.report --test`: MAG 7 and AI Sectors 100 both `missing: []`, 25 KB / 27 KB; sent to mail11dira@gmail.com |

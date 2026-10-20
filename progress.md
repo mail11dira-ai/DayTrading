@@ -130,16 +130,12 @@ gap, breaks · 5m EMA 9/21; daily EMA 9/21, SMA 20/50/200, stack, golden/death c
   "expected range left" says "none (full ATR used)" instead of a zero-width range.
 
 ## Next actions (proceed in the next run)
-0b. Decide with the user what to do about the validation result: (a) keep the score as a descriptive chart-state summary (current),
-    (b) fix or drop the dead structure component, (c) re-test other horizons / re-weight on a longer sample (use `--from-samples`).
-    Never tune on the same 65 sessions without a held-out period. Re-run `research.validate` after ~60 more sessions.
-0c. MAG 7 built-in email notification is still ON (UI-only setting).
-0a. Check the first AI Sectors 100 run (2026-10-20 7:59 CT) — `trig_01D3Gr9p5a4cJvwRkuHVThUg` last_run.
-0. Check the first Modern AI Sectors run (`trig_01D3Gr9p5a4cJvwRkuHVThUg`, 2026-10-19 7:59 CT).
-1. Check the first emails with the new indicators (2026-10-16 7:59 and 8:59 CT) — use `list_triggers` for the
-   `last_run.session_id`, then `list_events` on it to confirm "sent" and an empty `missing` list.
-2. If the user wants a test now: fire the routines (`fire_trigger`) or run the plan + report locally with `--test`.
-3. Open decisions for the user: add nuclear names back (CCJ ~$0.30B, OKLO ~$0.37B/day)? turn off the MAG 7
-   built-in email notification? delete or update the two disabled 9:30 routines?
-4. Optional: refresh the live routines' FALLBACK text to point at `routine_prompt_legacy.txt` (MAG 7 still embeds
-   the older indicator list; the script path is unaffected).
+Build status: COMPLETE (2026-10-20). Both agents (MAG 7, AI Sectors 100) are live, Mon-Fri 7:59 and 8:59 CT.
+Decision (user, 2026-10-20): keep the bias score as-is, as a descriptive chart-state summary (no re-weighting,
+structure component left unchanged). The validation fail rows in checks.md stand; the email note says so.
+1. Check the first live runs with this build (2026-10-20 7:59 / 8:59 CT): `list_triggers` -> `last_run.session_id`,
+   then `list_events` to confirm "sent" and an empty `missing` list.
+2. MAG 7 built-in email notification is still ON (UI-only setting; the user turns it off).
+3. Maintenance only: re-run `python -m research.validate` after ~60 more sessions (held-out period) before any
+   change to the bias score. Never tune on the same 65 sessions.
+4. Optional: refresh the live routines' FALLBACK text to point at `routine_prompt_legacy.txt`.
