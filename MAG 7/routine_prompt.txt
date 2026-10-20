@@ -69,7 +69,7 @@ J. PRE-MARKET & GAP QUALITY
 K. INTRADAY RELATIVE STRENGTH
  - Stock return over the last 15 and 30 minutes minus QQQ over the same window: leading (>= +0.3%), lagging (<= -0.3%), else in line.
 L. MARKET BREADTH & REGIME (snapshot)
- - % of stocks up on the day, above VWAP and holding the daily 8/21 trend; counts of BULLISH / BEARISH bias and of stocks leading QQQ; regime = RISK-ON (average >= 60%), RISK-OFF (<= 40%), else MIXED; plus the VIX level (calm < 15, normal < 20, elevated < 30, high).
+ - % of stocks up on the day, above VWAP and holding the daily 8/21 trend; counts of BULLISH / BEARISH bias and of stocks leading QQQ; regime = RISK-ON when the average of % up and % above VWAP (% up alone before the open) is >= 60%, RISK-OFF <= 40%, else MIXED (holding 8/21 is shown as context but not scored); plus the VIX level (calm < 15, normal < 20, elevated < 30, high).
 
 BIAS SCORE (deterministic, -6..+6): +1 each when true, -1 when the opposite is true, 0 if n/a or neutral:
  price above VWAP | 5-min EMA9 above EMA21 | daily MA stack bullish | 5-min RSI between 55 and 70 (bearish side: between 30 and 45) | RVOL > 1.2 with up/down volume ratio > 1 (bearish side: ratio < 1) | intraday structure uptrend (bearish side: downtrend).

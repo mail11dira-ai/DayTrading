@@ -384,6 +384,16 @@ def test_report_has_breadth_rs_and_orb_sections():
     assert "ORB confirmed (15m range" in html and "Intraday RS leaders" in html
 
 
+def test_breadth_regime_ignores_daily_hold():
+    from research.report import _breadth
+    base = {"ok": True, "thin": False, "vwap": 100.0, "bias_label": "BULLISH", "rs30": 0.5}
+    res = {s: dict(base, day_pct=1.0, price=101.0, hold_821="lost") for s in "ABCDE"}
+    line = _breadth(res, list(res), None)[0]
+    assert "0% holding 8/21" in line and "RISK-ON" in line  # 100% up + above VWAP, hold not scored
+    res = {s: dict(r, day_pct=-1.0, price=99.0, hold_821="holding") for s, r in res.items()}
+    assert "RISK-OFF" in _breadth(res, list(res), None)[0]
+
+
 def test_plan_uses_one_extended_5min_pull_and_vix():
     from research.plan import plan, VIX_ID
     calls = plan("ai100", datetime(2026, 10, 20, 7, 59, tzinfo=CT))

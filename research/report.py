@@ -75,7 +75,9 @@ def _breadth(res, syms, ds):
     parts.append(sp(hold, f"{hold:.0f}% holding 8/21"))
     parts.append(f'<span class="g">{bull} bullish</span> / <span class="r">{bear} bearish</span> bias')
     parts.append(f"{lead} leading QQQ (30m)")
-    score = [up, hold] + ([ab] if ab is not None else [])
+    # Regime uses today's (intraday) measures only; holding 8/21 is slow daily context and
+    # was not predictive in backtests/bias_validation.md, so it is shown but not scored.
+    score = [up] + ([ab] if ab is not None else [])
     avg = sum(score) / len(score)
     regime = R.pill("RISK-ON" if avg >= 60 else "RISK-OFF" if avg <= 40 else "MIXED", cl(avg))
     out = [f"<li><b>Breadth ({n} stocks):</b> " + " &middot; ".join(parts) + f" &rarr; {regime}</li>"]
@@ -197,7 +199,7 @@ def _mag7(res, syms, bench, earn, ds):
 
 
 VALIDATION_NOTE = ("Note: the bias score and this ranking describe the chart's current state. In a 65-session test "
-                   "(Jul-Oct 2026, 8:59 CT) they did not predict the next hour's move - use them to filter ideas, not to forecast.")
+                   "on the AI Sectors 100 stocks (Jul-Oct 2026, 8:59 CT) they did not predict the next hour's move - use them to filter ideas, not to forecast.")
 
 
 def _top_html(top, note):
