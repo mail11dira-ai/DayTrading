@@ -84,7 +84,7 @@ gap, breaks · 5m EMA 9/21; daily EMA 9/21, SMA 20/50/200, stack, golden/death c
   bias side & expanding; ADX ≥ 20 with matching DI).
 - Watch levels: merge 0.10 ATR, drop within 0.15 ATR, target ≥ 0.5 ATR (else +0.75 ATR), stop ≥ 0.25 ATR (else 0.5 ATR).
 - Top setups: rank |bias| → confirmations → RVOL → R/R; exclude R/R < 1. MAG 7 top 3, AI Sectors top 5.
-- Colors: every bullish word/number green (#0a7d2c), bearish red (#c0392b), neutral grey. Look & feel (2026-10-20): dark header
+- Colors (2026-10-20 rule, `render.words_only`): ONLY the words Bullish (green #0a7d2c) and Bearish (red #c0392b) are coloured; numbers, up/down words, row tints and card borders are uncoloured; bias pills are coloured only when they say BULLISH/BEARISH. Look & feel (2026-10-20): dark header
   bar + legend, tinted bias pills (BULLISH green / BEARISH red / NEUTRAL grey), rows shaded green/red (ticker tables by bias,
   sector scoreboard by day move), cards with a green/red left border, dark table headers. All in `render.py` STYLE (class-based, ~2 KB).
 

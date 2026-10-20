@@ -438,3 +438,16 @@ def test_validate_asof_view_has_no_lookahead_and_builds_samples():
     assert {"bias", "comp", "adj60", "adjc", "rs30", "orb", "conf"} <= set(s0)
     text, results, _ = V.report(samples, days)
     assert "Bias score & signal validation" in text and "too few days" in text  # only 2 days: honest verdict
+
+
+def test_only_bullish_bearish_words_are_coloured():
+    from research.render import words_only
+    html = ('<tr class="bu"><td class="g">+1.20%</td><td><span class="r">-0.5%</span> lost VWAP</td>'
+            '<td><span class="p pr">-3 BEARISH</span></td><td><span class="p pg">+0.8</span></td></tr>'
+            '<div class="k kg">MACD <span class="g">bullish</span>, stack bearish</div>')
+    out = words_only(html)
+    assert 'class="bu"' not in out and 'class="k kg"' not in out and '<td class="g">' not in out
+    assert "-0.5% lost VWAP" in out and '<span class="p pz">+0.8</span>' in out
+    assert '<span class="p pr">-3 BEARISH</span>' in out  # pill keeps colour only because it says BEARISH
+    assert '<span class="g">bullish</span>' in out and '<span class="r">bearish</span>' in out
+    assert out.count('class="g"') == 1 and out.count('class="r"') == 1

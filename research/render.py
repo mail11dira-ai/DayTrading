@@ -277,10 +277,40 @@ def card(r, extra=""):
 
 
 LEGEND = (f'<p class="lg">{pill("Bullish", "g")} {pill("Bearish", "r")} {pill("Neutral", "z")} '
-          "&nbsp;green = bullish / up, red = bearish / down</p>")
+          "&nbsp;only the words Bullish (green) and Bearish (red) are coloured</p>")
+
+_TONE = re.compile(r'<span class="[grz]">([^<]*)</span>')
+_PILLS = re.compile(r'<span class="p p\w">([^<]*)</span>')
+_WORD = re.compile(r"\b(bullish|bearish)\b", re.I)
+
+
+def _pill_by_word(m):
+    t = m.group(1).upper()
+    return pill(m.group(1), "g" if "BULLISH" in t else "r" if "BEARISH" in t else "z")
+
+
+def words_only(html):
+    """Colour rule (2026-10-20): only the words Bullish (green) and Bearish (red) carry colour.
+
+    Strips every other green/red/grey tint (numbers, up/down words, row and card shading) and
+    re-colours each bullish/bearish word; bias pills stay coloured only when they say BULLISH/BEARISH.
+    """
+    html = re.sub(r'<tr class="b[ue]">', "<tr>", html)
+    html = re.sub(r'class="k k[gr]"', 'class="k"', html)
+    html = re.sub(r'<td class="[grz]">', "<td>", html)
+    html = _TONE.sub(r"\1", html)
+    html = _PILLS.sub(_pill_by_word, html)
+    out, in_pill = [], False
+    for tok in re.split(r"(<[^>]+>)", html):
+        if tok.startswith("<"):
+            in_pill = tok.startswith('<span class="p ') or (in_pill and tok != "</span>")
+        elif not in_pill:
+            tok = _WORD.sub(lambda m: f'<span class="{"g" if m.group(1).lower() == "bullish" else "r"}">{m.group(1)}</span>', tok)
+        out.append(tok)
+    return "".join(out)
 
 
 def doc(title, note, body):
     return (f"<html><head><meta charset=\"utf-8\">{STYLE}</head><body>"
-            f"<h2>{escape(title)}</h2><p><i>{escape(note)}</i></p>{LEGEND}{body}"
+            f"<h2>{escape(title)}</h2><p><i>{escape(note)}</i></p>{LEGEND}{words_only(body)}"
             "<p><i>Research only, not financial advice. No orders placed.</i></p></body></html>")
