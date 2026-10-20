@@ -104,6 +104,16 @@ gap, breaks · 5m EMA 9/21; daily EMA 9/21, SMA 20/50/200, stack, golden/death c
   compact email since 2026-10-20 (~24 KB, 1 part: snapshot, scoreboard, checklist, top 5, risks - no per-sector tables).
   AI Sectors and Modern AI Sectors folders are marked retired (code paths still work).
 
+- **New signals (2026-10-20, both agents):** volume-confirmed opening-range breakout (ORB), pre-market RVOL + gap quality,
+  intraday RS vs QQQ (15/30 min), breadth/regime + VIX. One extended-hours 5-min pull per symbol (AI Sectors 100: 42 calls/run,
+  MAG 7: 7). Plan includes `get_index_quotes` for VIX (id `3b912aa2-88f9-4682-8ae3-e39520bdf4db`); both live routine prompts load that tool.
+- **Bias-score validation (`python3 -m research.validate`, report `backtests/bias_validation.md`, samples
+  `backtests/bias_validation_samples.json.gz`; regenerate with `--from-samples`):** 65 sessions x 100 stocks at 09:00 CT, market-adjusted,
+  no look-ahead. **No signal predicts the next hour**: headline bias spread -0.13%/day (t -1.2), top-5 ranking -0.06%/day (t -0.6),
+  ORB / RS / MACD-ADX confirmations all no clear edge; "holding 8/21" weakly inverted (t -2.2, plausible chance among 12 tests).
+  Control passes (score describes the trailing 30-min move, t +26). **Intraday-structure component is dead at 8:59** (neutral 99%).
+  Emails now carry a one-line note that the score is descriptive. Pre-market/gap signals could not be tested (no past pre-market history).
+
 ## Change log (this session)
 - Built both agents → script-based flow (cost cut) → dropped 9:30 run → watch-level fixes → AI Sectors dedupe/no MAG 7
 - 2026-10-16: AI Sectors 59 → 32 stocks + Neo-Cloud ecosystem (c52d8d8, 847ec15)
@@ -116,6 +126,10 @@ gap, breaks · 5m EMA 9/21; daily EMA 9/21, SMA 20/50/200, stack, golden/death c
 - 2026-10-20: AI Sectors 100 email made compact (57 KB -> 24 KB). MAG 7 built-in notification: user turns it off in the UI
 
 ## Next actions (proceed in the next run)
+0b. Decide with the user what to do about the validation result: (a) keep the score as a descriptive chart-state summary (current),
+    (b) fix or drop the dead structure component, (c) re-test other horizons / re-weight on a longer sample (use `--from-samples`).
+    Never tune on the same 65 sessions without a held-out period. Re-run `research.validate` after ~60 more sessions.
+0c. MAG 7 built-in email notification is still ON (UI-only setting).
 0a. Check the first AI Sectors 100 run (2026-10-20 7:59 CT) — `trig_01D3Gr9p5a4cJvwRkuHVThUg` last_run.
 0. Check the first Modern AI Sectors run (`trig_01D3Gr9p5a4cJvwRkuHVThUg`, 2026-10-19 7:59 CT).
 1. Check the first emails with the new indicators (2026-10-16 7:59 and 8:59 CT) — use `list_triggers` for the

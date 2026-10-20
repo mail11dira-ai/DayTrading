@@ -18,3 +18,5 @@ Completion checklist (Option A). Each item must point to observable evidence.
 | N7 | Report cites evidence; failed iterations listed | pass | `backtests/report.md` |
 | all | Order-placing tools blocked | pass | `.claude/settings.json` deny list |
 | all | Full test suite | pass | `python -m pytest -q` → 48 passed |
+| research agents | bias score (>= +3 / <= -3) predicts the next 60-min market-adjusted return (65 sessions, 8:59 CT, no look-ahead) | fail | backtests/bias_validation.md (spread -0.13%/day, t = -1.2; top-5 ranking -0.06%/day, t = -0.6; no signal supported) |
+| research agents | every bias component can change the score at 8:59 CT | fail | backtests/bias_validation.md section 0: intraday structure is neutral on 99% of stock-days |
