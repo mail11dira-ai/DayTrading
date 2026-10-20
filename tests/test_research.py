@@ -149,6 +149,17 @@ def test_modern_universe_dedup_and_mag7():
     assert any("JETS (low volume)" in n and "JETS, JETS" not in n for n in secs["10"]["notes"])
 
 
+def test_ai100_universe_is_100_unique_stocks():
+    syms = modern_symbols(agent="ai100")
+    assert len(syms) == 100 and len(set(syms)) == 100
+    assert modern_symbols("ETF", agent="ai100") == [] and not set(syms) & set(MAG7)
+    assert {"NBIS", "CRWV", "IREN", "MU", "LITE", "BE", "PLTR", "SHOP"} <= set(syms)
+    from research.plan import plan
+    calls = plan("ai100", datetime(2026, 10, 20, 7, 59, tzinfo=CT))
+    ratings = [a for t, a in calls if t.endswith("get_equity_analyst_ratings")]
+    assert len(ratings) == 2 and all(len(a["symbols"]) <= 75 for a in ratings)  # tool limit
+
+
 def test_collect_reads_inline_and_saved_results(tmp_path):
     saved = tmp_path / "saved.txt"
     saved.write_text(json.dumps({"data": {"results": [
@@ -211,10 +222,11 @@ def _synthetic_dataset(symbols, session):
     return ds
 
 
-@pytest.mark.parametrize("agent", ["mag7", "aisectors", "modern"])
+@pytest.mark.parametrize("agent", ["mag7", "aisectors", "modern", "ai100"])
 def test_end_to_end_report_closed_session(agent):
     syms = {"mag7": MAG7 + ["SPY", "QQQ"], "aisectors": ai_symbols() + ["SPY", "QQQ", "SMH", "XLU"],
-            "modern": modern_symbols() + ["SPY", "QQQ"]}[agent]
+            "modern": modern_symbols() + ["SPY", "QQQ"],
+            "ai100": modern_symbols(agent="ai100") + ["SPY", "QQQ"]}[agent]
     session = date(2026, 10, 12)
     ds = _synthetic_dataset(syms, session)
     now = datetime(2026, 10, 13, 1, 0, tzinfo=CT)
@@ -227,6 +239,8 @@ def test_end_to_end_report_closed_session(agent):
     if agent == "aisectors":
         assert "Neo-Cloud ecosystem" in html
         assert not any(f"<b>{m}</b>" in html for m in MAG7)
+    if agent == "ai100":
+        assert "Weekend checklist" in html and "ETFs Day %" not in html and "15 Industrials / Housing" in html
     if agent == "modern":
         assert "Weekend checklist" in html and "Sector scoreboard" in html and "removed for day trading" in html
         assert "12 Neo-Cloud" in html and not any(f"<b>{m}</b>" in html for m in MAG7)

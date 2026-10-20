@@ -39,8 +39,8 @@ changes the next run). PRs: none (not requested).
 | Routine | ID | Schedule | State |
 |---|---|---|---|
 | MAG 7 Research Agent | `trig_012DY3peEQUikJ9MBxYuLXpG` | `CRON_TZ=America/Chicago 59 7,8 * * 1-5` (7:59, 8:59) | enabled; last run 2026-10-15 OK |
-| AI Sectors Research Agent | `trig_01BSEzw8DL1JRFyRSmVnQK6B` | same | enabled; last run 2026-10-15 OK |
-| Modern AI Sectors Research Agent | `trig_01D3Gr9p5a4cJvwRkuHVThUg` | same (created 2026-10-19) | enabled; connectors + repo attached by user 2026-10-19 |
+| AI Sectors Research Agent | `trig_01BSEzw8DL1JRFyRSmVnQK6B` | same | **disabled 2026-10-20** (merged into AI Sectors 100) |
+| **AI Sectors 100 Research Agent** (was Modern AI Sectors) | `trig_01D3Gr9p5a4cJvwRkuHVThUg` | same | enabled; `--agent ai100`; connectors + repo attached |
 | MAG 7 (9:30) | `trig_01TZoDuVzveBgkv4RqgL2pSs` | `29 9 * * 1-5` | **disabled** (old full prompt) |
 | AI Sectors (9:30) | `trig_01BRGe391GXt4kzok9eotfwp` | `29 9 * * 1-5` | **disabled** (old full prompt, 59-stock universe) |
 
@@ -96,6 +96,11 @@ gap, breaks · 5m EMA 9/21; daily EMA 9/21, SMA 20/50/200, stack, golden/death c
   Screen: ETFs ≥ $150M/day; stocks ≥ $200M/day, price ≥ $5, ATR ≥ 2.5% (`DAYTRADE_REMOVED` in universe.py).
   47 Robinhood calls/run; email ≈ 61 KB (3 parts).
 
+- **AI Sectors 100 (`--agent ai100`, 2026-10-20): THE active sector agent** — merges AI Sectors + Modern AI Sectors into
+  the best 100 unique stocks (no ETFs, no MAG 7), 15 sectors, Modern email format. Ranking: screen $200M+/day, px ≥ $5,
+  ATR ≥ 2.5%, then avg percentile of $ volume and ATR %; full table in `AI Sectors 100/README.md`. 52 calls/run, ~57 KB.
+  AI Sectors and Modern AI Sectors folders are marked retired (code paths still work).
+
 ## Change log (this session)
 - Built both agents → script-based flow (cost cut) → dropped 9:30 run → watch-level fixes → AI Sectors dedupe/no MAG 7
 - 2026-10-16: AI Sectors 59 → 32 stocks + Neo-Cloud ecosystem (c52d8d8, 847ec15)
@@ -104,7 +109,10 @@ gap, breaks · 5m EMA 9/21; daily EMA 9/21, SMA 20/50/200, stack, golden/death c
 
 - 2026-10-19: new Modern AI Sectors agent; watch-level targets capped at 2 daily ATR for all agents (e07d5dd)
 
+- 2026-10-20: AI Sectors 100 replaces both sector agents; analyst ratings chunked to 75 symbols/call
+
 ## Next actions (proceed in the next run)
+0a. Check the first AI Sectors 100 run (2026-10-20 7:59 CT) — `trig_01D3Gr9p5a4cJvwRkuHVThUg` last_run.
 0. Check the first Modern AI Sectors run (`trig_01D3Gr9p5a4cJvwRkuHVThUg`, 2026-10-19 7:59 CT).
 1. Check the first emails with the new indicators (2026-10-16 7:59 and 8:59 CT) — use `list_triggers` for the
    `last_run.session_id`, then `list_events` on it to confirm "sent" and an empty `missing` list.

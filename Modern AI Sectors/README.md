@@ -1,5 +1,7 @@
 # Modern AI Sectors — Stock Research Agent
 
+> **Retired 2026-10-20 — merged into `../AI Sectors 100`** (one agent, best 100 unique stocks). Kept for reference; the code path (`--agent modern`) still works.
+
 A research-only day-trading report on 11 modern market sectors plus Neo-Cloud — sector ETFs and their
 leader stocks — built from Robinhood data and emailed to mail11dira@gmail.com. Same setup and technicals as
 `../MAG 7` and `../AI Sectors`. **No orders are ever placed.**

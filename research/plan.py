@@ -37,13 +37,14 @@ def plan(agent, now):
     for c in chunks(allsyms, 10):
         calls.append((P + "get_equity_historicals", {"symbols": c, "interval": "day", "start_time": startd}))
     calls.append((P + "get_earnings_calendar", {"days": 15, "filter": "high_market_cap"}))
-    calls.append((P + "get_equity_analyst_ratings", {"symbols": ratings_symbols(agent)}))
+    for c in chunks(ratings_symbols(agent), 75):  # tool limit: 75 symbols per call
+        calls.append((P + "get_equity_analyst_ratings", {"symbols": c}))
     return calls
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--agent", required=True, choices=["mag7", "aisectors", "modern"])
+    ap.add_argument("--agent", required=True, choices=["mag7", "aisectors", "modern", "ai100"])
     ap.add_argument("--now")
     a = ap.parse_args(argv)
     for tool, args in plan(a.agent, now_ct(a.now)):

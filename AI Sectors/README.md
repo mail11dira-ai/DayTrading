@@ -1,5 +1,7 @@
 # AI Sectors — Stock Research Agent
 
+> **Retired 2026-10-20 — merged into `../AI Sectors 100`** (one agent, best 100 unique stocks). Kept for reference; the code path (`--agent aisectors`) still works.
+
 An hourly, research-only report on AI-sector stocks, built from Robinhood data and emailed to
 mail11dira@gmail.com. Same setup as `../MAG 7`. **No orders are ever placed.**
 

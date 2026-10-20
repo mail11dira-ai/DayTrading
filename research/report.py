@@ -15,7 +15,7 @@ from . import collect, render as R
 from .analyze import analyze, detect_mode, earnings_within, now_ct
 from .universe import (AI_SECTORS, EMPTY_LAYER_NOTE, INVERSE, modern_layout, symbols)
 
-TITLES = {"mag7": "MAG 7", "aisectors": "AI Sectors", "modern": "Modern AI Sectors"}
+TITLES = {"mag7": "MAG 7", "aisectors": "AI Sectors", "modern": "Modern AI Sectors", "ai100": "AI Sectors 100"}
 
 
 def build(agent, ds, now, test=False):
@@ -44,7 +44,10 @@ def build(agent, ds, now, test=False):
     if missing:
         note += f" No data for: {', '.join(missing)}."
 
-    body = {"mag7": _mag7, "aisectors": _ai, "modern": _modern}[agent](res, syms, bench, earn, ds)
+    if agent in ("modern", "ai100"):
+        body = _modern(res, syms, bench, earn, ds, agent)
+    else:
+        body = {"mag7": _mag7, "aisectors": _ai}[agent](res, syms, bench, earn, ds)
     return title, R.doc(title, note, body), missing, mode
 
 
@@ -224,21 +227,23 @@ def _rs(r, spy20):
     return r["ret20"] - spy20 if (r.get("ok") and r.get("ret20") is not None and spy20 is not None) else None
 
 
-def _m_row(r, kind, spy20):
+def _m_row(r, kind, spy20, show_type=True):
+    lead = [kind] if show_type else []
     if not r["ok"]:
-        return [kind, f"<b>{r['sym']}</b>"] + [R.NA] * 11
-    return [kind, f"<b>{r['sym']}</b>", R.num(r["price"]), R.pct(r["day_pct"]), R.pct(r["vs_qqq"]),
+        return lead + [f"<b>{r['sym']}</b>"] + [R.NA] * 11
+    return lead + [f"<b>{r['sym']}</b>", R.num(r["price"]), R.pct(r["day_pct"]), R.pct(r["vs_qqq"]),
             R.pct(_rs(r, spy20), 1), R.bias(r), R.vw_cell(r), R.rvol_cell(r),
             f"{R.rsi(r['rsi_5'])} / {R.rsi(r['rsi_d'])}", R.tone(r.get("hold_821")),
             f"{R.short_lvl(r['sup'])} / {R.short_lvl(r['res'])}", R.adx_cell(r)]
 
 
-def _modern(res, syms, bench, earn, ds):
+def _modern(res, syms, bench, earn, ds, agent="modern"):
     spy = res.get("SPY", {})
     qqq = res.get("QQQ", {})
     spy20 = spy.get("ret20") if spy.get("ok") else None
     qqq20 = qqq.get("ret20") if qqq.get("ok") else None
-    secs = modern_layout()
+    secs = modern_layout(agent)
+    has_etf = any(k == "ETF" for sec in secs for _, k, _ in sec["members"])
     score_rows, stats = [], []
     for sec in secs:
         mem = [(s, k) for s, k, _ in sec["members"] if k != "n/a" and s not in INVERSE]
@@ -253,7 +258,7 @@ def _modern(res, syms, bench, earn, ds):
         best = max(live, key=lambda r: r["day_pct"]) if live else None
         worst = min(live, key=lambda r: r["day_pct"]) if live else None
         stats.append((sec, a, rs))
-        score_rows.append([sec["num"], escape(sec["name"]), R.pct(etf), R.pct(stk), R.pct(vq), R.pct(rs, 1),
+        score_rows.append([sec["num"], escape(sec["name"])] + ([R.pct(etf)] if has_etf else []) + [R.pct(stk), R.pct(vq), R.pct(rs, 1),
                            R.score(ab), f"{len(hold)}/{len(live)}",
                            f"{best['sym']} {R.pct(best['day_pct'])}" if best else R.NA,
                            f"{worst['sym']} {R.pct(worst['day_pct'])}" if worst else R.NA])
@@ -264,8 +269,8 @@ def _modern(res, syms, bench, earn, ds):
                        f"laggard {lag[0]['num']} {escape(lag[0]['name'])} {R.pct(lag[1])}." if lead else R.NA)
     out = _snapshot(res, bench, tape)
     out += "<h3>2. Sector scoreboard</h3>" + R.table(
-        ["#", "Sector", "ETFs Day %", "Leaders Day %", "vs QQQ", "20d RS vs SPY", "Avg bias", "Holding 8/21",
-         "Best", "Worst"], score_rows, left=2)
+        ["#", "Sector"] + (["ETFs Day %", "Leaders Day %"] if has_etf else ["Avg Day %"])
+        + ["vs QQQ", "20d RS vs SPY", "Avg bias", "Holding 8/21", "Best", "Worst"], score_rows, left=2)
     out += "<h3>3. Weekend checklist</h3>" + _checklist(res, syms, stats, spy20, qqq20)
     n = 4
     for sec in secs:
@@ -275,9 +280,9 @@ def _modern(res, syms, bench, earn, ds):
                 rows.append(f'<tr><td class="l">ETF</td><td class="l"><b>{s}</b></td>'
                             f'<td class="l" colspan="11">n/a - not on Robinhood ({escape(desc)})</td></tr>')
             else:
-                rows.append(_m_row(res[s], k, spy20))
+                rows.append(_m_row(res[s], k, spy20, has_etf))
         out += f"<h3>{n}. {sec['num']} {escape(sec['name'])}</h3><p><i>{escape(sec['sub'])}</i></p>"
-        out += R.table(M_HDR, rows, left=2)
+        out += R.table(M_HDR if has_etf else M_HDR[1:], rows, left=2 if has_etf else 1)
         if sec["notes"]:
             out += "<p><i>" + "; ".join(escape(x) for x in sec["notes"]) + ".</i></p>"
         n += 1
@@ -340,7 +345,7 @@ def _write_parts(out, html, limit):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--agent", required=True, choices=["mag7", "aisectors", "modern"])
+    ap.add_argument("--agent", required=True, choices=["mag7", "aisectors", "modern", "ai100"])
     ap.add_argument("--transcript", help="session transcript (.jsonl); default: newest")
     ap.add_argument("--data", help="directory of raw tool-result JSON files (instead of / in addition to transcript)")
     ap.add_argument("--now", help="override current time (ISO, CT if no offset)")

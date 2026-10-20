@@ -145,11 +145,52 @@ MODERN_NOTES = {"13": "SQQQ, SOXS and UVXY are inverse / volatility hedges: show
                 "02": "IGV (Software - AI infra) and CIBR (Cyber - AI exposure) are shown once, in 03"}
 
 
-def modern_layout():
+# AI Sectors 100 (2026-10-20): ONE agent replacing AI Sectors + Modern AI Sectors. The best 100 unique
+# stocks (no ETFs, no MAG 7) out of both agents' stocks plus 41 extra high-volume candidates (120 in total),
+# ranked on 20-day Robinhood data: hard screen ($200M+/day, price >= $5, ATR >= 2.5%), then the average of
+# the percentile ranks of dollar volume and ATR %. Same layout as MODERN (no ETF column).
+AI100_BENCHMARKS = ["SPY", "QQQ"]
+AI100 = [
+    ("01", "Semiconductors / Memory", "GPUs | CPUs | Memory | Analog",
+     [], ["SNDK", "MU", "INTC", "AMD", "AVGO", "MRVL", "WDC", "SKHY", "ARM", "ALAB", "QCOM", "TSM", "ON", "TXN",
+          "MCHP"]),
+    ("02", "Semiconductor Equipment", "Lithography | Etch | Inspection | Test",
+     [], ["LRCX", "AMAT", "KLAC", "ASML", "TER"]),
+    ("03", "AI Infrastructure / Networking / Optical", "Servers | Cooling | Switches | Optics",
+     [], ["DELL", "SMCI", "HPE", "VRT", "ANET", "CSCO", "LITE", "COHR", "CRDO", "AAOI"]),
+    ("04", "Neo-Cloud / AI Hosting", "GPU Clouds | AI Data-Center Hosting",
+     [], ["NBIS", "CRWV", "IREN", "CIFR", "APLD", "WULF"]),
+    ("05", "Software / AI Apps", "Cloud | Data | AI Platforms",
+     [], ["ORCL", "PLTR", "APP", "CRM", "NOW", "SNOW", "MDB", "DDOG", "INTU", "ADBE"]),
+    ("06", "Cybersecurity", "Network | Endpoint | Edge",
+     [], ["PANW", "CRWD", "NET", "ZS", "FTNT"]),
+    ("07", "Power / Energy / Nuclear", "Fuel Cells | Turbines | Utilities | Nuclear | Solar",
+     [], ["BE", "GEV", "CEG", "VST", "OKLO", "ETN", "FSLR"]),
+    ("08", "Crypto / Fintech / Banks", "Bitcoin | Brokers | Miners | Lending | Banks",
+     [], ["MSTR", "HOOD", "COIN", "CRCL", "MARA", "RIOT", "CLSK", "SOFI", "AFRM", "GS"]),
+    ("09", "Space / Aerospace", "Satellites | Launch | Aircraft",
+     [], ["RKLB", "ASTS", "BA"]),
+    ("10", "Quantum", "Quantum Computing",
+     [], ["IONQ", "QBTS", "RGTI"]),
+    ("11", "Consumer / Internet", "E-commerce | Streaming | Social | Autos | Ad-tech | China",
+     [], ["SHOP", "NFLX", "RDDT", "CVNA", "NKE", "DKNG", "UBER", "TTD", "RIVN", "BABA"]),
+    ("12", "Health / Biotech", "Vaccines | Pharma | Managed Care | Telehealth",
+     [], ["MRNA", "LLY", "UNH", "HIMS"]),
+    ("13", "Travel / Airlines / Cruise", "Airlines | Cruise Lines",
+     [], ["AAL", "UAL", "DAL", "RCL", "CCL"]),
+    ("14", "Metals / Miners", "Gold | Silver | Copper | Rare Earths",
+     [], ["CDE", "HL", "MP", "FCX", "NEM"]),
+    ("15", "Industrials / Housing", "Machinery | Homebuilders",
+     [], ["CAT", "LEN"]),
+]
+SECTOR_MAPS = {}  # filled below: agent -> sector list
+
+
+def modern_layout(agent="modern"):
     """Sectors after de-duplication: list of dicts
     {num, name, sub, members: [(sym, kind, desc)], notes: [str]}; kind is 'ETF', 'Stock' or 'n/a'."""
     seen, out = {}, []
-    for num, name, sub, etfs, leaders in MODERN:
+    for num, name, sub, etfs, leaders in SECTOR_MAPS[agent]:
         members, notes, dup = [], [], []
         cut = list(dict.fromkeys(x for x in [e for e, _ in etfs] + leaders if x in DAYTRADE_REMOVED and x not in seen))
         for sym, desc in etfs:
@@ -189,8 +230,12 @@ def modern_layout():
     return out
 
 
-def modern_symbols(kind=None):
-    out = [s for sec in modern_layout() for s, k, _ in sec["members"] if k != "n/a" and (kind is None or k == kind)]
+SECTOR_MAPS.update(modern=MODERN, ai100=AI100)
+
+
+def modern_symbols(kind=None, agent="modern"):
+    out = [s for sec in modern_layout(agent) for s, k, _ in sec["members"]
+           if k != "n/a" and (kind is None or k == kind)]
     assert len(out) == len(set(out)), "Modern universe has duplicates"
     assert not set(out) & set(MAG7), "Modern universe must exclude MAG 7"
     return out
@@ -198,7 +243,7 @@ def modern_symbols(kind=None):
 
 def ratings_symbols(agent):
     """Analyst ratings only make sense for stocks (not ETFs)."""
-    return modern_symbols("Stock") if agent == "modern" else symbols(agent)[0]
+    return modern_symbols("Stock", agent) if agent in SECTOR_MAPS else symbols(agent)[0]
 
 
 def symbols(agent):
@@ -208,4 +253,6 @@ def symbols(agent):
         return ai_symbols(), AI_BENCHMARKS
     if agent == "modern":
         return modern_symbols(), MODERN_BENCHMARKS
+    if agent == "ai100":
+        return modern_symbols(agent="ai100"), AI100_BENCHMARKS
     raise ValueError(f"unknown agent {agent!r}")
