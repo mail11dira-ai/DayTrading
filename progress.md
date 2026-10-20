@@ -98,7 +98,8 @@ gap, breaks · 5m EMA 9/21; daily EMA 9/21, SMA 20/50/200, stack, golden/death c
 
 - **AI Sectors 100 (`--agent ai100`, 2026-10-20): THE active sector agent** — merges AI Sectors + Modern AI Sectors into
   the best 100 unique stocks (no ETFs, no MAG 7), 15 sectors, Modern email format. Ranking: screen $200M+/day, px ≥ $5,
-  ATR ≥ 2.5%, then avg percentile of $ volume and ATR %; full table in `AI Sectors 100/README.md`. 52 calls/run, ~57 KB.
+  ATR ≥ 2.5%, then avg percentile of $ volume and ATR %; full table in `AI Sectors 100/README.md`. 52 calls/run;
+  compact email since 2026-10-20 (~24 KB, 1 part: snapshot, scoreboard, checklist, top 5, risks - no per-sector tables).
   AI Sectors and Modern AI Sectors folders are marked retired (code paths still work).
 
 ## Change log (this session)
@@ -110,6 +111,7 @@ gap, breaks · 5m EMA 9/21; daily EMA 9/21, SMA 20/50/200, stack, golden/death c
 - 2026-10-19: new Modern AI Sectors agent; watch-level targets capped at 2 daily ATR for all agents (e07d5dd)
 
 - 2026-10-20: AI Sectors 100 replaces both sector agents; analyst ratings chunked to 75 symbols/call
+- 2026-10-20: AI Sectors 100 email made compact (57 KB -> 24 KB). MAG 7 built-in notification: user turns it off in the UI
 
 ## Next actions (proceed in the next run)
 0a. Check the first AI Sectors 100 run (2026-10-20 7:59 CT) — `trig_01D3Gr9p5a4cJvwRkuHVThUg` last_run.

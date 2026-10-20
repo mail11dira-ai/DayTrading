@@ -233,14 +233,15 @@ def test_end_to_end_report_closed_session(agent):
     assert detect_mode(ds, now) == ("closed", session)
     title, html, missing, mode = build(agent, ds, now, test=True)
     assert title.startswith("[TEST]") and mode == "closed" and missing == []
-    for s in syms:
+    for s in ([] if agent == "ai100" else syms):  # ai100 email is compact (no per-sector tables)
         assert f"<b>{s}</b>" in html
     assert "Research only, not financial advice. No orders placed." in html
     if agent == "aisectors":
         assert "Neo-Cloud ecosystem" in html
         assert not any(f"<b>{m}</b>" in html for m in MAG7)
     if agent == "ai100":
-        assert "Weekend checklist" in html and "ETFs Day %" not in html and "15 Industrials / Housing" in html
+        assert "Weekend checklist" in html and "ETFs Day %" not in html and "15</td>" in html
+        assert "<h3>4. Top 5 setups" in html and "Nearest S / R" not in html  # compact: no per-sector tables
     if agent == "modern":
         assert "Weekend checklist" in html and "Sector scoreboard" in html and "removed for day trading" in html
         assert "12 Neo-Cloud" in html and not any(f"<b>{m}</b>" in html for m in MAG7)

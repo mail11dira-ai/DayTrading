@@ -196,13 +196,16 @@ Rank 1 = best day-trading score. Re-run the ranking every few months: the list i
 | 59 | CAT | $2.01B | 3.8% | AI Sectors |
 | 98 | LEN | $0.46B | 4.0% | Modern |
 
-## Email (same as Modern AI Sectors)
+## Email (compact since 2026-10-20, ~24 KB, one part)
 1. Market snapshot (SPY, QQQ) + tape (leading / lagging sector)
-2. Sector scoreboard — avg day %, vs QQQ, 20-day RS vs SPY, avg bias, # holding 8/21, best / worst
+2. Sector scoreboard — avg day %, vs QQQ, 20-day RS vs SPY, avg bias, # holding 8/21, best / worst stock per sector
 3. Weekend checklist — new highs · holding the 8/21 EMA trend · outperforming SPY/QQQ (20d) · relative strength by
    sector · breaking out of a base · volume expanding
-4. One table per sector: Ticker | Price | Day % | vs QQQ | 20d RS | Bias | vs VWAP | RVOL | RSI 5m/D | 8/21 | Nearest S/R | ADX
-5. Top 5 setups (full technical cards) and risks / catalysts. Bullish = green, bearish = red everywhere.
+4. Top 5 setups (full technical cards) · 5. Risks / catalysts. Bullish = green, bearish = red everywhere.
+
+The 15 per-sector tables were removed to cut the email from ~57 KB to ~24 KB (the agent re-types the HTML into
+Gmail, so email size drives cost). All 100 stocks are still analysed: they feed the scoreboard, checklist, top
+setups and risks. To bring the tables back, remove the `compact` line in `research/report.py` (`_modern`).
 
 ## Technical analysis (every run)
 Same engine as the other agents: Volume (RVOL, up/down volume, spikes) · VWAP (±1/2σ, slope, reclaim/loss) ·
