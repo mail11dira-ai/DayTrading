@@ -124,6 +124,10 @@ gap, breaks · 5m EMA 9/21; daily EMA 9/21, SMA 20/50/200, stack, golden/death c
 
 - 2026-10-20: AI Sectors 100 replaces both sector agents; analyst ratings chunked to 75 symbols/call
 - 2026-10-20: AI Sectors 100 email made compact (57 KB -> 24 KB). MAG 7 built-in notification: user turns it off in the UI
+- 2026-10-20 (review pass + ad-hoc [TEST] runs of both agents, sent 00:28/00:31 CT, missing = [] for both):
+  breadth regime now scored on % up + % above VWAP only (holding 8/21 shown, not scored - it was non-predictive and
+  dragged the label to RISK-OFF on up days); validation note names the universe tested (AI Sectors 100);
+  "expected range left" says "none (full ATR used)" instead of a zero-width range.
 
 ## Next actions (proceed in the next run)
 0b. Decide with the user what to do about the validation result: (a) keep the score as a descriptive chart-state summary (current),

@@ -243,7 +243,8 @@ def card(r, extra=""):
                 f"{'&gt;' if r['ema_bull'] else '&lt;'} EMA21 {num(r['ema21_5'])}"
                 f" ({'cross ' + tone(r['ema_cross']) + ' in last 30m' if r['ema_cross'] else 'no cross in last 30m'})")
     rng = NA if r["range_used"] is None else f"{r['range_used']:.2f}"
-    exp = NA if r["exp_lo"] is None else f"{num(r['exp_lo'])}&ndash;{num(r['exp_hi'])}"
+    exp = (NA if r["exp_lo"] is None else "none (full ATR used)" if r["exp_lo"] == r["exp_hi"]
+           else f"{num(r['exp_lo'])}&ndash;{num(r['exp_hi'])}")
     comp = ", ".join(f'{k} <span class="{cls(v)}">{v:+d}</span>' for k, v in r["bias_comp"].items())
     lines = [
         f"<b>Volume:</b> RVOL {rvol_cell(r)}; last-3-bar vol {trend}; up/down vol {ratio(r['ud'])}; spikes (&gt;3x slot avg): {spikes}",
