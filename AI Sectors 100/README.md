@@ -212,7 +212,7 @@ Same engine as the other agents: Volume (RVOL, up/down volume, spikes) · VWAP (
 Levels (PDH/PDL/PDC, pre-market H/L, opening range, pivots, prior-week H/L, prior-day volume profile POC/VAH/VAL,
 20d & 52w, round numbers) · MAs (5-min EMA 9/21; daily EMA 8/9/21, SMA 20/50/200) · RSI 14 · ATR 14 · MACD · ADX/DMI ·
 TTM squeeze · inside day / NR7 · bias score −6…+6 with MACD/ADX confirmations · watch levels (targets 0.5–2 ATR).
-Full definitions: `technical_analysis.md`.
+Added 2026-10-20: **volume-confirmed opening-range breakout (ORB)**, **pre-market volume + gap quality** (gap-and-go / fade risk), **intraday relative strength vs QQQ** (15/30 min) and **market breadth / regime + VIX** in the snapshot. Full definitions: `technical_analysis.md`. The bias score is checked against what happened next in `../backtests/bias_validation.md`.
 
 ## How it runs
 | Setting | Value |
@@ -221,5 +221,5 @@ Full definitions: `technical_analysis.md`.
 | Replaces | AI Sectors routine (`trig_01BSEzw8DL1JRFyRSmVnQK6B`) — **disabled** 2026-10-20, not deleted |
 | Connectors | Robinhood_Agentic (read-only use) + Gmail (send only to mail11dira@gmail.com) |
 | Prompt | `routine_prompt.txt` (`research.plan --agent ai100` → calls → `research.report --agent ai100` → Gmail) |
-| Data per run | 52 read-only Robinhood calls (6 quotes, 21 + 11 five-minute, 11 daily, earnings, 2 ratings) |
+| Data per run | 42 read-only Robinhood calls (6 quotes, 21 extended-hours 5-min, 11 daily, earnings, 2 ratings, VIX) |
 | Test | `python -m pytest -q`; real-data sample: `sample_reports/2026-10-19_close_test.html` |

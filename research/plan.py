@@ -20,25 +20,28 @@ def chunks(xs, n):
     return [xs[i:i + n] for i in range(0, len(xs), n)]
 
 
+VIX_ID = "3b912aa2-88f9-4682-8ae3-e39520bdf4db"  # Robinhood market-index id for VIX (get_indexes)
+
+
 def plan(agent, now):
     syms, bench = symbols(agent)
     allsyms = bench + syms
     today = now.date()
-    start5 = f"{today - timedelta(days=16)}T13:00:00Z"
-    startx = f"{today}T08:00:00Z"
+    # ONE extended-hours 5-minute pull (pre / regular / post bars, 10 prior sessions + today): gives the regular
+    # series, today's pre-market and the prior pre-markets for pre-market RVOL.
+    start5 = f"{today - timedelta(days=14)}T08:00:00Z"
     startd = f"{today - timedelta(days=400)}T00:00:00Z"
     calls = []
     for c in chunks(allsyms, 20):
         calls.append((P + "get_equity_quotes", {"symbols": c}))
     for c in chunks(allsyms, 5):
-        calls.append((P + "get_equity_historicals", {"symbols": c, "interval": "5minute", "start_time": start5}))
-    for c in chunks(allsyms, 10):
-        calls.append((P + "get_equity_historicals", {"symbols": c, "interval": "5minute", "bounds": "extended", "start_time": startx}))
+        calls.append((P + "get_equity_historicals", {"symbols": c, "interval": "5minute", "bounds": "extended", "start_time": start5}))
     for c in chunks(allsyms, 10):
         calls.append((P + "get_equity_historicals", {"symbols": c, "interval": "day", "start_time": startd}))
     calls.append((P + "get_earnings_calendar", {"days": 15, "filter": "high_market_cap"}))
     for c in chunks(ratings_symbols(agent), 75):  # tool limit: 75 symbols per call
         calls.append((P + "get_equity_analyst_ratings", {"symbols": c}))
+    calls.append((P + "get_index_quotes", {"instrument_ids": [VIX_ID]}))
     return calls
 
 

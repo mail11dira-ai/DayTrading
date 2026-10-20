@@ -25,8 +25,11 @@ def build(agent, ds, now, test=False):
     missing = [s for s, r in res.items() if not r["ok"]]
     qqq = res.get("QQQ", {})
     q_pct = qqq.get("day_pct") if qqq.get("ok") else None
+    q15, q30 = (qqq.get("ret15"), qqq.get("ret30")) if qqq.get("ok") else (None, None)
     for r in res.values():
         r["vs_qqq"] = r["day_pct"] - q_pct if (r["ok"] and q_pct is not None) else None
+        r["rs15"] = r["ret15"] - q15 if (r["ok"] and r.get("ret15") is not None and q15 is not None) else None
+        r["rs30"] = r["ret30"] - q30 if (r["ok"] and r.get("ret30") is not None and q30 is not None) else None
     earn = earnings_within(ds, set(syms + bench), sday if mode == "closed" else now.date())
 
     stamp = now.strftime("%Y-%m-%d %H:%M")
@@ -51,7 +54,40 @@ def build(agent, ds, now, test=False):
     return title, R.doc(title, note, body), missing, mode
 
 
-def _snapshot(res, bench, extra_line):
+def _breadth(res, syms, ds):
+    """Breadth / regime lines for the snapshot: how broad is the move, plus VIX."""
+    ok = [res[s] for s in syms if res[s]["ok"] and s not in INVERSE]
+    n = len(ok)
+    if not n:
+        return []
+    cl = lambda p: "g" if p >= 60 else "r" if p <= 40 else "z"
+    sp = lambda p, txt: f'<span class="{cl(p)}">{txt}</span>'
+    up = 100 * sum(1 for r in ok if r["day_pct"] > 0) / n
+    vw = [r for r in ok if r["vwap"] and not r["thin"]]
+    ab = 100 * sum(1 for r in vw if r["price"] > r["vwap"]) / len(vw) if vw else None
+    hold = 100 * sum(1 for r in ok if r.get("hold_821") == "holding") / n
+    bull = sum(1 for r in ok if r["bias_label"] == "BULLISH")
+    bear = sum(1 for r in ok if r["bias_label"] == "BEARISH")
+    lead = sum(1 for r in ok if (r.get("rs30") or 0) >= 0.3)
+    parts = [sp(up, f"{up:.0f}% up")]
+    if ab is not None:
+        parts.append(sp(ab, f"{ab:.0f}% above VWAP"))
+    parts.append(sp(hold, f"{hold:.0f}% holding 8/21"))
+    parts.append(f'<span class="g">{bull} bullish</span> / <span class="r">{bear} bearish</span> bias')
+    parts.append(f"{lead} leading QQQ (30m)")
+    score = [up, hold] + ([ab] if ab is not None else [])
+    avg = sum(score) / len(score)
+    regime = R.pill("RISK-ON" if avg >= 60 else "RISK-OFF" if avg <= 40 else "MIXED", cl(avg))
+    out = [f"<li><b>Breadth ({n} stocks):</b> " + " &middot; ".join(parts) + f" &rarr; {regime}</li>"]
+    vix = (getattr(ds, "indexes", {}) or {}).get("VIX")
+    if vix is not None:
+        lab = "calm" if vix < 15 else "normal" if vix < 20 else "elevated" if vix < 30 else "high"
+        c = "g" if vix < 20 else "r" if vix >= 25 else "z"
+        out.append(f'<li><b>VIX</b> <span class="{c}">{vix:.1f}</span> ({lab})</li>')
+    return out
+
+
+def _snapshot(res, bench, extra_line, more=()):
     items = []
     for b in bench:
         r = res[b]
@@ -62,20 +98,21 @@ def _snapshot(res, bench, extra_line):
         items.append(f"<li><b>{b}</b> {R.num(r['price'])} ({R.pct(r['day_pct'])}); {vw}; "
                      f"bias {R.bias(r)}; RVOL {R.ratio(r['rvol'])}</li>")
     items.append(f"<li>{extra_line}</li>")
+    items += list(more)
     return "<h3>1. Market snapshot</h3><ul>" + "".join(items) + "</ul>"
 
 
 def _row(r, first=None):
     lead = [first] if first is not None else []
     if not r["ok"]:
-        return lead + [f"<b>{r['sym']}</b>"] + [R.NA] * 12
+        return lead + [f"<b>{r['sym']}</b>"] + [R.NA] * 13
     return lead + [f"<b>{r['sym']}</b>", R.num(r["price"]), R.pct(r["day_pct"]), R.pct(r["vs_qqq"]),
-                   R.bias(r), R.vw_cell(r), R.rvol_cell(r), f"{R.rsi(r['rsi_5'])} / {R.rsi(r['rsi_d'])}",
+                   R.pct(r.get("rs30")), R.bias(r), R.vw_cell(r), R.rvol_cell(r), f"{R.rsi(r['rsi_5'])} / {R.rsi(r['rsi_d'])}",
                    R.ratio(r["atr_pct"]) + ("%" if r["atr_pct"] else ""), R.ratio(r["range_used"]),
                    f"{R.short_lvl(r['sup'])} / {R.short_lvl(r['res'])}", R.tone(r["stack"]), R.adx_cell(r)]
 
 
-HDR = ["Ticker", "Price", "Day %", "vs QQQ", "Bias", "vs VWAP", "RVOL", "RSI 5m/D", "ATR%",
+HDR = ["Ticker", "Price", "Day %", "vs QQQ", "RS 30m", "Bias", "vs VWAP", "RVOL", "RSI 5m/D", "ATR%",
        "Range used", "Nearest S / R", "MA stack", "ADX"]
 
 
@@ -107,17 +144,34 @@ def _ratings_extra(ds, r):
 def _risks(res, syms, earn, gap_thr, rng_thr, rsi_hi, rsi_lo):
     items = []
     e = [f"{s} {d:%m/%d} {t}".strip() for s, (d, t) in sorted(earn.items(), key=lambda x: x[1][0]) if s in syms]
-    items.append("Earnings within 14 days: " + (", ".join(e) if e else "none in universe"))
+    items.append("Earnings within 14 days: " + (", ".join(e[:14]) + (f" (+{len(e) - 14} more)" if len(e) > 14 else "") if e else "none in universe"))
     ok = [res[s] for s in syms if res[s]["ok"]]
-    def lst(rs, f):
-        return ", ".join(f(r) for r in rs) or "none"
+    def lst(rs, f, k=12):
+        more = f" (+{len(rs) - k} more)" if len(rs) > k else ""
+        return ", ".join(f(r) for r in rs[:k]) + more if rs else "none"
     items.append("RVOL &gt; 2: " + lst([r for r in ok if (r["rvol"] or 0) > 2 and not r["thin"]], lambda r: f"{r['sym']} {r['rvol']:.1f}"))
-    items.append(f"Gaps &gt; {gap_thr:g}%: " + lst([r for r in ok if r["gap_pct"] is not None and abs(r["gap_pct"]) > gap_thr], lambda r: f"{r['sym']} {r['gap_pct']:+.1f}%"))
+    items.append(f"Gaps &gt; {gap_thr:g}%: " + lst(sorted([r for r in ok if r["gap_pct"] is not None and abs(r["gap_pct"]) > gap_thr], key=lambda r: -abs(r["gap_pct"])), lambda r: f"{r['sym']} {r['gap_pct']:+.1f}%"))
     ext = [r for r in ok if any(x is not None and (x > rsi_hi or x < rsi_lo) for x in (r["rsi_5"], r["rsi_d"]))]
     items.append(f"RSI &gt; {rsi_hi} or &lt; {rsi_lo}: " + lst(ext, lambda r: f"{r['sym']} ({R.rsi(r['rsi_5'])}/{R.rsi(r['rsi_d'])})"))
     items.append("5m divergences: " + lst([r for r in ok if r["div"] in ("bullish", "bearish")], lambda r: f"{r['sym']} {R.tone(r['div'])}"))
     items.append("Squeeze fired (5m): " + lst([r for r in ok if r.get("sqz") and r["sqz"][0].startswith("fired")], lambda r: f"{r['sym']} {R.tone(r['sqz'][0])}"))
     items.append("Inside day / NR7 (breakout watch): " + lst([r for r in ok if r.get("pattern")], lambda r: f"{r['sym']} ({r['pattern']})"))
+    def orb(state, d=None):
+        return [r for r in ok if r.get("orb") and r["orb"]["state"] == state and (d is None or r["orb"]["dir"] == d)]
+    f_orb = lambda r: f"{r['sym']} ({r['orb']['volx']:.1f}x @ {r['orb']['time']})" if r["orb"]["volx"] else f"{r['sym']} @ {r['orb']['time']}"
+    items.append('ORB confirmed (15m range, breakout on volume): <span class="g">up</span> ' + lst(orb("confirmed", "up"), f_orb)
+                 + ' &middot; <span class="r">down</span> ' + lst(orb("confirmed", "down"), f_orb))
+    items.append("ORB failed (breakout reversed back inside): " + lst(orb("failed"), lambda r: f"{r['sym']} ({r['orb']['dir']})"))
+    gq = lambda kind: [r for r in ok if r.get("gap_q") and r["gap_q"][0] == kind]
+    items.append("Gap-and-go (gap + 2x pre-market volume, holding): " + lst(gq("go"), lambda r: f"{r['sym']} {R.pct(r['gap_pct'], 1)}")
+                 + " &middot; fade risk (large gap, no volume edge): " + lst(gq("fade"), lambda r: f"{r['sym']} {R.pct(r['gap_pct'], 1)}"))
+    items.append("Pre-market volume &gt; 2x normal: " + lst(sorted([r for r in ok if (r.get("pm_rvol") or 0) > 2], key=lambda r: -r["pm_rvol"])[:10],
+                                                           lambda r: f"{r['sym']} {r['pm_rvol']:.1f}x"))
+    rs = sorted([r for r in ok if r.get("rs30") is not None], key=lambda r: -r["rs30"])
+    lead_rs = [r for r in rs if r["rs30"] > 0][:5]
+    lag_rs = [r for r in rs[::-1] if r["rs30"] < 0][:5]
+    items.append("Intraday RS leaders (30m vs QQQ): " + lst(lead_rs, lambda r: f"{r['sym']} {R.pct(r['rs30'])}")
+                 + " &middot; laggards: " + lst(lag_rs, lambda r: f"{r['sym']} {R.pct(r['rs30'])}"))
     items.append(f"Range used &gt; {rng_thr:g}: " + lst([r for r in ok if (r["range_used"] or 0) > rng_thr], lambda r: f"{r['sym']} {r['range_used']:.2f}"))
     return "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
 
@@ -132,7 +186,7 @@ def _mag7(res, syms, bench, earn, ds):
         avg_q = [r["vs_qqq"] for r in ok if r["vs_qqq"] is not None]
         tape = (f"Tape: {ups}/{len(ok)} MAG 7 up; avg vs QQQ {R.pct(sum(avg_q) / len(avg_q) if avg_q else None)}; "
                 f"strongest {best['sym']} {R.pct(best['day_pct'])}, weakest {worst['sym']} {R.pct(worst['day_pct'])}.")
-    out = _snapshot(res, bench, tape)
+    out = _snapshot(res, bench, tape, _breadth(res, syms, ds))
     order = sorted(syms, key=lambda s: -(res[s]["bias"] if res[s]["ok"] else -99))
     out += "<h3>2. Scoreboard</h3>" + R.table(HDR, [_row(res[s]) for s in order])
     out += "<h3>3. Technical cards</h3>" + "".join(R.card(res[s], _ratings_extra(ds, res[s])) for s in order if res[s]["ok"])
@@ -140,6 +194,10 @@ def _mag7(res, syms, bench, earn, ds):
     out += "<h3>4. Top 3 setups</h3>" + _top_html(top, note)
     out += "<h3>5. Risks / catalysts</h3>" + _risks(res, syms, earn, 2, 1.0, 70, 30)
     return out
+
+
+VALIDATION_NOTE = ("Note: the bias score and this ranking describe the chart's current state. In a 65-session test "
+                   "(Jul-Oct 2026, 8:59 CT) they did not predict the next hour's move - use them to filter ideas, not to forecast.")
 
 
 def _top_html(top, note):
@@ -151,7 +209,8 @@ def _top_html(top, note):
                      f"&rarr; {R.num(s['target'])}, invalid {R.num(s['stop'])}; reward {s['reward_atr']:.2f} ATR vs "
                      f"risk {s['risk_atr']:.2f} ATR (R/R {s['rr']:.2f}); confirmations {r.get('conf', 0)}/2; ADX {R.adx_cell(r)}; "
                      f"RSI5 {R.rsi(r['rsi_5'])}, VWAP {R.vw_cell(r)}</li>")
-    return (f"<ol>{''.join(items)}</ol>" if items else "") + (f"<p>{note}</p>" if note else "")
+    return ((f"<ol>{''.join(items)}</ol>" if items else "") + (f"<p>{note}</p>" if note else "")
+            + f'<p class="lg">{VALIDATION_NOTE}</p>')
 
 
 def _avg(xs):
@@ -219,7 +278,7 @@ def _flow(stats):
             f"{beat}/{len(s)} layers beat QQQ; upstream L1-L2 {R.pct(up)} vs downstream L4-L5 {R.pct(dn)}.")
 
 
-M_HDR = ["Type", "Ticker", "Price", "Day %", "vs QQQ", "20d RS", "Bias", "vs VWAP", "RVOL", "RSI 5m/D",
+M_HDR = ["Type", "Ticker", "Price", "Day %", "vs QQQ", "RS 30m", "20d RS", "Bias", "vs VWAP", "RVOL", "RSI 5m/D",
          "8/21", "Nearest S / R", "ADX"]
 
 
@@ -230,9 +289,9 @@ def _rs(r, spy20):
 def _m_row(r, kind, spy20, show_type=True):
     lead = [kind] if show_type else []
     if not r["ok"]:
-        return lead + [f"<b>{r['sym']}</b>"] + [R.NA] * 11
+        return lead + [f"<b>{r['sym']}</b>"] + [R.NA] * 12
     return lead + [f"<b>{r['sym']}</b>", R.num(r["price"]), R.pct(r["day_pct"]), R.pct(r["vs_qqq"]),
-            R.pct(_rs(r, spy20), 1), R.bias(r), R.vw_cell(r), R.rvol_cell(r),
+            R.pct(r.get("rs30")), R.pct(_rs(r, spy20), 1), R.bias(r), R.vw_cell(r), R.rvol_cell(r),
             f"{R.rsi(r['rsi_5'])} / {R.rsi(r['rsi_d'])}", R.tone(r.get("hold_821")),
             f"{R.short_lvl(r['sup'])} / {R.short_lvl(r['res'])}", R.adx_cell(r)]
 
@@ -253,12 +312,13 @@ def _modern(res, syms, bench, earn, ds, agent="modern"):
         a = _avg([r["day_pct"] for r in live])
         vq = _avg([r["vs_qqq"] for r in live])
         rs = _avg([_rs(r, spy20) for r in live])
+        rs30 = _avg([r.get("rs30") for r in live])
         ab = _avg([r["bias"] for r in live])
         hold = [r for r in live if r.get("hold_821") == "holding"]
         best = max(live, key=lambda r: r["day_pct"]) if live else None
         worst = min(live, key=lambda r: r["day_pct"]) if live else None
         stats.append((sec, a, rs))
-        score_rows.append([sec["num"], escape(sec["name"])] + ([R.pct(etf)] if has_etf else []) + [R.pct(stk), R.pct(vq), R.pct(rs, 1),
+        score_rows.append([sec["num"], escape(sec["name"])] + ([R.pct(etf)] if has_etf else []) + [R.pct(stk), R.pct(vq), R.pct(rs30), R.pct(rs, 1),
                            R.score(ab), f"{len(hold)}/{len(live)}",
                            f"{best['sym']} {R.pct(best['day_pct'])}" if best else R.NA,
                            f"{worst['sym']} {R.pct(worst['day_pct'])}" if worst else R.NA])
@@ -267,10 +327,10 @@ def _modern(res, syms, bench, earn, ds, agent="modern"):
     lag = min(valid, key=lambda x: x[1]) if valid else None
     tape = "Tape: " + (f"leader {lead[0]['num']} {escape(lead[0]['name'])} {R.pct(lead[1])}, "
                        f"laggard {lag[0]['num']} {escape(lag[0]['name'])} {R.pct(lag[1])}." if lead else R.NA)
-    out = _snapshot(res, bench, tape)
+    out = _snapshot(res, bench, tape, _breadth(res, syms, ds))
     out += "<h3>2. Sector scoreboard</h3>" + R.table(
         ["#", "Sector"] + (["ETFs Day %", "Leaders Day %"] if has_etf else ["Avg Day %"])
-        + ["vs QQQ", "20d RS vs SPY", "Avg bias", "Holding 8/21", "Best", "Worst"], score_rows, left=2,
+        + ["vs QQQ", "RS 30m", "20d RS vs SPY", "Avg bias", "Holding 8/21", "Best", "Worst"], score_rows, left=2,
         tint=3 if has_etf else 2)  # leaders' / average day % column
     out += "<h3>3. Weekend checklist</h3>" + _checklist(res, syms, stats, spy20, qqq20)
     n = 4

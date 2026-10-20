@@ -86,6 +86,16 @@ G. MOMENTUM & TREND STRENGTH (5-min)
 H. DAILY COMPRESSION PATTERNS
  - Inside day (prior day's range inside the day before) and NR7 (prior day = narrowest range of the last 7): breakout-watch candidates; use PDH/PDL as the trigger levels.
 
+I. OPENING RANGE BREAKOUT (ORB, regular session)
+ - Opening ranges: first 5 / 15 / 30 minutes (high/low). The 15-minute range drives the ORB state, judged on the CURRENT position: confirmed = price is outside the range and the bar that started the breakout had >= 1.5x the normal volume for its time slot; weak = outside on light volume; failed = broke out earlier but is back inside the range; inside = no close outside yet.
+J. PRE-MARKET & GAP QUALITY
+ - Pre-market volume vs the average of the prior 10 pre-markets (same clock window when the run is still pre-market).
+ - Gap size in daily ATRs (open vs prior close). gap-and-go = gap >= 0.3 ATR on >= 2x normal pre-market volume and still holding its side; fade risk = gap >= 1 ATR without that volume or not holding; otherwise a plain gap. Context only - not part of the bias score.
+K. INTRADAY RELATIVE STRENGTH
+ - Stock return over the last 15 and 30 minutes minus QQQ over the same window: leading (>= +0.3%), lagging (<= -0.3%), else in line.
+L. MARKET BREADTH & REGIME (snapshot)
+ - % of stocks up on the day, above VWAP and holding the daily 8/21 trend; counts of BULLISH / BEARISH bias and of stocks leading QQQ; regime = RISK-ON (average >= 60%), RISK-OFF (<= 40%), else MIXED; plus the VIX level (calm < 15, normal < 20, elevated < 30, high).
+
 BIAS SCORE (deterministic, -6..+6): +1 each when true, -1 when the opposite is true, 0 if n/a or neutral:
  price above VWAP | 5-min EMA9 above EMA21 | daily MA stack bullish | 5-min RSI between 55 and 70 (bearish side: between 30 and 45) | RVOL > 1.2 with up/down volume ratio > 1 (bearish side: ratio < 1) | intraday structure uptrend (bearish side: downtrend).
  Score >= +3 = BULLISH, <= -3 = BEARISH, otherwise NEUTRAL. Confirmations (0-2, shown next to the score): MACD histogram on the bias side and expanding; ADX >= 20 with the matching DI on top. Do not override the score with judgment; add any judgment as a separate one-line note.
@@ -119,6 +129,7 @@ SECTIONS
    - MAs: 5-min EMA9/21; daily EMA9/21, SMA20/50/200, stack, recent crosses.
    - RSI: 5-min and daily + zone, divergence.
    - ATR: daily ATR (value and %), range used, expected range left.
+   - Open & gap: opening ranges, ORB state, pre-market volume, gap quality; intraday RS vs QQQ.
    - Momentum: 5-min MACD histogram (side, expanding/fading), ADX with +DI/-DI (trending/developing/choppy), squeeze state; daily pattern (inside day / NR7).
    - Bias (score with the six components) + watch levels: bullish-above / bearish-below, targets, invalidation, reward/risk in ATR.
 4. Risks / catalysts (<ul>): earnings within 14 days, RVOL > 2, gaps > 3%, RSI > 75 or < 25, divergences, squeezes that fired, inside-day/NR7 names, range used > 1.2.

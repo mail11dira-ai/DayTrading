@@ -326,3 +326,105 @@ def test_table_tint_column_overrides_bias_pill():
     html = R.table(["S", "Day", "Bias"], [["A", R.pct(1.0), R.score(-3)], ["B", R.pct(-1.0), R.score(3)]], tint=1)
     assert html.index('<tr class="bu">') < html.index("<td>") and html.count('<tr class="bu">') == 1
     assert html.count('<tr class="be">') == 1 and "A</td>" in html.split('<tr class="be">')[0]  # row A (day +) is green
+
+
+def _bar5(h, m, o, hi, lo, c, v):
+    return {"t": datetime(2026, 10, 19, h, m, tzinfo=CT), "o": o, "h": hi, "l": lo, "c": c, "v": v}
+
+
+def test_orb_confirmed_weak_failed_inside():
+    base = [_bar5(8, 30, 100, 101, 99, 100.5, 1000), _bar5(8, 35, 100.5, 101, 99.5, 100.2, 1000),
+            _bar5(8, 40, 100.2, 100.8, 99.8, 100.4, 1000)]  # 15m range 99 - 101
+    slot = {datetime(2026, 10, 19, 8, 45, tzinfo=CT).time(): 1000.0}
+    assert ta.orb_status(base, 3, slot) is None  # range not complete yet
+    inside = base + [_bar5(8, 45, 100.4, 100.9, 100.0, 100.5, 900)]
+    assert ta.orb_status(inside, 3, slot)["state"] == "inside"
+    up_vol = base + [_bar5(8, 45, 100.5, 102.5, 100.5, 102.0, 2500)]
+    o = ta.orb_status(up_vol, 3, slot)
+    assert (o["state"], o["dir"], o["time"]) == ("confirmed", "up", "08:45") and o["volx"] == pytest.approx(2.5)
+    assert ta.orb_status(base + [_bar5(8, 45, 100.5, 102.5, 100.5, 102.0, 1100)], 3, slot)["state"] == "weak"
+    failed = up_vol + [_bar5(8, 50, 102.0, 102.1, 100.0, 100.3, 1000)]  # closed back inside the range
+    fo = ta.orb_status(failed, 3, slot)
+    assert (fo["state"], fo["dir"]) == ("failed", "up")
+    flip = failed + [_bar5(8, 55, 100.3, 100.4, 97.0, 97.5, 2200)]  # first break failed, later breakdown on volume
+    f = ta.orb_status(flip, 3, {**slot, datetime(2026, 10, 19, 8, 55, tzinfo=CT).time(): 1000.0})
+    assert (f["state"], f["dir"], f["time"]) == ("confirmed", "down", "08:55")
+    down = base + [_bar5(8, 45, 99.5, 99.6, 97.5, 98.0, 3000)]
+    assert (ta.orb_status(down, 3, slot)["state"], ta.orb_status(down, 3, slot)["dir"]) == ("confirmed", "down")
+
+
+def test_gap_quality_and_window_return():
+    assert ta.gap_quality(0.2, 5, True) is None and ta.gap_quality(None, 5, True) is None
+    assert ta.gap_quality(0.8, 2.5, True) == ("go", "up")
+    assert ta.gap_quality(-0.8, 2.5, True) == ("go", "down")
+    assert ta.gap_quality(1.5, 1.0, True) == ("fade", "up")   # big gap, no pre-market volume
+    assert ta.gap_quality(1.5, 3.0, False) == ("fade", "up")  # big gap, volume but not holding
+    assert ta.gap_quality(0.5, 1.0, False) == ("gap", "up")
+    assert ta.gap_quality(0.8, None, True) == ("gap", "up")
+    assert ta.window_return([100, 101, 102, 103], 99, 2) == pytest.approx((103 / 101 - 1) * 100)  # 103 vs 101
+    assert ta.window_return([100, 101], 99, 6) == pytest.approx((101 / 99 - 1) * 100)  # short series: from open
+    assert ta.window_return([], 99, 3) is None
+
+
+def test_collect_reads_index_quotes():
+    ds = collect.Dataset()
+    ds.add({"data": {"quotes": [{"instrument_id": "x", "symbol": "VIX", "value": "18.44", "state": ""}]}})
+    assert ds.indexes == {"VIX": pytest.approx(18.44)}
+    ds.add({"data": {"quotes": [{"symbol": "VIX", "value": ""}]}})  # restricted / empty values are ignored
+    assert ds.indexes["VIX"] == pytest.approx(18.44)
+
+
+def test_report_has_breadth_rs_and_orb_sections():
+    syms = MAG7 + ["SPY", "QQQ"]
+    ds = _synthetic_dataset(syms, date(2026, 10, 12))
+    ds.indexes["VIX"] = 18.4
+    title, html, missing, mode = build("mag7", ds, datetime(2026, 10, 13, 1, 0, tzinfo=CT), test=True)
+    assert "Breadth (7 stocks)" in html and "VIX</b>" in html and "(normal)" in html
+    assert "Intraday RS:" in html and "<b>Open &amp; gap:</b>" in html and "pre-mkt vol" in html
+    assert "ORB confirmed (15m range" in html and "Intraday RS leaders" in html
+
+
+def test_plan_uses_one_extended_5min_pull_and_vix():
+    from research.plan import plan, VIX_ID
+    calls = plan("ai100", datetime(2026, 10, 20, 7, 59, tzinfo=CT))
+    five = [a for t, a in calls if t.endswith("get_equity_historicals") and a["interval"] == "5minute"]
+    assert five and all(a["bounds"] == "extended" and a["start_time"] == "2026-10-06T08:00:00Z" for a in five)
+    assert len(calls) == 42 and calls[-1][1] == {"instrument_ids": [VIX_ID]}
+
+
+def test_validate_stats_helpers():
+    from research import validate as V
+    assert V.tstat([1, 1, 1]) is None  # zero variance
+    assert V.tstat([1.0, 2.0]) is None  # too few
+    assert V.tstat([1.0, 2.0, 3.0, 2.0]) == pytest.approx(2.0 / (math.sqrt(2 / 3) / 2))  # mean 2, sd sqrt(2/3), n 4
+    days = [date(2026, 9, d) for d in range(1, 21)]
+    good = {d: 0.5 + (0.05 if i % 2 else -0.05) for i, d in enumerate(days)}
+    assert V.verdict(good)["verdict"] == "supported"
+    assert V.verdict({d: -x for d, x in good.items()})["verdict"] == "INVERTED"
+    assert V.verdict({d: -x for d, x in good.items()}, expect=-1)["verdict"] == "supported"
+    noisy = {d: (1 if i % 2 else -1) * 0.5 for i, d in enumerate(days)}
+    assert V.verdict(noisy)["verdict"] == "no clear edge"
+    assert V.verdict({days[0]: 1.0})["verdict"] == "too few days"
+    rows = [{"day": date(2026, 9, 1), "adj60": 1.0, "k": 1}, {"day": date(2026, 9, 1), "adj60": 0.5, "k": 1},
+            {"day": date(2026, 9, 1), "adj60": -1.0, "k": 0}, {"day": date(2026, 9, 1), "adj60": -0.5, "k": 0}]
+    assert V.day_spread(rows, lambda r: r["k"] == 1, lambda r: r["k"] == 0) == {date(2026, 9, 1): pytest.approx(1.5)}
+    assert V.day_spread(rows, lambda r: r["k"] == 1, lambda r: r["k"] == 0, min_side=3) == {}
+
+
+def test_validate_asof_view_has_no_lookahead_and_builds_samples():
+    from research import validate as V
+    syms = ai_symbols() + ["SPY", "QQQ"]
+    session = date(2026, 10, 12)
+    ds = _synthetic_dataset(syms, session)
+    cache = V.Cache(ds, syms)
+    cut = datetime(2026, 10, 12, 8, 55, tzinfo=CT).astimezone(timezone.utc).strftime(V.FMT)
+    view = V.AsOf(cache, cut, "2026-09-20T00:00:00Z")
+    bars = view.series("SPY", "5minute")
+    assert bars and max(b["begins_at"] for b in bars) == cut  # last included bar is the 08:55 bar
+    assert view.quotes == {}
+    samples, days = V.build_samples(ds)
+    assert days and {s["day"] for s in samples} == set(days)  # 12 sessions -> 2 asof days with 10 prior
+    s0 = samples[0]
+    assert {"bias", "comp", "adj60", "adjc", "rs30", "orb", "conf"} <= set(s0)
+    text, results, _ = V.report(samples, days)
+    assert "Bias score & signal validation" in text and "too few days" in text  # only 2 days: honest verdict

@@ -4,7 +4,7 @@ STEP 1 - script setup (Bash):
 for d in "$PWD" /home/user/DayTrading /home/user/daytrading "$HOME/DayTrading"; do [ -d "$d/.git" ] && cd "$d" && break; done; GIT_TERMINAL_PROMPT=0 timeout 60 git fetch -q origin claude/upbeat-knuth-878qp7 && git checkout -q FETCH_HEAD && test -f research/report.py && echo READY
 If this does not print READY, skip to FALLBACK below.
 
-STEP 2 - fetch data: run `python3 -m research.plan --agent mag7`. It prints one JSON line per read-only Robinhood call ({"tool": ..., "args": ...}). Load the tools with ToolSearch "select:mcp__Robinhood_Agentic__get_equity_quotes,mcp__Robinhood_Agentic__get_equity_historicals,mcp__Robinhood_Agentic__get_earnings_calendar,mcp__Robinhood_Agentic__get_equity_analyst_ratings", then make EVERY listed call with exactly those arguments, all in parallel in one message. Do not open, summarize or re-type the results (large ones are saved to files automatically - that is expected). If a call errors, retry it once.
+STEP 2 - fetch data: run `python3 -m research.plan --agent mag7`. It prints one JSON line per read-only Robinhood call ({"tool": ..., "args": ...}). Load the tools with ToolSearch "select:mcp__Robinhood_Agentic__get_equity_quotes,mcp__Robinhood_Agentic__get_equity_historicals,mcp__Robinhood_Agentic__get_earnings_calendar,mcp__Robinhood_Agentic__get_equity_analyst_ratings,mcp__Robinhood_Agentic__get_index_quotes", then make EVERY listed call with exactly those arguments, all in parallel in one message. Do not open, summarize or re-type the results (large ones are saved to files automatically - that is expected). If a call errors, retry it once.
 
 STEP 3 - build the report: run `python3 -m research.report --agent mag7 --out /tmp/report.html`. It reads the results from this session's transcript and prints JSON with "subject", "parts", "missing" and "mode".
 
@@ -61,6 +61,16 @@ G. MOMENTUM & TREND STRENGTH (5-min)
 H. DAILY COMPRESSION PATTERNS
  - Inside day (prior day's range inside the day before) and NR7 (prior day = narrowest range of the last 7): breakout-watch candidates; use PDH/PDL as the trigger levels.
 
+I. OPENING RANGE BREAKOUT (ORB, regular session)
+ - Opening ranges: first 5 / 15 / 30 minutes (high/low). The 15-minute range drives the ORB state, judged on the CURRENT position: confirmed = price is outside the range and the bar that started the breakout had >= 1.5x the normal volume for its time slot; weak = outside on light volume; failed = broke out earlier but is back inside the range; inside = no close outside yet.
+J. PRE-MARKET & GAP QUALITY
+ - Pre-market volume vs the average of the prior 10 pre-markets (same clock window when the run is still pre-market).
+ - Gap size in daily ATRs (open vs prior close). gap-and-go = gap >= 0.3 ATR on >= 2x normal pre-market volume and still holding its side; fade risk = gap >= 1 ATR without that volume or not holding; otherwise a plain gap. Context only - not part of the bias score.
+K. INTRADAY RELATIVE STRENGTH
+ - Stock return over the last 15 and 30 minutes minus QQQ over the same window: leading (>= +0.3%), lagging (<= -0.3%), else in line.
+L. MARKET BREADTH & REGIME (snapshot)
+ - % of stocks up on the day, above VWAP and holding the daily 8/21 trend; counts of BULLISH / BEARISH bias and of stocks leading QQQ; regime = RISK-ON (average >= 60%), RISK-OFF (<= 40%), else MIXED; plus the VIX level (calm < 15, normal < 20, elevated < 30, high).
+
 BIAS SCORE (deterministic, -6..+6): +1 each when true, -1 when the opposite is true, 0 if n/a or neutral:
  price above VWAP | 5-min EMA9 above EMA21 | daily MA stack bullish | 5-min RSI between 55 and 70 (bearish side: between 30 and 45) | RVOL > 1.2 with up/down volume ratio > 1 (bearish side: ratio < 1) | intraday structure uptrend (bearish side: downtrend).
  Score >= +3 = BULLISH, <= -3 = BEARISH, otherwise NEUTRAL. Confirmations (0-2, shown next to the score): MACD histogram on the bias side and expanding; ADX >= 20 with the matching DI on top. Do not override the score with judgment; add any judgment as a separate one-line note.
@@ -84,6 +94,7 @@ Title: "MAG 7 Research - <date> <time> CT"
    - Moving averages: 5-min EMA9/21 state; daily EMA9/21, SMA20/50/200, stack, recent crosses.
    - RSI: 5-min and daily value + zone, divergence.
    - ATR: daily ATR (value and %), range used, expected range left.
+   - Open & gap: opening ranges, ORB state, pre-market volume, gap quality; intraday RS vs QQQ.
    - Momentum: 5-min MACD histogram (side, expanding/fading), ADX with +DI/-DI (trending/developing/choppy), squeeze state; daily pattern (inside day / NR7).
    - Bias + watch levels: bullish-above / bearish-below, targets, invalidation, reward/risk in ATR.
 4. Top 3 setups across the 7 (ranked by the "Top setups" rule in WATCH LEVELS), with the supporting numbers.

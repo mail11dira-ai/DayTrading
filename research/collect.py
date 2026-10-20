@@ -22,12 +22,21 @@ class Dataset:
         self.earnings = []      # [{"symbol", "report": {"date", "timing"}}]
         self.ratings = {}       # sym -> ratings dict
         self.fundamentals = {}  # sym -> dict
+        self.indexes = {}       # index symbol (e.g. VIX) -> level
         self.sources = 0
 
     def add(self, payload):
         if not isinstance(payload, dict):
             return
         data = payload.get("data")
+        if isinstance(data, dict) and isinstance(data.get("quotes"), list):  # get_index_quotes
+            for q in data["quotes"]:
+                try:
+                    self.indexes[q["symbol"]] = float(q["value"])
+                except (KeyError, TypeError, ValueError):
+                    pass
+            self.sources += 1
+            return
         results = data.get("results") if isinstance(data, dict) else None
         if not isinstance(results, list) or not results:
             return

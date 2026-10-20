@@ -154,6 +154,46 @@ def analyze(ds, sym, mode, sday, now):
     else:
         r["gap_filled"] = None
 
+    # --- time-of-day volume baseline (used by RVOL, spikes and ORB confirmation)
+    slot_avg = {}
+    for bars in prior.values():
+        for b in bars:
+            slot_avg.setdefault(b["t"].time(), []).append(b["v"])
+    slot_avg = {t: sum(v) / len(v) for t, v in slot_avg.items()}
+
+    # --- pre-market volume vs the prior pre-markets (same clock window when the run is still pre-market)
+    pre_all = [b for b in five if b["s"] == "pre"]
+    pm_today = [b for b in pre_all if b["d"] == sday]
+    cut = pm_today[-1]["t"].time() if (mode == "premarket" and pm_today) else None
+    pm_sum = lambda bars: sum(b["v"] for b in bars if cut is None or b["t"].time() <= cut)
+    prior_pm = [pm_sum([b for b in pre_all if b["d"] == d]) for d in prior_dates if any(b["d"] == d for b in pre_all)]
+    pm_avg = sum(prior_pm) / len(prior_pm) if prior_pm else 0
+    r["pm_vol"] = pm_sum(pm_today) if pm_today else None
+    r["pm_rvol"] = r["pm_vol"] / pm_avg if (pm_today and pm_avg) else None
+
+    # --- gap quality (size in ATRs x pre-market volume x is it holding)
+    r["gap_atr"] = (r["open"] - pdc) / atr if (r["open"] and atr) else None
+    holding = False
+    if r["gap_atr"] is not None:
+        up = r["gap_atr"] > 0
+        if mode == "premarket":
+            if pm_today:
+                lo_pm, hi_pm = min(b["l"] for b in pm_today), max(b["h"] for b in pm_today)
+                pos = (price - lo_pm) / (hi_pm - lo_pm) if hi_pm > lo_pm else 0.5
+                holding = pos >= 0.7 if up else pos <= 0.3
+        else:
+            holding = (r["gap_filled"] is False) and ((price >= r["open"]) if up else (price <= r["open"]))
+    r["gap_q"] = ta.gap_quality(r["gap_atr"], r["pm_rvol"], holding)
+
+    # --- opening-range breakout (15-min range, volume-confirmed), other range sizes, and short-window returns
+    r["orb"] = ta.orb_status(today_reg, 3, slot_avg) if today_reg else None
+    r["or_ranges"] = {m: (max(b["h"] for b in today_reg[:n]), min(b["l"] for b in today_reg[:n]))
+                      for m, n in ((5, 1), (15, 3), (30, 6)) if len(today_reg) >= n}
+    cur = today_reg if today_reg else (pre_today if mode == "premarket" else [])
+    cc = [b["c"] for b in cur]
+    r["ret15"] = ta.window_return(cc, cur[0]["o"], 3) if cur else None
+    r["ret30"] = ta.window_return(cc, cur[0]["o"], 6) if cur else None
+
     # --- volume
     r["rvol"] = r["vol_trend"] = r["ud"] = None
     r["spikes"] = []

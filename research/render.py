@@ -155,6 +155,52 @@ def sqz_text(q):
     return "off"
 
 
+def orb_text(r):
+    """Opening ranges (5/15/30 min) and the volume-confirmed 15-minute breakout state, coloured by direction."""
+    rg = r.get("or_ranges") or {}
+    base = rg.get(15)
+    shown = [(m, v) for m, v in rg.items() if m == 15 or v != base]  # 5/30-minute ranges only when they differ
+    ranges = "; ".join(f"OR{m} {num(h)}/{num(l)}" for m, (h, l) in shown) or "OR n/a (range not complete)"
+    o = r.get("orb")
+    if not o:
+        return ranges
+    if o["state"] == "inside":
+        return f"{ranges}; ORB: inside the 15m range"
+    vol = f"{o['volx']:.1f}x volume" if o["volx"] is not None else "volume n/a"
+    up = o["dir"] == "up"
+    word = {"confirmed": f"ORB {o['dir']} confirmed", "weak": f"ORB {o['dir']} weak (light volume)",
+            "failed": f"ORB {o['dir']} FAILED (back inside)"}[o["state"]]
+    c = {"confirmed": "g" if up else "r", "weak": "z", "failed": "r" if up else "g"}[o["state"]]
+    return f'{ranges}; <span class="{c}">{word}</span> ({vol} @ {o["time"]} CT)'
+
+
+def gap_text(r):
+    """Pre-market volume vs normal and the gap classification."""
+    pm = NA if r.get("pm_rvol") is None else f"{r['pm_rvol']:.1f}x normal"
+    gp = NA if r.get("gap_pct") is None else f"{r['gap_pct']:+.2f}%" + (
+        "" if r.get("gap_atr") is None else f" ({r['gap_atr']:+.2f} ATR)")
+    q = r.get("gap_q")
+    lab = "no meaningful gap (&lt; 0.3 ATR)"
+    if q:
+        kind, d = q
+        lab = {("go", "up"): '<span class="g">gap-and-go up</span>', ("go", "down"): '<span class="r">gap-and-go down</span>',
+               ("fade", "up"): '<span class="r">fade risk (gap up may retrace)</span>',
+               ("fade", "down"): '<span class="g">fade risk (gap down may bounce)</span>',
+               ("gap", "up"): f'<span class="z">gap up, no volume edge</span>',
+               ("gap", "down"): f'<span class="z">gap down, no volume edge</span>'}[(kind, d)]
+    return f"pre-mkt vol {pm}; gap {gp} &rarr; {lab}"
+
+
+def rs_text(r):
+    """Intraday relative strength vs QQQ over 15 / 30 minutes."""
+    if r.get("rs30") is None:
+        return NA
+    s30 = r["rs30"]
+    lab = '<span class="g">leading</span>' if s30 >= 0.3 else '<span class="r">lagging</span>' if s30 <= -0.3 else "in line"
+    p15 = NA if r.get("rs15") is None else pct(r["rs15"])
+    return f"15m {p15} / 30m {pct(s30)} vs QQQ &rarr; {lab}"
+
+
 def vw_cell(r):
     if r["thin"]:
         return "thin"
@@ -208,6 +254,8 @@ def card(r, extra=""):
         f"20d {g('20dL')}&ndash;{g('20dH')}; 52w {g('52wL')}&ndash;{g('52wH')}",
         f"<b>Price action:</b> S {lvl(r['sup'], p, atr)} / R {lvl(r['res'], p, atr)}; gap {gap}; "
         f"structure {tone(r['struct'])}; breaks: {', '.join(r['breaks']) or 'none'}",
+        f"<b>Open &amp; gap:</b> {orb_text(r)}; {gap_text(r)}",
+        f"<b>Intraday RS:</b> {rs_text(r)}",
         f"<b>MAs:</b> 5m {ema5}; daily EMA9 {num(r['d_ema9'])}, EMA21 {num(r['d_ema21'])}, SMA20 {num(r['sma20'])}, "
         f"SMA50 {num(r['sma50'])}, SMA200 {num(r['sma200'])} &rarr; stack {tone(r['stack'])}"
         + (f"; {tone(r['cross'])} cross (SMA50/200) in last 10d" if r["cross"] else ""),

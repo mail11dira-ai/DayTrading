@@ -433,3 +433,69 @@ def confirmations(bias, macd_hist, macd_prev, adx, pdi, mdi, adx_min=20):
     if None not in (adx, pdi, mdi) and adx >= adx_min and (pdi - mdi) * s > 0:
         n += 1
     return n
+
+
+def window_return(closes, first_open, n):
+    """% change over the last n bars; if the series is shorter than n+1, measured from the first open."""
+    if not closes or not first_open:
+        return None
+    base = closes[-1 - n] if len(closes) > n else first_open
+    return (closes[-1] / base - 1) * 100 if base else None
+
+
+def orb_status(bars, n, slot_avg, vol_mult=1.5):
+    """Opening-range breakout with volume confirmation, judged on the CURRENT position.
+
+    bars: one session's regular bars, oldest first, dicts with t (datetime), h, l, c, v.
+    n: bars in the opening range (3 = the first 15 minutes). slot_avg: {time-of-day: average bar volume}.
+    Returns None until the range is complete, else dict(state, dir, time, volx, hi, lo):
+      'inside'    no bar has closed outside the range
+      'confirmed' price is outside the range and the bar that started this breakout had >= vol_mult x normal volume
+      'weak'      price is outside but the breakout bar had light (or unknown) volume
+      'failed'    price broke out earlier but is back inside the range (dir = the last breakout direction)
+    """
+    if len(bars) <= n:
+        return None
+    hi, lo = max(b["h"] for b in bars[:n]), min(b["l"] for b in bars[:n])
+    side = [("up" if b["c"] > hi else "down" if b["c"] < lo else None) for b in bars[n:]]
+    rest = bars[n:]
+    last = side[-1]
+    if last is None:
+        prior = [d for d in side if d]
+        if not prior:
+            return {"state": "inside", "dir": None, "time": None, "volx": None, "hi": hi, "lo": lo}
+        i = max(k for k, d in enumerate(side) if d)  # most recent outside close
+        while i > 0 and side[i - 1] == side[i]:
+            i -= 1
+        d = side[max(k for k, x in enumerate(side) if x)]
+        return {"state": "failed", "dir": d, "time": rest[i]["t"].strftime("%H:%M"),
+                "volx": _volx(rest[i], slot_avg), "hi": hi, "lo": lo}
+    i = len(side) - 1
+    while i > 0 and side[i - 1] == last:  # first bar of the current outside streak
+        i -= 1
+    volx = _volx(rest[i], slot_avg)
+    state = "confirmed" if volx is not None and volx >= vol_mult else "weak"
+    return {"state": state, "dir": last, "time": rest[i]["t"].strftime("%H:%M"), "volx": volx, "hi": hi, "lo": lo}
+
+
+def _volx(bar, slot_avg):
+    base = slot_avg.get(bar["t"].time())
+    return bar["v"] / base if base else None
+
+
+def gap_quality(gap_atr, pm_rvol, holding):
+    """Classify an opening gap: ('go'|'fade'|'gap', 'up'|'down') or None for a gap under 0.3 ATR.
+
+    go   = gap of >= 0.3 ATR on >= 2x normal pre-market volume and still holding its side;
+    fade = a gap of >= 1 ATR that lacks that volume or is not holding (likely to retrace);
+    gap  = any other gap of >= 0.3 ATR.
+    """
+    if gap_atr is None or abs(gap_atr) < 0.3:
+        return None
+    d = "up" if gap_atr > 0 else "down"
+    strong = pm_rvol is not None and pm_rvol >= 2.0
+    if strong and holding:
+        return ("go", d)
+    if abs(gap_atr) >= 1.0:
+        return ("fade", d)
+    return ("gap", d)
