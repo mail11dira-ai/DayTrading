@@ -458,19 +458,17 @@ def test_colours_are_inline_for_gmail():
     from research.render import doc
     html = doc("T", "n", '<p><span class="g">bullish</span> <span class="r">bearish</span> +1.2%</p>'
                          '<table border="1"><tr><td>1</td></tr></table>')
-    body = html.split("</style>")[1]
-    assert '<span class="g" style="color:#0a7d2c;font-weight:bold">bullish</span>' in body
-    assert '<span class="r" style="color:#c0392b;font-weight:bold">bearish</span>' in body
-    assert '<span class="p pg" style="' in body and "+1.2%</p>" in body  # legend pill inline; numbers plain
-    # every class attribute must also carry an inline style, since Gmail strips classes
-    assert all('style="' in t for t in re.findall(r"<[^>]*class=[^>]*>", body))
+    assert '<span style="color:#0a7d2c;font-weight:bold">bullish</span>' in html
+    assert '<span style="color:#c0392b;font-weight:bold">bearish</span>' in html
+    assert "+1.2%</p>" in html  # numbers stay plain
+    # Gmail strips <style> and class attributes, so the sent email carries neither
+    assert "<style>" not in html and "class=" not in html
 
 
 def test_inline_html_readable_without_backgrounds():
     from research.render import doc
     html = doc("T", "n", '<table border="1"><tr><th class="l">A</th><th>B</th></tr></table>')
-    body = re.sub(r"background:[^;\"]*;?", "", html.split("</style>")[1])  # Gmail strips backgrounds
-    assert "color:#fff" not in body
+    assert "color:#fff" not in html and "background" not in html
 
 
 def test_in_play_score_counts_movement_flags():
@@ -485,6 +483,6 @@ def test_report_lists_in_play_and_drops_untested_breakout_lists():
     syms = MAG7 + ["SPY", "QQQ"]
     ds = _synthetic_dataset(syms, date(2026, 10, 12))
     title, html, missing, mode = build("mag7", ds, datetime(2026, 10, 13, 1, 0, tzinfo=CT), test=True)
-    assert "Most in play" in html and "<b>In play:</b>" in html
+    assert "Most in play" in html and "<b>in play " in html
     assert "Squeeze fired" not in html and "Inside day / NR7 (breakout watch)" not in html and "5m divergences" not in html
     assert "breakout pending" not in html

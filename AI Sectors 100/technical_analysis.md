@@ -66,3 +66,13 @@ WATCH LEVELS (research levels, not trade instructions):
 - In the 65-session test each flag predicted a bigger next-hour and rest-of-day range (in units of daily ATR) in both halves of the sample; none predicts direction. Score 0 -> 3+: next-hour range 0.35 -> 0.58 x ATR.
 - Shown on every card, as a "Most in play" list (score >= 2) under Risks, and used first when ranking top setups.
 - Removed from Risks: squeeze fired, inside day / NR7, 5m divergences (no edge), "range used > 1" (it means more movement, not exhaustion).
+
+## N. Slim email (2026-10-21, cost cut)
+- Everything above is still computed (and feeds the bias score, setups and lists), but each stock card now shows only:
+  volume (RVOL, last-3-bar trend, top 2 spikes), VWAP (level, distance, slope, last reclaim/loss), key levels
+  (PDH/PDL/PDC, PMH/PML, nearest support / resistance), opening range & gap, intraday RS vs QQQ, trend (5m EMA9/21,
+  daily MA stack, RSI 5m/daily), range (ATR %, range used, in-play score), bias + confirmations, and the two watch levels.
+- Dropped from the email: pivot R1/R2/S1/S2, volume profile POC/VAH/VAL, PWH/PWL, 20-day / 52-week ranges, VWAP sigma
+  bands, MACD / ADX / squeeze numbers, divergence, daily pattern, up/down volume, labels on targets/stops.
+  Scoreboard: the ADX column is replaced by the in-play score.
+- Gmail strips <style>, class attributes and backgrounds, so the email carries only short inline styles.

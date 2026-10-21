@@ -1,26 +1,11 @@
 """Compact HTML email rendering (MAG 7 look: bordered tables, green/red, cards).
 
-Styles live in one <style> block with short class names to keep the HTML small,
-because the agent has to pass the whole body to Gmail.
+Rendering uses short class names; doc() turns them into short inline styles because Gmail strips <style>
+blocks, class attributes and backgrounds. Keep the HTML small: the agent passes the whole body to Gmail.
 """
 import re
 from html import escape
 
-STYLE = ("<style>body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#222;background:#f4f6f9;margin:0;padding:12px}"
-         "h2{margin:0 0 6px;padding:10px 14px;background:#1f2d3d;color:#fff;border-radius:6px;font-size:18px}"
-         "h3{margin:18px 0 6px;padding-bottom:3px;border-bottom:2px solid #dfe5ec;color:#1f2d3d;font-size:15px}"
-         "h4{margin:0 0 3px;font-size:14px}p,ul{margin:4px 0 8px}li{margin:2px 0}"
-         "table{border-collapse:collapse;font-size:12px;margin:4px 0 10px;background:#fff}"
-         "td,th{border:1px solid #d5dbe3;padding:4px 6px;text-align:right;white-space:nowrap}"
-         "th{background:#1f2d3d;color:#fff;font-weight:600}td.l,th.l{text-align:left}"
-         "tr.bu td{background:#eef8f1}tr.bu td:first-child{border-left:4px solid #0a7d2c}"
-         "tr.be td{background:#fdf0ee}tr.be td:first-child{border-left:4px solid #c0392b}"
-         ".g{color:#0a7d2c;font-weight:600}.r{color:#c0392b;font-weight:600}.z{color:#555}"
-         ".p{display:inline-block;padding:1px 8px;border-radius:10px;font-weight:700;font-size:11px}"
-         ".pg{background:#d4f0dc;color:#0a7d2c}.pr{background:#fad9d5;color:#c0392b}.pz{background:#e6e9ee;color:#555}"
-         ".k{margin:0 0 12px;padding:8px 12px;border-radius:6px;background:#fff;border:1px solid #d5dbe3;border-left:5px solid #9aa5b1}"
-         ".kg{border-left-color:#0a7d2c;background:#f6fbf7}.kr{border-left-color:#c0392b;background:#fdf6f5}"
-         ".c{font-size:13px;line-height:1.55}.lg{font-size:12px;color:#555}</style>")
 NA = "n/a"
 PILL = re.compile(r'class="p p(\w)"')
 SPAN_TD = re.compile(r'<td><span class="(\w)">([^<]*)</span></td>')
@@ -215,61 +200,36 @@ def setup_line(side, s, word):
     if not s:
         return f"{word}: {NA}"
     poor = " (poor)" if s["rr"] is not None and s["rr"] < 1 else ""
-    return (f"{word} {num(s['trigger'])} ({escape(s['trigger_label'])}) &rarr; "
-            f"{num(s['target'])} ({escape(s['target_label'])}) [{s['reward_atr']:.2f} ATR]; "
-            f"invalid {num(s['stop'])} ({escape(s['stop_label'])}) [{s['risk_atr']:.2f} ATR]; "
-            f"R/R {ratio(s['rr'])}{poor}")
+    return (f"{word} {num(s['trigger'])} ({escape(s['trigger_label'])}) &rarr; {num(s['target'])}; "
+            f"invalid {num(s['stop'])}; R/R {ratio(s['rr'])}{poor}")
 
 
 def card(r, extra=""):
     p, atr, lv = r["price"], r["atr"], r["levels"]
     g = lambda k: num(lv.get(k))
-    spikes = ", ".join(f"{t} {m:.1f}x {d}" for t, m, d in r["spikes"][:4]) or "none"
-    trend = NA if r["vol_trend"] is None else f"{r['vol_trend']:.1f}x session avg ({'rising' if r['vol_trend'] >= 1 else 'falling'})"
+    spikes = ", ".join(f"{t} {m:.1f}x {d}" for t, m, d in r["spikes"][:2]) or "none"
+    trend = NA if r["vol_trend"] is None else f"{r['vol_trend']:.1f}x ({'rising' if r['vol_trend'] >= 1 else 'falling'})"
     if r["vwap"] and not r["thin"]:
-        sd = r["vwap_sd"] or 0
-        ev = f"{tone(r['vwap_event'][0])} VWAP @ {r['vwap_event'][1]} CT" if r["vwap_event"] else "no reclaim/loss"
-        vw = (f"{num(r['vwap'])}, px {pct(r['vs_vwap'])} / {ratio(r['vs_vwap_atr'])} ATR; "
-              f"&plusmn;1&sigma; {num(r['vwap'] - sd)}&ndash;{num(r['vwap'] + sd)}, "
-              f"&plusmn;2&sigma; {num(r['vwap'] - 2 * sd)}&ndash;{num(r['vwap'] + 2 * sd)}; "
-              f"slope {tone(r['vwap_slope'])}; {ev}")
+        ev = f"; {tone(r['vwap_event'][0])} @ {r['vwap_event'][1]}" if r["vwap_event"] else ""
+        vw = f"{num(r['vwap'])}, px {pct(r['vs_vwap'])}, slope {tone(r['vwap_slope'])}{ev}"
     else:
         vw = "thin (OTC / low volume)" if r["thin"] else NA
-    gap = NA if r["gap_pct"] is None else (
-        f"{r['gap_pct']:+.2f}%" + ("" if r["gap_filled"] is None else f" (filled: {'yes' if r['gap_filled'] else 'no'})"))
-    ema5 = NA
-    if r["ema_bull"] is not None:
-        ema5 = (f"{tone('bullish' if r['ema_bull'] else 'bearish')}: EMA9 {num(r['ema9_5'])} "
-                f"{'&gt;' if r['ema_bull'] else '&lt;'} EMA21 {num(r['ema21_5'])}"
-                f" ({'cross ' + tone(r['ema_cross']) + ' in last 30m' if r['ema_cross'] else 'no cross in last 30m'})")
+    ema5 = NA if r["ema_bull"] is None else tone("bullish" if r["ema_bull"] else "bearish") + (
+        f" (cross {tone(r['ema_cross'])} in last 30m)" if r["ema_cross"] else "")
     rng = NA if r["range_used"] is None else f"{r['range_used']:.2f}"
-    exp = (NA if r["exp_lo"] is None else "none (full ATR used)" if r["exp_lo"] == r["exp_hi"]
-           else f"{num(r['exp_lo'])}&ndash;{num(r['exp_hi'])}")
-    comp = ", ".join(f'{k} <span class="{cls(v)}">{v:+d}</span>' for k, v in r["bias_comp"].items())
+    comp = ", ".join(f"{k} {v:+d}" for k, v in r["bias_comp"].items())
     lines = [
-        f"<b>Volume:</b> RVOL {rvol_cell(r)}; last-3-bar vol {trend}; up/down vol {ratio(r['ud'])}; spikes (&gt;3x slot avg): {spikes}",
+        f"<b>Volume:</b> RVOL {rvol_cell(r)}; last 3 bars {trend}; spikes: {spikes}",
         f"<b>VWAP:</b> {vw}",
         f"<b>Levels:</b> PDH {g('PDH')} / PDL {g('PDL')} / PDC {g('PDC')}; PMH {g('PMH')} / PML {g('PML')}; "
-        f"ORH {g('ORH')} / ORL {g('ORL')}; P {g('P')}, R1 {g('R1')}, R2 {g('R2')}, S1 {g('S1')}, S2 {g('S2')}; "
-        f"prior-day volume profile POC {g('POC')}, VAH {g('VAH')}, VAL {g('VAL')}; PWH {g('PWH')} / PWL {g('PWL')}; "
-        f"20d {g('20dL')}&ndash;{g('20dH')}; 52w {g('52wL')}&ndash;{g('52wH')}",
-        f"<b>Price action:</b> S {lvl(r['sup'], p, atr)} / R {lvl(r['res'], p, atr)}; gap {gap}; "
-        f"structure {tone(r['struct'])}; breaks: {', '.join(r['breaks']) or 'none'}",
+        f"S {lvl(r['sup'], p, atr)} / R {lvl(r['res'], p, atr)}",
         f"<b>Open &amp; gap:</b> {orb_text(r)}; {gap_text(r)}",
         f"<b>Intraday RS:</b> {rs_text(r)}",
-        f"<b>MAs:</b> 5m {ema5}; daily EMA9 {num(r['d_ema9'])}, EMA21 {num(r['d_ema21'])}, SMA20 {num(r['sma20'])}, "
-        f"SMA50 {num(r['sma50'])}, SMA200 {num(r['sma200'])} &rarr; stack {tone(r['stack'])}"
-        + (f"; {tone(r['cross'])} cross (SMA50/200) in last 10d" if r["cross"] else ""),
-        f"<b>RSI:</b> 5m {rsi(r['rsi_5'])}, daily {rsi(r['rsi_d'])}; 5m divergence: {tone(r['div'])}",
-        f"<b>Momentum:</b> 5m MACD(12,26,9) hist {num(r.get('macd_hist'), 3)} ({tone_pair(r.get('macd_state'))})"
-        + (f", {tone(r['macd_cross'])} cross in last 30m" if r.get("macd_cross") else "")
-        + f"; ADX {adx_cell(r)} (+DI {num(r.get('pdi'), 0)} / &minus;DI {num(r.get('mdi'), 0)}) &rarr; {tone(adx_trend(r))}"
-        + f"; squeeze {sqz_text(r.get('sqz'))}",
-        f"<b>Daily pattern:</b> " + (f"{escape(r['pattern'])} (no extra range in testing)" if r.get("pattern") else "none"),
-        f"<b>ATR:</b> daily {num(atr)} ({ratio(r['atr_pct'])}%), 5m {num(r['atr_5'])}; range used {rng}; expected range left {exp}",
-        f"<b>In play:</b> {r.get('in_play', 0)}/4" + (f" ({', '.join(r['in_play_why'])})" if r.get("in_play_why") else "")
-,
-        f"<b>Bias {bias(r)}</b> ({comp}); confirmations {r.get('conf', 0)}/2 (MACD, ADX/DMI){extra}",
+        f"<b>Trend:</b> 5m EMA9/21 {ema5}; daily stack {tone(r['stack'])}"
+        + (f", {tone(r['cross'])} cross" if r["cross"] else "") + f"; RSI 5m {rsi(r['rsi_5'])} / daily {rsi(r['rsi_d'])}",
+        f"<b>Range:</b> ATR {ratio(r['atr_pct'])}%, used {rng}; <b>in play {r.get('in_play', 0)}/4</b>"
+        + (f" ({', '.join(r['in_play_why'])})" if r.get("in_play_why") else ""),
+        f"<b>Bias {bias(r)}</b> ({comp}); confirmations {r.get('conf', 0)}/2{extra}",
         setup_line("bull", r["watch"]["bull"], '<span class="g">Bullish above</span>'),
         setup_line("bear", r["watch"]["bear"], '<span class="r">Bearish below</span>'),
     ]
@@ -312,25 +272,23 @@ def words_only(html):
     return "".join(out)
 
 
-_PILL_CSS = "display:inline-block;padding:1px 8px;border-radius:10px;font-weight:bold;font-size:11px;"
+_PILL_CSS = "font-weight:bold;"
 # Gmail drops the <style> block, every class attribute and all background colours, so each class is
 # written inline as well and no text relies on a background to be readable (no white-on-dark text).
 INLINE = {
     "g": "color:#0a7d2c;font-weight:bold", "r": "color:#c0392b;font-weight:bold", "z": "color:#555",
-    "p pg": _PILL_CSS + "background:#d4f0dc;color:#0a7d2c", "p pr": _PILL_CSS + "background:#fad9d5;color:#c0392b",
-    "p pz": _PILL_CSS + "background:#e6e9ee;color:#555",
-    "k": "margin:0 0 12px;padding:8px 12px;border:1px solid #d5dbe3;border-left:5px solid #9aa5b1;border-radius:6px;background:#fff",
-    "c": "font-size:13px;line-height:1.55", "lg": "font-size:12px;color:#555",
+    "p pg": _PILL_CSS + "color:#0a7d2c", "p pr": _PILL_CSS + "color:#c0392b", "p pz": _PILL_CSS + "color:#555",
+    "k": "margin:0 0 10px;padding:6px 10px;border:1px solid #d5dbe3", "lg": "font-size:12px;color:#555",
 }
 _TAGS = {
     "<h2>": '<h2 style="margin:0 0 6px;padding:8px 0;border-bottom:3px solid #1f2d3d;color:#1f2d3d;font-size:18px">',
     "<h3>": '<h3 style="margin:18px 0 6px;padding-bottom:3px;border-bottom:2px solid #dfe5ec;color:#1f2d3d;font-size:15px">',
     "<h4>": '<h4 style="margin:0 0 3px;font-size:14px">',
     '<table border="1">': '<table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-size:12px;'
-                          'margin:4px 0 10px;background:#fff;border-color:#d5dbe3">',
+                          'margin:4px 0 10px;border-color:#d5dbe3">',
     "<th>": '<th align="right" style="color:#1f2d3d;border-bottom:2px solid #1f2d3d">',
     '<th class="l">': '<th align="left" style="color:#1f2d3d;border-bottom:2px solid #1f2d3d">',
-    "<td>": '<td align="right" style="white-space:nowrap">',
+    "<td>": '<td align="right" nowrap>',
     '<td class="l">': '<td align="left">',
 }
 
@@ -339,12 +297,12 @@ def inline(html):
     """Copy every class style into an inline style attribute (email clients such as Gmail strip <style>)."""
     for k, v in _TAGS.items():
         html = html.replace(k, v)
-    return re.sub(r'class="([^"]*)"', lambda m: f'class="{m.group(1)}" style="{INLINE[m.group(1).strip()]}"'
-                  if m.group(1).strip() in INLINE else m.group(0), html)
+    return re.sub(r' class="([^"]*)"', lambda m: f' style="{INLINE[m.group(1).strip()]}"'
+                  if m.group(1).strip() in INLINE else "", html)
 
 
 def doc(title, note, body):
-    return (f"<html><head><meta charset=\"utf-8\">{STYLE}</head><body>"
+    return ("<html><head><meta charset=\"utf-8\"></head><body>"
             '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;color:#222">'
             + inline(f"<h2>{escape(title)}</h2><p><i>{escape(note)}</i></p>{LEGEND}{words_only(body)}")
             + "<p><i>Research only, not financial advice. No orders placed.</i></p></div></body></html>")

@@ -27,3 +27,4 @@ Completion checklist (Option A). Each item must point to observable evidence.
 | research agents | movement flags (RVOL, gap >= 0.5 ATR, range used >= 1 ATR, ORB confirmed) predict a bigger next-hour range | pass | backtests/indicator_review_tables.md - t = +9.8 / +4.6 / +6.1 / +7.4, positive in both halves |
 | research agents | squeeze ON / inside day-NR7 predict expansion ("breakout pending/watch") | fail | squeeze ON INVERTED (t = -2.7), NR7 t = +0.2; claims removed from the emails |
 | research agents | full test suite after the indicator review changes | pass | `python -m pytest -q` → 92 passed |
+| research agents | slim email: both reports build with no missing data and fit in one part | pass | research.report --test: MAG 7 19,586 B, AI Sectors 100 21,287 B, missing [] ; pytest 92 passed |

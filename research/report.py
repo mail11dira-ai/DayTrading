@@ -111,11 +111,11 @@ def _row(r, first=None):
     return lead + [f"<b>{r['sym']}</b>", R.num(r["price"]), R.pct(r["day_pct"]), R.pct(r["vs_qqq"]),
                    R.pct(r.get("rs30")), R.bias(r), R.vw_cell(r), R.rvol_cell(r), f"{R.rsi(r['rsi_5'])} / {R.rsi(r['rsi_d'])}",
                    R.ratio(r["atr_pct"]) + ("%" if r["atr_pct"] else ""), R.ratio(r["range_used"]),
-                   f"{R.short_lvl(r['sup'])} / {R.short_lvl(r['res'])}", R.tone(r["stack"]), R.adx_cell(r)]
+                   f"{R.short_lvl(r['sup'])} / {R.short_lvl(r['res'])}", R.tone(r["stack"]), f"{r.get('in_play', 0)}/4"]
 
 
 HDR = ["Ticker", "Price", "Day %", "vs QQQ", "RS 30m", "Bias", "vs VWAP", "RVOL", "RSI 5m/D", "ATR%",
-       "Range used", "Nearest S / R", "MA stack", "ADX"]
+       "Range used", "Nearest S / R", "MA stack", "In play"]
 
 
 def _top(res, syms, n):
@@ -209,8 +209,8 @@ def _top_html(top, note):
         side = R.tone("bull above" if r["bias"] > 0 else "bear below")
         items.append(f"<li><b>{r['sym']}</b> {R.bias(r)}, in play {r.get('in_play', 0)}/4, RVOL {R.rvol_cell(r)}; {side} {R.num(s['trigger'])} "
                      f"&rarr; {R.num(s['target'])}, invalid {R.num(s['stop'])}; reward {s['reward_atr']:.2f} ATR vs "
-                     f"risk {s['risk_atr']:.2f} ATR (R/R {s['rr']:.2f}); confirmations {r.get('conf', 0)}/2; ADX {R.adx_cell(r)}; "
-                     f"RSI5 {R.rsi(r['rsi_5'])}, VWAP {R.vw_cell(r)}</li>")
+                     f"risk {s['risk_atr']:.2f} ATR (R/R {s['rr']:.2f}); confirmations {r.get('conf', 0)}/2; "
+                     f"VWAP {R.vw_cell(r)}</li>")
     return ((f"<ol>{''.join(items)}</ol>" if items else "") + (f"<p>{note}</p>" if note else "")
             + f'<p class="lg">{VALIDATION_NOTE}</p>')
 
@@ -281,7 +281,7 @@ def _flow(stats):
 
 
 M_HDR = ["Type", "Ticker", "Price", "Day %", "vs QQQ", "RS 30m", "20d RS", "Bias", "vs VWAP", "RVOL", "RSI 5m/D",
-         "8/21", "Nearest S / R", "ADX"]
+         "8/21", "Nearest S / R", "In play"]
 
 
 def _rs(r, spy20):
@@ -295,7 +295,7 @@ def _m_row(r, kind, spy20, show_type=True):
     return lead + [f"<b>{r['sym']}</b>", R.num(r["price"]), R.pct(r["day_pct"]), R.pct(r["vs_qqq"]),
             R.pct(r.get("rs30")), R.pct(_rs(r, spy20), 1), R.bias(r), R.vw_cell(r), R.rvol_cell(r),
             f"{R.rsi(r['rsi_5'])} / {R.rsi(r['rsi_d'])}", R.tone(r.get("hold_821")),
-            f"{R.short_lvl(r['sup'])} / {R.short_lvl(r['res'])}", R.adx_cell(r)]
+            f"{R.short_lvl(r['sup'])} / {R.short_lvl(r['res'])}", f"{r.get('in_play', 0)}/4"]
 
 
 def _modern(res, syms, bench, earn, ds, agent="modern"):

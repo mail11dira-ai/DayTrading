@@ -133,6 +133,9 @@ gap, breaks · 5m EMA 9/21; daily EMA 9/21, SMA 20/50/200, stack, golden/death c
   white-on-dark. Indicator review (backtests/indicator_review.md, research/indicator_review.py): no direction indicator
   works at 8:59 CT; movement flags do -> added in-play score 0-4 (cards, "Most in play" list, top-setup ranking first);
   removed squeeze-fired / inside-NR7 / divergence risk lists and the "range used > 1" exhaustion line; bias unchanged.
+- 2026-10-21: cost cut (user chose "slim the emails" only): cards trimmed to 10 lines, ADX column -> in-play score,
+  no <style>/class markup in the sent email. MAG 7 34 KB -> 20 KB, AI Sectors 100 35 KB -> 21 KB, one part each.
+  Not applied (offered): drop AI100 quote/ratings calls, one run per day, Haiku model.
 
 ## Next actions (proceed in the next run)
 Build status: COMPLETE (2026-10-20). Both agents (MAG 7, AI Sectors 100) are live, Mon-Fri 7:59 and 8:59 CT.
