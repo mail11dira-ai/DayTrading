@@ -464,3 +464,10 @@ def test_colours_are_inline_for_gmail():
     assert '<span class="p pg" style="' in body and "+1.2%</p>" in body  # legend pill inline; numbers plain
     # every class attribute must also carry an inline style, since Gmail strips classes
     assert all('style="' in t for t in re.findall(r"<[^>]*class=[^>]*>", body))
+
+
+def test_inline_html_readable_without_backgrounds():
+    from research.render import doc
+    html = doc("T", "n", '<table border="1"><tr><th class="l">A</th><th>B</th></tr></table>')
+    body = re.sub(r"background:[^;\"]*;?", "", html.split("</style>")[1])  # Gmail strips backgrounds
+    assert "color:#fff" not in body

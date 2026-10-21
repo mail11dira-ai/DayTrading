@@ -311,7 +311,8 @@ def words_only(html):
 
 
 _PILL_CSS = "display:inline-block;padding:1px 8px;border-radius:10px;font-weight:bold;font-size:11px;"
-# Gmail drops the <style> block and every class attribute, so each class is written inline as well.
+# Gmail drops the <style> block, every class attribute and all background colours, so each class is
+# written inline as well and no text relies on a background to be readable (no white-on-dark text).
 INLINE = {
     "g": "color:#0a7d2c;font-weight:bold", "r": "color:#c0392b;font-weight:bold", "z": "color:#555",
     "p pg": _PILL_CSS + "background:#d4f0dc;color:#0a7d2c", "p pr": _PILL_CSS + "background:#fad9d5;color:#c0392b",
@@ -320,13 +321,13 @@ INLINE = {
     "c": "font-size:13px;line-height:1.55", "lg": "font-size:12px;color:#555",
 }
 _TAGS = {
-    "<h2>": '<h2 style="margin:0 0 6px;padding:10px 14px;background:#1f2d3d;color:#fff;border-radius:6px;font-size:18px">',
+    "<h2>": '<h2 style="margin:0 0 6px;padding:8px 0;border-bottom:3px solid #1f2d3d;color:#1f2d3d;font-size:18px">',
     "<h3>": '<h3 style="margin:18px 0 6px;padding-bottom:3px;border-bottom:2px solid #dfe5ec;color:#1f2d3d;font-size:15px">',
     "<h4>": '<h4 style="margin:0 0 3px;font-size:14px">',
     '<table border="1">': '<table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-size:12px;'
                           'margin:4px 0 10px;background:#fff;border-color:#d5dbe3">',
-    "<th>": '<th align="right" style="background:#1f2d3d;color:#fff">',
-    '<th class="l">': '<th align="left" style="background:#1f2d3d;color:#fff">',
+    "<th>": '<th align="right" style="color:#1f2d3d;border-bottom:2px solid #1f2d3d">',
+    '<th class="l">': '<th align="left" style="color:#1f2d3d;border-bottom:2px solid #1f2d3d">',
     "<td>": '<td align="right" style="white-space:nowrap">',
     '<td class="l">': '<td align="left">',
 }
