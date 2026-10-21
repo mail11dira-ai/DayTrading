@@ -129,6 +129,11 @@ gap, breaks · 5m EMA 9/21; daily EMA 9/21, SMA 20/50/200, stack, golden/death c
   dragged the label to RISK-OFF on up days); validation note names the universe tested (AI Sectors 100);
   "expected range left" says "none (full ATR used)" instead of a zero-width range.
 
+- 2026-10-21: Gmail strips <style>, classes and backgrounds -> all email styles inlined (render.inline), dark text instead of
+  white-on-dark. Indicator review (backtests/indicator_review.md, research/indicator_review.py): no direction indicator
+  works at 8:59 CT; movement flags do -> added in-play score 0-4 (cards, "Most in play" list, top-setup ranking first);
+  removed squeeze-fired / inside-NR7 / divergence risk lists and the "range used > 1" exhaustion line; bias unchanged.
+
 ## Next actions (proceed in the next run)
 Build status: COMPLETE (2026-10-20). Both agents (MAG 7, AI Sectors 100) are live, Mon-Fri 7:59 and 8:59 CT.
 Decision (user, 2026-10-20): keep the bias score as-is, as a descriptive chart-state summary (no re-weighting,
@@ -136,6 +141,6 @@ structure component left unchanged). The validation fail rows in checks.md stand
 1. Check the first live runs with this build (2026-10-20 7:59 / 8:59 CT): `list_triggers` -> `last_run.session_id`,
    then `list_events` to confirm "sent" and an empty `missing` list.
 2. MAG 7 built-in email notification is still ON (UI-only setting; the user turns it off).
-3. Maintenance only: re-run `python -m research.validate` after ~60 more sessions (held-out period) before any
+3. Maintenance only: re-run `python -m research.validate` and `python -m research.indicator_review` after ~60 more sessions (held-out period) before any
    change to the bias score. Never tune on the same 65 sessions.
 4. Optional: refresh the live routines' FALLBACK text to point at `routine_prompt_legacy.txt`.

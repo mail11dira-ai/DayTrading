@@ -327,6 +327,7 @@ def analyze(ds, sym, mode, sday, now):
     r["conf"] = ta.confirmations(r["bias"], r["macd_hist"], r["macd_prev"], r["adx"], r["pdi"], r["mdi"])
     side_key = "bull" if r["bias"] > 0 else "bear" if r["bias"] < 0 else None
     r["setup"] = r["watch"].get(side_key) if side_key else None
+    r["in_play"], r["in_play_why"] = ta.in_play(None if r["thin"] else r["rvol"], r["gap_atr"], r["range_used"], r["orb"])
     return r
 
 

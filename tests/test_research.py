@@ -471,3 +471,20 @@ def test_inline_html_readable_without_backgrounds():
     html = doc("T", "n", '<table border="1"><tr><th class="l">A</th><th>B</th></tr></table>')
     body = re.sub(r"background:[^;\"]*;?", "", html.split("</style>")[1])  # Gmail strips backgrounds
     assert "color:#fff" not in body
+
+
+def test_in_play_score_counts_movement_flags():
+    from research.ta import in_play
+    assert in_play(None, None, None, None) == (0, [])
+    n, why = in_play(1.8, -0.7, 1.2, {"state": "confirmed", "dir": "up"})
+    assert n == 4 and why == ["RVOL 1.8", "gap 0.7 ATR", "range used 1.2 ATR", "ORB up confirmed"]
+    assert in_play(1.49, 0.49, 0.99, {"state": "failed", "dir": "up"})[0] == 0  # thresholds are inclusive at 1.5/0.5/1.0
+
+
+def test_report_lists_in_play_and_drops_untested_breakout_lists():
+    syms = MAG7 + ["SPY", "QQQ"]
+    ds = _synthetic_dataset(syms, date(2026, 10, 12))
+    title, html, missing, mode = build("mag7", ds, datetime(2026, 10, 13, 1, 0, tzinfo=CT), test=True)
+    assert "Most in play" in html and "<b>In play:</b>" in html
+    assert "Squeeze fired" not in html and "Inside day / NR7 (breakout watch)" not in html and "5m divergences" not in html
+    assert "breakout pending" not in html

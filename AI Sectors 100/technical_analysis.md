@@ -34,9 +34,9 @@ F. ATR (Wilder, 14)
 G. MOMENTUM & TREND STRENGTH (5-min)
  - MACD (12, 26, 9): histogram value, side (bullish > 0 / bearish < 0), expanding or fading vs the prior bar; note a histogram zero-cross in the last 30 min.
  - ADX 14 with +DI / -DI (Wilder): ADX >= 25 trending, 20-25 developing, < 20 choppy (fade breakouts, favor VWAP/level mean-reversion); direction = the larger DI.
- - TTM-style squeeze: Bollinger Bands (20, 2) inside Keltner Channels (SMA20 +/- 1.5 x ATR20) = squeeze ON (compression); "fired up/down" = squeeze ended within the last 6 bars, direction = close vs SMA20.
+ - TTM-style squeeze: Bollinger Bands (20, 2) inside Keltner Channels (SMA20 +/- 1.5 x ATR20) = squeeze ON (compression); "fired up/down" = squeeze ended within the last 6 bars, direction = close vs SMA20. Tested 2026-10-21: squeeze ON was followed by a quieter next hour, not a breakout (backtests/indicator_review.md).
 H. DAILY COMPRESSION PATTERNS
- - Inside day (prior day's range inside the day before) and NR7 (prior day = narrowest range of the last 7): breakout-watch candidates; use PDH/PDL as the trigger levels.
+ - Inside day (prior day's range inside the day before) and NR7 (prior day = narrowest range of the last 7): shown as context only - no extra range in testing (backtests/indicator_review.md).
 
 I. OPENING RANGE BREAKOUT (ORB, regular session)
  - Opening ranges: first 5 / 15 / 30 minutes (high/low). The 15-minute range drives the ORB state, judged on the CURRENT position: confirmed = price is outside the range and the bar that started the breakout had >= 1.5x the normal volume for its time slot; weak = outside on light volume; failed = broke out earlier but is back inside the range; inside = no close outside yet.
@@ -60,3 +60,9 @@ WATCH LEVELS (research levels, not trade instructions):
  - Top setups: rank by |bias score|, then confirmations, then RVOL, then the bias-side R/R; exclude setups whose bias-side R/R < 1.0 and say so if fewer remain than requested.
  Pre-market (8:00) run: VWAP, opening range, intraday EMAs and RVOL use pre-market bars where possible, otherwise "n/a (pre-market)"; lean on PDH/PDL/PDC, PMH/PML, gap and daily MAs.
 ```
+
+## M. In-play (movement) score - added 2026-10-21
+- Count of four flags, 0-4: RVOL >= 1.5; |gap| >= 0.5 daily ATR; range used >= 1 daily ATR; volume-confirmed 15-min ORB (either direction).
+- In the 65-session test each flag predicted a bigger next-hour and rest-of-day range (in units of daily ATR) in both halves of the sample; none predicts direction. Score 0 -> 3+: next-hour range 0.35 -> 0.58 x ATR.
+- Shown on every card, as a "Most in play" list (score >= 2) under Risks, and used first when ranking top setups.
+- Removed from Risks: squeeze fired, inside day / NR7, 5m divergences (no edge), "range used > 1" (it means more movement, not exhaustion).

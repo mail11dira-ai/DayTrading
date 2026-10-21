@@ -121,7 +121,7 @@ HDR = ["Ticker", "Price", "Day %", "vs QQQ", "RS 30m", "Bias", "vs VWAP", "RVOL"
 def _top(res, syms, n):
     cands = [res[s] for s in syms if res[s]["ok"] and res[s]["bias_label"] != "NEUTRAL" and res[s]["setup"]]
     good = [r for r in cands if r["setup"]["rr"] is not None and r["setup"]["rr"] >= 1.0]
-    good.sort(key=lambda r: (-abs(r["bias"]), -r.get("conf", 0), -(r["rvol"] or 0), -(r["setup"]["rr"] or 0)))
+    good.sort(key=lambda r: (-r.get("in_play", 0), -abs(r["bias"]), -r.get("conf", 0), -(r["rvol"] or 0), -(r["setup"]["rr"] or 0)))
     note = ""
     if len(good) < n:
         note = (f"Only {len(good)} setup(s) qualify (BULLISH/BEARISH bias with bias-side R/R &ge; 1.0); "
@@ -151,13 +151,13 @@ def _risks(res, syms, earn, gap_thr, rng_thr, rsi_hi, rsi_lo):
     def lst(rs, f, k=12):
         more = f" (+{len(rs) - k} more)" if len(rs) > k else ""
         return ", ".join(f(r) for r in rs[:k]) + more if rs else "none"
+    ip = sorted([r for r in ok if r.get("in_play", 0) >= 2], key=lambda r: (-r["in_play"], -(r["rvol"] or 0)))
+    items.append("<b>Most in play</b> (2+ of: RVOL &ge; 1.5, gap &ge; 0.5 ATR, range used &ge; 1 ATR, ORB confirmed - "
+                 "expect bigger moves, direction not implied): " + lst(ip, lambda r: f"{r['sym']} {r['in_play']}/4", 15))
     items.append("RVOL &gt; 2: " + lst([r for r in ok if (r["rvol"] or 0) > 2 and not r["thin"]], lambda r: f"{r['sym']} {r['rvol']:.1f}"))
     items.append(f"Gaps &gt; {gap_thr:g}%: " + lst(sorted([r for r in ok if r["gap_pct"] is not None and abs(r["gap_pct"]) > gap_thr], key=lambda r: -abs(r["gap_pct"])), lambda r: f"{r['sym']} {r['gap_pct']:+.1f}%"))
     ext = [r for r in ok if any(x is not None and (x > rsi_hi or x < rsi_lo) for x in (r["rsi_5"], r["rsi_d"]))]
     items.append(f"RSI &gt; {rsi_hi} or &lt; {rsi_lo}: " + lst(ext, lambda r: f"{r['sym']} ({R.rsi(r['rsi_5'])}/{R.rsi(r['rsi_d'])})"))
-    items.append("5m divergences: " + lst([r for r in ok if r["div"] in ("bullish", "bearish")], lambda r: f"{r['sym']} {R.tone(r['div'])}"))
-    items.append("Squeeze fired (5m): " + lst([r for r in ok if r.get("sqz") and r["sqz"][0].startswith("fired")], lambda r: f"{r['sym']} {R.tone(r['sqz'][0])}"))
-    items.append("Inside day / NR7 (breakout watch): " + lst([r for r in ok if r.get("pattern")], lambda r: f"{r['sym']} ({r['pattern']})"))
     def orb(state, d=None):
         return [r for r in ok if r.get("orb") and r["orb"]["state"] == state and (d is None or r["orb"]["dir"] == d)]
     f_orb = lambda r: f"{r['sym']} ({r['orb']['volx']:.1f}x @ {r['orb']['time']})" if r["orb"]["volx"] else f"{r['sym']} @ {r['orb']['time']}"
@@ -174,7 +174,6 @@ def _risks(res, syms, earn, gap_thr, rng_thr, rsi_hi, rsi_lo):
     lag_rs = [r for r in rs[::-1] if r["rs30"] < 0][:5]
     items.append("Intraday RS leaders (30m vs QQQ): " + lst(lead_rs, lambda r: f"{r['sym']} {R.pct(r['rs30'])}")
                  + " &middot; laggards: " + lst(lag_rs, lambda r: f"{r['sym']} {R.pct(r['rs30'])}"))
-    items.append(f"Range used &gt; {rng_thr:g}: " + lst([r for r in ok if (r["range_used"] or 0) > rng_thr], lambda r: f"{r['sym']} {r['range_used']:.2f}"))
     return "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
 
 
@@ -198,8 +197,9 @@ def _mag7(res, syms, bench, earn, ds):
     return out
 
 
-VALIDATION_NOTE = ("Note: the bias score and this ranking describe the chart's current state. In a 65-session test "
-                   "on the AI Sectors 100 stocks (Jul-Oct 2026, 8:59 CT) they did not predict the next hour's move - use them to filter ideas, not to forecast.")
+VALIDATION_NOTE = ("Note: setups are ranked by the in-play (movement) score first, then bias. In a 65-session test on the "
+                   "AI Sectors 100 stocks (Jul-Oct 2026, 8:59 CT) the in-play score predicted bigger moves, but neither it nor "
+                   "the bias score predicted direction - use bias to describe the chart, not to forecast.")
 
 
 def _top_html(top, note):
@@ -207,7 +207,7 @@ def _top_html(top, note):
     for r in top:
         s = r["setup"]
         side = R.tone("bull above" if r["bias"] > 0 else "bear below")
-        items.append(f"<li><b>{r['sym']}</b> {R.bias(r)}, RVOL {R.rvol_cell(r)}; {side} {R.num(s['trigger'])} "
+        items.append(f"<li><b>{r['sym']}</b> {R.bias(r)}, in play {r.get('in_play', 0)}/4, RVOL {R.rvol_cell(r)}; {side} {R.num(s['trigger'])} "
                      f"&rarr; {R.num(s['target'])}, invalid {R.num(s['stop'])}; reward {s['reward_atr']:.2f} ATR vs "
                      f"risk {s['risk_atr']:.2f} ATR (R/R {s['rr']:.2f}); confirmations {r.get('conf', 0)}/2; ADX {R.adx_cell(r)}; "
                      f"RSI5 {R.rsi(r['rsi_5'])}, VWAP {R.vw_cell(r)}</li>")

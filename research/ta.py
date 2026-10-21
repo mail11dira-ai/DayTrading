@@ -499,3 +499,22 @@ def gap_quality(gap_atr, pm_rvol, holding):
     if abs(gap_atr) >= 1.0:
         return ("fade", d)
     return ("gap", d)
+
+
+def in_play(rvol, gap_atr, range_used, orb):
+    """Movement ("in play") score 0-4: how many of the four movement flags are on, plus their labels.
+
+    Each flag predicted a bigger next-hour and rest-of-day range in the 65-session test
+    (backtests/indicator_review.md); none predicts direction:
+    RVOL >= 1.5, |gap| >= 0.5 daily ATR, range used >= 1 ATR, volume-confirmed 15-min ORB.
+    """
+    flags = []
+    if rvol is not None and rvol >= 1.5:
+        flags.append(f"RVOL {rvol:.1f}")
+    if gap_atr is not None and abs(gap_atr) >= 0.5:
+        flags.append(f"gap {abs(gap_atr):.1f} ATR")
+    if range_used is not None and range_used >= 1.0:
+        flags.append(f"range used {range_used:.1f} ATR")
+    if orb and orb.get("state") == "confirmed":
+        flags.append(f"ORB {orb['dir']} confirmed")
+    return len(flags), flags

@@ -23,3 +23,7 @@ Completion checklist (Option A). Each item must point to observable evidence.
 | research agents | decision on the failed bias-score gate (2026-10-20) | unresolved | user chose to keep the score as a descriptive chart-state summary; emails carry the validation note; the two fail rows above stand. Re-test with `python -m research.validate` after ~60 more sessions |
 | research agents | full test suite after review pass (breadth regime, validation note, expected range) | pass | `python -m pytest -q` → 87 passed |
 | research agents | ad-hoc end-to-end runs, 2026-10-20 00:28 / 00:31 CT | pass | `research.report --test`: MAG 7 and AI Sectors 100 both `missing: []`, 25 KB / 27 KB; sent to mail11dira@gmail.com |
+| research agents | indicator review: any direction indicator predicts the next 60 min / close at 8:59 CT (14 tests, 65 sessions) | fail | backtests/indicator_review.md - all "no clear edge" |
+| research agents | movement flags (RVOL, gap >= 0.5 ATR, range used >= 1 ATR, ORB confirmed) predict a bigger next-hour range | pass | backtests/indicator_review_tables.md - t = +9.8 / +4.6 / +6.1 / +7.4, positive in both halves |
+| research agents | squeeze ON / inside day-NR7 predict expansion ("breakout pending/watch") | fail | squeeze ON INVERTED (t = -2.7), NR7 t = +0.2; claims removed from the emails |
+| research agents | full test suite after the indicator review changes | pass | `python -m pytest -q` → 92 passed |

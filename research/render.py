@@ -149,7 +149,7 @@ def sqz_text(q):
         return NA
     state, k = q
     if state == "on":
-        return f"ON for {k} bar{'s' if k != 1 else ''} (compression - breakout pending)"
+        return f"ON for {k} bar{'s' if k != 1 else ''} (compressed; next hour was usually quieter, not a breakout)"
     if state.startswith("fired"):
         return f"{tone(state)} {k} bar{'s' if k != 1 else ''} ago"
     return "off"
@@ -265,8 +265,10 @@ def card(r, extra=""):
         + (f", {tone(r['macd_cross'])} cross in last 30m" if r.get("macd_cross") else "")
         + f"; ADX {adx_cell(r)} (+DI {num(r.get('pdi'), 0)} / &minus;DI {num(r.get('mdi'), 0)}) &rarr; {tone(adx_trend(r))}"
         + f"; squeeze {sqz_text(r.get('sqz'))}",
-        f"<b>Daily pattern:</b> " + (f"{escape(r['pattern'])} (range compression - breakout watch)" if r.get("pattern") else "none"),
+        f"<b>Daily pattern:</b> " + (f"{escape(r['pattern'])} (no extra range in testing)" if r.get("pattern") else "none"),
         f"<b>ATR:</b> daily {num(atr)} ({ratio(r['atr_pct'])}%), 5m {num(r['atr_5'])}; range used {rng}; expected range left {exp}",
+        f"<b>In play:</b> {r.get('in_play', 0)}/4" + (f" ({', '.join(r['in_play_why'])})" if r.get("in_play_why") else "")
+,
         f"<b>Bias {bias(r)}</b> ({comp}); confirmations {r.get('conf', 0)}/2 (MACD, ADX/DMI){extra}",
         setup_line("bull", r["watch"]["bull"], '<span class="g">Bullish above</span>'),
         setup_line("bear", r["watch"]["bear"], '<span class="r">Bearish below</span>'),
