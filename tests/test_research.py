@@ -1,3 +1,4 @@
+import re
 """Known-answer tests for the research agents' script (research/)."""
 import json
 import math
@@ -241,11 +242,11 @@ def test_end_to_end_report_closed_session(agent):
         assert not any(f"<b>{m}</b>" in html for m in MAG7)
     if agent == "ai100":
         assert "Weekend checklist" in html and "ETFs Day %" not in html and "15</td>" in html
-        assert "<h3>4. Top 5 setups" in html and "Nearest S / R" not in html  # compact: no per-sector tables
+        assert ">4. Top 5 setups</h3>" in html and "Nearest S / R" not in html  # compact: no per-sector tables
     if agent == "modern":
         assert "Weekend checklist" in html and "Sector scoreboard" in html and "removed for day trading" in html
         assert "12 Neo-Cloud" in html and not any(f"<b>{m}</b>" in html for m in MAG7)
-        checklist = html[html.index("Weekend checklist"):html.index("<h3>4.")]
+        checklist = html[html.index("Weekend checklist"):html.index(">4. ")]
         assert not any(x in checklist for x in ("SQQQ", "SOXS", "UVXY"))  # inverse products excluded
 
 
@@ -451,3 +452,15 @@ def test_only_bullish_bearish_words_are_coloured():
     assert '<span class="p pr">-3 BEARISH</span>' in out  # pill keeps colour only because it says BEARISH
     assert '<span class="g">bullish</span>' in out and '<span class="r">bearish</span>' in out
     assert out.count('class="g"') == 1 and out.count('class="r"') == 1
+
+
+def test_colours_are_inline_for_gmail():
+    from research.render import doc
+    html = doc("T", "n", '<p><span class="g">bullish</span> <span class="r">bearish</span> +1.2%</p>'
+                         '<table border="1"><tr><td>1</td></tr></table>')
+    body = html.split("</style>")[1]
+    assert '<span class="g" style="color:#0a7d2c;font-weight:bold">bullish</span>' in body
+    assert '<span class="r" style="color:#c0392b;font-weight:bold">bearish</span>' in body
+    assert '<span class="p pg" style="' in body and "+1.2%</p>" in body  # legend pill inline; numbers plain
+    # every class attribute must also carry an inline style, since Gmail strips classes
+    assert all('style="' in t for t in re.findall(r"<[^>]*class=[^>]*>", body))

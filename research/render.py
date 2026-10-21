@@ -310,7 +310,38 @@ def words_only(html):
     return "".join(out)
 
 
+_PILL_CSS = "display:inline-block;padding:1px 8px;border-radius:10px;font-weight:bold;font-size:11px;"
+# Gmail drops the <style> block and every class attribute, so each class is written inline as well.
+INLINE = {
+    "g": "color:#0a7d2c;font-weight:bold", "r": "color:#c0392b;font-weight:bold", "z": "color:#555",
+    "p pg": _PILL_CSS + "background:#d4f0dc;color:#0a7d2c", "p pr": _PILL_CSS + "background:#fad9d5;color:#c0392b",
+    "p pz": _PILL_CSS + "background:#e6e9ee;color:#555",
+    "k": "margin:0 0 12px;padding:8px 12px;border:1px solid #d5dbe3;border-left:5px solid #9aa5b1;border-radius:6px;background:#fff",
+    "c": "font-size:13px;line-height:1.55", "lg": "font-size:12px;color:#555",
+}
+_TAGS = {
+    "<h2>": '<h2 style="margin:0 0 6px;padding:10px 14px;background:#1f2d3d;color:#fff;border-radius:6px;font-size:18px">',
+    "<h3>": '<h3 style="margin:18px 0 6px;padding-bottom:3px;border-bottom:2px solid #dfe5ec;color:#1f2d3d;font-size:15px">',
+    "<h4>": '<h4 style="margin:0 0 3px;font-size:14px">',
+    '<table border="1">': '<table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-size:12px;'
+                          'margin:4px 0 10px;background:#fff;border-color:#d5dbe3">',
+    "<th>": '<th align="right" style="background:#1f2d3d;color:#fff">',
+    '<th class="l">': '<th align="left" style="background:#1f2d3d;color:#fff">',
+    "<td>": '<td align="right" style="white-space:nowrap">',
+    '<td class="l">': '<td align="left">',
+}
+
+
+def inline(html):
+    """Copy every class style into an inline style attribute (email clients such as Gmail strip <style>)."""
+    for k, v in _TAGS.items():
+        html = html.replace(k, v)
+    return re.sub(r'class="([^"]*)"', lambda m: f'class="{m.group(1)}" style="{INLINE[m.group(1).strip()]}"'
+                  if m.group(1).strip() in INLINE else m.group(0), html)
+
+
 def doc(title, note, body):
     return (f"<html><head><meta charset=\"utf-8\">{STYLE}</head><body>"
-            f"<h2>{escape(title)}</h2><p><i>{escape(note)}</i></p>{LEGEND}{words_only(body)}"
-            "<p><i>Research only, not financial advice. No orders placed.</i></p></body></html>")
+            '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:13px;color:#222">'
+            + inline(f"<h2>{escape(title)}</h2><p><i>{escape(note)}</i></p>{LEGEND}{words_only(body)}")
+            + "<p><i>Research only, not financial advice. No orders placed.</i></p></div></body></html>")
