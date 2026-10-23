@@ -204,7 +204,7 @@ def setup_line(side, s, word):
             f"invalid {num(s['stop'])}; R/R {ratio(s['rr'])}{poor}")
 
 
-def card(r, extra=""):
+def card(r, extra="", full_levels=False):
     p, atr, lv = r["price"], r["atr"], r["levels"]
     g = lambda k: num(lv.get(k))
     spikes = ", ".join(f"{t} {m:.1f}x {d}" for t, m, d in r["spikes"][:2]) or "none"
@@ -224,6 +224,11 @@ def card(r, extra=""):
         f"<b>Levels:</b> PDH {g('PDH')} / PDL {g('PDL')} / PDC {g('PDC')}; PMH {g('PMH')} / PML {g('PML')}; "
         f"S {lvl(r['sup'], p, atr)} / R {lvl(r['res'], p, atr)}",
         f"<b>Open &amp; gap:</b> {orb_text(r)}; {gap_text(r)}",
+    ] + ([
+        f"<b>Index levels:</b> pivots P {g('P')}, R1 {g('R1')}, R2 {g('R2')}, S1 {g('S1')}, S2 {g('S2')}; "
+        f"prior-day POC {g('POC')}, VAH {g('VAH')}, VAL {g('VAL')}; PWH {g('PWH')} / PWL {g('PWL')}; "
+        f"ORH {g('ORH')} / ORL {g('ORL')}; 20d {g('20dL')}&ndash;{g('20dH')}",
+    ] if full_levels else []) + [
         f"<b>Intraday RS:</b> {rs_text(r)}",
         f"<b>Trend:</b> 5m EMA9/21 {ema5}; daily stack {tone(r['stack'])}"
         + (f", {tone(r['cross'])} cross" if r["cross"] else "") + f"; RSI 5m {rsi(r['rsi_5'])} / daily {rsi(r['rsi_d'])}",

@@ -76,3 +76,17 @@ WATCH LEVELS (research levels, not trade instructions):
   bands, MACD / ADX / squeeze numbers, divergence, daily pattern, up/down volume, labels on targets/stops.
   Scoreboard: the ADX column is replaced by the in-play score.
 - Gmail strips <style>, class attributes and backgrounds, so the email carries only short inline styles.
+
+## O. Market deep dive: SPY, QQQ, VIX (2026-10-23)
+Section 1 of the MAG 7 email. Extra data: VIX daily history (1 year) and VIX 5-minute bars (last few sessions) via get_index_historicals.
+- QQQ vs SPY: day % and 30-min return difference -> tech leading / lagging / moving together.
+- Tape and breadth of the 7 stocks (regime from % up and % above VWAP).
+- VIX: level, change vs prior close (pts and %), regime (calm < 15, normal < 20, elevated < 30, high), distance from its
+  20-day average, 20-day range, percentile vs the last year's closes; today's open / high / low and last-30-min change.
+- Warning when SPY and the VIX rise together (hedged rally) or fall together (selling without fear).
+- Implied move: SPY +/- prior close x prior VIX / sqrt(252) (1 sigma), as a price band; share of the band today's range
+  has used; flagged when price is outside it. QQQ estimate = VIX move x QQQ ATR% / SPY ATR%.
+- Band reliability, measured each run: share of the last 250 sessions SPY closed inside the prior day's band (theory ~68%)
+  and the average move as a share of the implied move.
+- Full cards for SPY and QQQ with an extra "Index levels" line: pivots P/R1/R2/S1/S2, prior-day POC/VAH/VAL,
+  PWH/PWL, opening range, 20-day range.

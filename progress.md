@@ -136,6 +136,10 @@ gap, breaks · 5m EMA 9/21; daily EMA 9/21, SMA 20/50/200, stack, golden/death c
 - 2026-10-21: cost cut (user chose "slim the emails" only): cards trimmed to 10 lines, ADX column -> in-play score,
   no <style>/class markup in the sent email. MAG 7 34 KB -> 20 KB, AI Sectors 100 35 KB -> 21 KB, one part each.
   Not applied (offered): drop AI100 quote/ratings calls, one run per day, Haiku model.
+- 2026-10-23: MAG 7 section 1 is now a market deep dive (research/market.py): QQQ vs SPY, VIX level/change/regime/
+  20-day + 1-year context and intraday path, SPY/QQQ VIX-implied move bands with measured reliability (SPY closed inside
+  the band 85% of the last 250 days), full SPY/QQQ cards with index levels. +2 VIX history calls (mag7 only; tool added
+  to the live MAG 7 prompt). Email ~20 KB -> ~27 KB.
 
 ## Next actions (proceed in the next run)
 Build status: COMPLETE (2026-10-20). Both agents (MAG 7, AI Sectors 100) are live, Mon-Fri 7:59 and 8:59 CT.

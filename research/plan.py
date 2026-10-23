@@ -42,6 +42,10 @@ def plan(agent, now):
     for c in chunks(ratings_symbols(agent), 75):  # tool limit: 75 symbols per call
         calls.append((P + "get_equity_analyst_ratings", {"symbols": c}))
     calls.append((P + "get_index_quotes", {"instrument_ids": [VIX_ID]}))
+    if agent == "mag7":  # market deep dive: VIX history (1 year daily) and its intraday path (last few sessions)
+        calls.append((P + "get_index_historicals", {"instrument_ids": [VIX_ID], "interval": "day", "start_time": startd}))
+        calls.append((P + "get_index_historicals", {"instrument_ids": [VIX_ID], "interval": "5minute",
+                                                     "start_time": f"{today - timedelta(days=4)}T12:00:00Z"}))
     return calls
 
 

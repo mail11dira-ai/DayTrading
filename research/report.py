@@ -11,7 +11,7 @@ import json
 import sys
 from html import escape
 
-from . import collect, render as R
+from . import collect, market as M, render as R
 from .analyze import analyze, detect_mode, earnings_within, now_ct
 from .universe import (AI_SECTORS, EMPTY_LAYER_NOTE, INVERSE, modern_layout, symbols)
 
@@ -50,7 +50,7 @@ def build(agent, ds, now, test=False):
     if agent in ("modern", "ai100"):
         body = _modern(res, syms, bench, earn, ds, agent)
     else:
-        body = {"mag7": _mag7, "aisectors": _ai}[agent](res, syms, bench, earn, ds)
+        body = _mag7(res, syms, bench, earn, ds, sday) if agent == "mag7" else _ai(res, syms, bench, earn, ds)
     return title, R.doc(title, note, body), missing, mode
 
 
@@ -177,7 +177,64 @@ def _risks(res, syms, earn, gap_thr, rng_thr, rsi_hi, rsi_lo):
     return "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
 
 
-def _mag7(res, syms, bench, earn, ds):
+def _vix_lines(v):
+    """VIX and implied-move bullets for the market deep dive."""
+    if not v:
+        return ["<li><b>VIX:</b> n/a (no VIX data)</li>"]
+    f = lambda x, d=2: R.NA if x is None else f"{x:.{d}f}"
+    s = lambda x, d=2, u="": R.NA if x is None else f"{x:+.{d}f}{u}"
+    side = (f"{abs(v['vs_sma20']):.0f}% {'above' if v['vs_sma20'] > 0 else 'below'} its 20-day average {f(v['sma20'])}"
+            if v["vs_sma20"] is not None else "20-day average n/a")
+    out = [f"<li><b>VIX {f(v['level'])}</b> ({v['regime']}; {s(v['chg'])} pts / {s(v['chg_pct'], 1, '%')} vs prior close "
+           f"{f(v['prev'])}); {side}; 20-day range {f(v['lo20'])}&ndash;{f(v['hi20'])}"
+           + (f"; higher than {v['pctile']:.0f}% of the last year's closes" if v["pctile"] is not None else "") + "</li>"]
+    if v["open"] is not None:
+        out.append(f"<li><b>VIX today:</b> open {f(v['open'])}, high {f(v['hi'])}, low {f(v['lo'])}, last 30 min {s(v['chg30'])} pts "
+                   + ("(rising = traders buying protection)" if (v["chg30"] or 0) > 0.2 else
+                      "(falling = fear easing)" if (v["chg30"] or 0) < -0.2 else "(flat)") + "</li>")
+    if v.get("diverge"):
+        out.append("<li><b>Warning:</b> " + ("SPY up while the VIX rises - the rally is being hedged; rallies like this "
+                                             "often stall" if v["diverge"] == "up" else
+                                             "SPY down while the VIX falls - selling without fear; often orderly, "
+                                             "less likely to cascade") + "</li>")
+    for key, name in (("spy", "SPY"), ("qqq", "QQQ")):
+        m = v.get(key)
+        if not m:
+            continue
+        rare = f" - SPY closed outside it on only {100 - v['band'][0]:.0f}% of recent days: trend-day risk" if v.get("band") else " - trend-day risk"
+        where = {1: "price is ABOVE the band" + rare, -1: "price is BELOW the band" + rare, 0: "price is inside the band"}[m["outside"]]
+        out.append(f"<li><b>{name} implied move today</b>{' (est. from VIX x QQQ/SPY ATR)' if key == 'qqq' else ''}: "
+                   f"&plusmn;{m['em']:.2f}% (&plusmn;{m['pts']:.2f}) &rarr; band {f(m['lo'])}&ndash;{f(m['hi'])}; "
+                   + (f"today's range has used {m['used']:.0%} of the full band; " if m["used"] is not None else "")
+                   + where + "</li>")
+    if v.get("band"):
+        hit, ratio, n = v["band"]
+        out.append(f"<li><b>How reliable is the band:</b> over the last {n} sessions SPY closed inside the prior day's VIX "
+                   f"1-sigma band on {hit:.0f}% of days (theory: about 68%); the average day used {ratio:.0%} of the implied move.</li>")
+    return out
+
+
+def _market(res, syms, bench, ds, sday, tape):
+    """Section 1 for MAG 7: SPY / QQQ / VIX deep dive for day trading."""
+    spy, qqq = res.get("SPY", {}), res.get("QQQ", {})
+    v = M.vix_analysis(ds, sday, spy, qqq)
+    items = []
+    if spy.get("ok") and qqq.get("ok"):
+        d = qqq["day_pct"] - spy["day_pct"]
+        r30 = (qqq["ret30"] - spy["ret30"]) if (qqq.get("ret30") is not None and spy.get("ret30") is not None) else None
+        lead = "tech leading the market" if d > 0.15 else "tech lagging the market" if d < -0.15 else "moving together"
+        items.append(f"<li><b>QQQ vs SPY:</b> {R.pct(d)} today" + (f", {R.pct(r30)} over the last 30 min" if r30 is not None else "")
+                     + f" &rarr; {lead}</li>")
+    items.append(f"<li>{tape}</li>")
+    items += _breadth(res, syms, ds)[:1]  # breadth only; the VIX gets its own lines below
+    items += _vix_lines(v)
+    out = "<h3>1. Market deep dive (SPY, QQQ, VIX)</h3><ul>" + "".join(items) + "</ul>"
+    out += R.table(HDR, [_row(res[b]) for b in bench])
+    out += "".join(R.card(res[b], full_levels=True) for b in bench if res[b]["ok"])
+    return out
+
+
+def _mag7(res, syms, bench, earn, ds, sday=None):
     ok = [res[s] for s in syms if res[s]["ok"]]
     ups = sum(1 for r in ok if r["day_pct"] > 0)
     tape = "n/a"
@@ -187,7 +244,7 @@ def _mag7(res, syms, bench, earn, ds):
         avg_q = [r["vs_qqq"] for r in ok if r["vs_qqq"] is not None]
         tape = (f"Tape: {ups}/{len(ok)} MAG 7 up; avg vs QQQ {R.pct(sum(avg_q) / len(avg_q) if avg_q else None)}; "
                 f"strongest {best['sym']} {R.pct(best['day_pct'])}, weakest {worst['sym']} {R.pct(worst['day_pct'])}.")
-    out = _snapshot(res, bench, tape, _breadth(res, syms, ds))
+    out = _market(res, syms, bench, ds, sday, tape)
     order = sorted(syms, key=lambda s: -(res[s]["bias"] if res[s]["ok"] else -99))
     out += "<h3>2. Scoreboard</h3>" + R.table(HDR, [_row(res[s]) for s in order])
     out += "<h3>3. Technical cards</h3>" + "".join(R.card(res[s], _ratings_extra(ds, res[s])) for s in order if res[s]["ok"])

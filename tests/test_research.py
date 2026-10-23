@@ -380,7 +380,8 @@ def test_report_has_breadth_rs_and_orb_sections():
     ds = _synthetic_dataset(syms, date(2026, 10, 12))
     ds.indexes["VIX"] = 18.4
     title, html, missing, mode = build("mag7", ds, datetime(2026, 10, 13, 1, 0, tzinfo=CT), test=True)
-    assert "Breadth (7 stocks)" in html and "VIX</b>" in html and "(normal)" in html
+    assert "Breadth (7 stocks)" in html and "<b>VIX 18.40</b> (normal;" in html
+    assert "Market deep dive (SPY, QQQ, VIX)" in html and "<b>Index levels:</b>" in html and "QQQ vs SPY:" in html
     assert "Intraday RS:" in html and "<b>Open &amp; gap:</b>" in html and "pre-mkt vol" in html
     assert "ORB confirmed (15m range" in html and "Intraday RS leaders" in html
 
@@ -486,3 +487,39 @@ def test_report_lists_in_play_and_drops_untested_breakout_lists():
     assert "Most in play" in html and "<b>in play " in html
     assert "Squeeze fired" not in html and "Inside day / NR7 (breakout watch)" not in html and "5m divergences" not in html
     assert "breakout pending" not in html
+
+
+def test_vix_implied_move_and_band_hit_rate():
+    from research import market as M
+    assert M.implied_move_pct(15.874) == pytest.approx(1.0, abs=1e-3)  # 15.874 / sqrt(252) = 1%
+    d = [date(2026, 1, 1) + timedelta(days=i) for i in range(41)]
+    spy = [(x, 100.0 * (1.005 if i % 2 else 1.0)) for i, x in enumerate(d)]  # alternating +0.5% / -0.5% days
+    vix = {x: 15.874 for x in d}  # implied 1% a day
+    hit, ratio, n = M.band_hit_rate(spy, vix)
+    assert n == 40 and hit == 100.0 and ratio == pytest.approx(0.5, abs=0.01)
+    assert M.band_hit_rate(spy[:10], vix) is None  # too few days
+
+
+def test_vix_analysis_from_index_bars():
+    from research import collect
+    from research import market as M
+    ds = collect.Dataset()
+    day = lambda d, c: {"begins_at": f"{d}T00:00:00Z", "open_value": str(c), "high_value": str(c), "low_value": str(c), "close_value": str(c)}
+    ds.add({"data": {"results": [{"symbol": "VIX", "interval": "day",
+                                  "bars": [day(f"2026-09-{i:02d}", 15 + i % 3) for i in range(1, 29)]
+                                  + [day("2026-10-01", 99) | {"interpolated": True}]}]}})
+    five = [{"begins_at": f"2026-10-01T{13 + (30 + 5 * i) // 60:02d}:{(30 + 5 * i) % 60:02d}:00Z", "open_value": "18",
+             "high_value": str(18 + i * 0.1), "low_value": "17.5", "close_value": str(18 + i * 0.1)} for i in range(12)]
+    ds.add({"data": {"results": [{"symbol": "VIX", "interval": "5minute", "bars": five}]}})
+    v = M.vix_analysis(ds, date(2026, 10, 1))
+    assert v["prev"] == 16.0 and v["level"] == pytest.approx(19.1) and v["open"] == 18.0  # interpolated daily bar ignored
+    assert v["chg"] == pytest.approx(3.1) and v["chg30"] == pytest.approx(0.6) and v["regime"] == "normal"
+    assert v["em_pct"] == pytest.approx(16 / 252 ** 0.5)
+
+
+def test_mag7_plan_fetches_vix_history():
+    from research.plan import plan, VIX_ID
+    calls = plan("mag7", datetime(2026, 10, 23, 7, 59, tzinfo=CT))
+    idx = [a for t, a in calls if t.endswith("get_index_historicals")]
+    assert [a["interval"] for a in idx] == ["day", "5minute"] and all(a["instrument_ids"] == [VIX_ID] for a in idx)
+    assert not any(t.endswith("get_index_historicals") for t, _ in plan("ai100", datetime(2026, 10, 23, 7, 59, tzinfo=CT)))
