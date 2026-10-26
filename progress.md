@@ -140,6 +140,11 @@ gap, breaks · 5m EMA 9/21; daily EMA 9/21, SMA 20/50/200, stack, golden/death c
   20-day + 1-year context and intraday path, SPY/QQQ VIX-implied move bands with measured reliability (SPY closed inside
   the band 85% of the last 250 days), full SPY/QQQ cards with index levels. +2 VIX history calls (mag7 only; tool added
   to the live MAG 7 prompt). Email ~20 KB -> ~27 KB.
+- 2026-10-26: schedule changed to 8:30 + 8:59 CT (Mon-Fri). The scheduler needs >= 1 hour between runs of one task, so each
+  agent now has two tasks: 8:59 = trig_012DY3peEQUikJ9MBxYuLXpG (MAG 7) / trig_01D3Gr9p5a4cJvwRkuHVThUg (AI100);
+  8:30 = trig_01TZoDuVzveBgkv4RqgL2pSs (MAG 7) / trig_01BRGe391GXt4kzok9eotfwp (AI100) - the old disabled 9:30 tasks,
+  reused because they already carry the Robinhood + Gmail connectors. They have no repo attached, so their STEP 1
+  clones the public repo. Server staggers the 8:30 start by a few minutes (~8:33-8:37 CT).
 
 ## Next actions (proceed in the next run)
 Build status: COMPLETE (2026-10-20). Both agents (MAG 7, AI Sectors 100) are live, Mon-Fri 7:59 and 8:59 CT.
