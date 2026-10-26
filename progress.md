@@ -142,9 +142,11 @@ gap, breaks · 5m EMA 9/21; daily EMA 9/21, SMA 20/50/200, stack, golden/death c
   to the live MAG 7 prompt). Email ~20 KB -> ~27 KB.
 - 2026-10-26: schedule changed to 8:30 + 8:59 CT (Mon-Fri). The scheduler needs >= 1 hour between runs of one task, so each
   agent now has two tasks: 8:59 = trig_012DY3peEQUikJ9MBxYuLXpG (MAG 7) / trig_01D3Gr9p5a4cJvwRkuHVThUg (AI100);
-  8:30 = trig_01TZoDuVzveBgkv4RqgL2pSs (MAG 7) / trig_01BRGe391GXt4kzok9eotfwp (AI100) - the old disabled 9:30 tasks,
-  reused because they already carry the Robinhood + Gmail connectors. They have no repo attached, so their STEP 1
-  clones the public repo. Server staggers the 8:30 start by a few minutes (~8:33-8:37 CT).
+  8:30 = trig_01TZoDuVzveBgkv4RqgL2pSs (MAG 7, old 9:30 task, has connectors but NO repo attached) /
+  trig_01BSEzw8DL1JRFyRSmVnQK6B (AI100, old AI Sectors task, has connectors + repo). Cloning the repo in a run does not
+  work: the session blocks running downloaded code, so the MAG 7 8:30 task falls back to the model-built report until
+  the user attaches mail11dira-ai/DayTrading to it in the Claude app. trig_01BRGe391GXt4kzok9eotfwp disabled (spare).
+  Server staggers the 8:30 start by a few minutes (~8:33-8:38 CT).
 
 ## Next actions (proceed in the next run)
 Build status: COMPLETE (2026-10-20). Both agents (MAG 7, AI Sectors 100) are live, Mon-Fri 7:59 and 8:59 CT.
