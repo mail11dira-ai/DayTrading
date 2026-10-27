@@ -204,7 +204,7 @@ def setup_line(side, s, word):
             f"invalid {num(s['stop'])}; R/R {ratio(s['rr'])}{poor}")
 
 
-def card(r, extra="", full_levels=False):
+def card(r, extra="", full_levels=False, brief=False):
     p, atr, lv = r["price"], r["atr"], r["levels"]
     g = lambda k: num(lv.get(k))
     spikes = ", ".join(f"{t} {m:.1f}x {d}" for t, m, d in r["spikes"][:2]) or "none"
@@ -218,26 +218,37 @@ def card(r, extra="", full_levels=False):
         f" (cross {tone(r['ema_cross'])} in last 30m)" if r["ema_cross"] else "")
     rng = NA if r["range_used"] is None else f"{r['range_used']:.2f}"
     comp = ", ".join(f"{k} {v:+d}" for k, v in r["bias_comp"].items())
-    lines = [
-        f"<b>Volume:</b> RVOL {rvol_cell(r)}; last 3 bars {trend}; spikes: {spikes}",
-        f"<b>VWAP:</b> {vw}",
-        f"<b>Levels:</b> PDH {g('PDH')} / PDL {g('PDL')} / PDC {g('PDC')}; PMH {g('PMH')} / PML {g('PML')}; "
-        f"S {lvl(r['sup'], p, atr)} / R {lvl(r['res'], p, atr)}",
-        f"<b>Open &amp; gap:</b> {orb_text(r)}; {gap_text(r)}",
-    ] + ([
-        f"<b>Index levels:</b> pivots P {g('P')}, R1 {g('R1')}, R2 {g('R2')}, S1 {g('S1')}, S2 {g('S2')}; "
-        f"prior-day POC {g('POC')}, VAH {g('VAH')}, VAL {g('VAL')}; PWH {g('PWH')} / PWL {g('PWL')}; "
-        f"ORH {g('ORH')} / ORL {g('ORL')}; 20d {g('20dL')}&ndash;{g('20dH')}",
-    ] if full_levels else []) + [
-        f"<b>Intraday RS:</b> {rs_text(r)}",
-        f"<b>Trend:</b> 5m EMA9/21 {ema5}; daily stack {tone(r['stack'])}"
-        + (f", {tone(r['cross'])} cross" if r["cross"] else "") + f"; RSI 5m {rsi(r['rsi_5'])} / daily {rsi(r['rsi_d'])}",
-        f"<b>Range:</b> ATR {ratio(r['atr_pct'])}%, used {rng}; <b>in play {r.get('in_play', 0)}/4</b>"
-        + (f" ({', '.join(r['in_play_why'])})" if r.get("in_play_why") else ""),
-        f"<b>Bias {bias(r)}</b> ({comp}); confirmations {r.get('conf', 0)}/2{extra}",
-        setup_line("bull", r["watch"]["bull"], '<span class="g">Bullish above</span>'),
-        setup_line("bear", r["watch"]["bear"], '<span class="r">Bearish below</span>'),
-    ]
+    if brief:  # short card: volume, VWAP, open / gap, range and in-play, bias, setup
+        lines = [
+            f"<b>Volume:</b> RVOL {rvol_cell(r)}; spikes: {spikes}",
+            f"<b>VWAP:</b> {vw}",
+            f"<b>Open &amp; gap:</b> {orb_text(r)}; {gap_text(r)}",
+            f"<b>Range:</b> ATR {ratio(r['atr_pct'])}%, used {rng}; <b>in play {r.get('in_play', 0)}/4</b>",
+            f"<b>Bias {bias(r)}</b> ({comp}); confirmations {r.get('conf', 0)}/2{extra}",
+            setup_line("bull", r["watch"]["bull"], '<span class="g">Bullish above</span>'),
+            setup_line("bear", r["watch"]["bear"], '<span class="r">Bearish below</span>'),
+        ]
+    else:
+        lines = [
+            f"<b>Volume:</b> RVOL {rvol_cell(r)}; last 3 bars {trend}; spikes: {spikes}",
+            f"<b>VWAP:</b> {vw}",
+            f"<b>Levels:</b> PDH {g('PDH')} / PDL {g('PDL')} / PDC {g('PDC')}; PMH {g('PMH')} / PML {g('PML')}; "
+            f"S {lvl(r['sup'], p, atr)} / R {lvl(r['res'], p, atr)}",
+            f"<b>Open &amp; gap:</b> {orb_text(r)}; {gap_text(r)}",
+        ] + ([
+            f"<b>Index levels:</b> pivots P {g('P')}, R1 {g('R1')}, R2 {g('R2')}, S1 {g('S1')}, S2 {g('S2')}; "
+            f"prior-day POC {g('POC')}, VAH {g('VAH')}, VAL {g('VAL')}; PWH {g('PWH')} / PWL {g('PWL')}; "
+            f"ORH {g('ORH')} / ORL {g('ORL')}; 20d {g('20dL')}&ndash;{g('20dH')}",
+        ] if full_levels else []) + [
+            f"<b>Intraday RS:</b> {rs_text(r)}",
+            f"<b>Trend:</b> 5m EMA9/21 {ema5}; daily stack {tone(r['stack'])}"
+            + (f", {tone(r['cross'])} cross" if r["cross"] else "") + f"; RSI 5m {rsi(r['rsi_5'])} / daily {rsi(r['rsi_d'])}",
+            f"<b>Range:</b> ATR {ratio(r['atr_pct'])}%, used {rng}; <b>in play {r.get('in_play', 0)}/4</b>"
+            + (f" ({', '.join(r['in_play_why'])})" if r.get("in_play_why") else ""),
+            f"<b>Bias {bias(r)}</b> ({comp}); confirmations {r.get('conf', 0)}/2{extra}",
+            setup_line("bull", r["watch"]["bull"], '<span class="g">Bullish above</span>'),
+            setup_line("bear", r["watch"]["bear"], '<span class="r">Bearish below</span>'),
+        ]
     k = {"BULLISH": "kg", "BEARISH": "kr"}.get(r["bias_label"], "")
     return (f'<div class="k {k}"><h4>{escape(r["sym"])} &mdash; ${num(p)} ({pct(r["day_pct"])}) {bias(r)}</h4>'
             f'<div class="c">' + "<br>\n".join(lines) + "</div></div>\n")

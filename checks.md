@@ -31,3 +31,4 @@ Completion checklist (Option A). Each item must point to observable evidence.
 | MAG 7 | market deep dive builds on live data (SPY/QQQ/VIX), no missing data | pass | research.report --test 2026-10-23 00:36 CT: 26,819 B, missing [] ; pytest 95 passed |
 | Super 100 | report builds on live data for all 99 stocks + SPY/QQQ/VIX | pass | research.report --agent super100 --test 2026-10-27 00:55 CT: 26,992 B, missing [] ; pytest 97 passed |
 | Super 100 | SPCX added: universe = 100 unique stocks | pass | pytest 97 passed (test_super100 asserts 100 incl. SPCX); research.plan --agent super100 = 44 calls incl. SPCX |
+| Super 100 | cost cuts: haiku model on both tasks; 10-symbol 5-min batches (34 calls); short email (3 setups, no checklist) | pass | pytest 97 passed; synthetic build 25052 -> 19487 bytes |

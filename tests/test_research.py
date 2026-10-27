@@ -402,7 +402,8 @@ def test_plan_uses_one_extended_5min_pull_and_vix():
     calls = plan("ai100", datetime(2026, 10, 20, 7, 59, tzinfo=CT))
     five = [a for t, a in calls if t.endswith("get_equity_historicals") and a["interval"] == "5minute"]
     assert five and all(a["bounds"] == "extended" and a["start_time"] == "2026-10-06T08:00:00Z" for a in five)
-    assert len(calls) == 42 and calls[-1][1] == {"instrument_ids": [VIX_ID]}
+    assert max(len(a["symbols"]) for a in five) == 10  # the tool's per-call limit
+    assert len(calls) == 32 and calls[-1][1] == {"instrument_ids": [VIX_ID]}  # 10 symbols per 5-minute call
 
 
 def test_validate_stats_helpers():
@@ -538,4 +539,4 @@ def test_super100_universe_and_report():
     ds = _synthetic_dataset(syms + bench, date(2026, 10, 12))
     title, html, missing, mode = build("super100", ds, datetime(2026, 10, 13, 1, 0, tzinfo=CT), test=True)
     assert title.startswith("[TEST] Super 100 Research") and missing == []
-    assert "Market deep dive (SPY, QQQ, VIX)" in html and "Sector scoreboard" in html and "Top 5 setups" in html
+    assert "Market deep dive (SPY, QQQ, VIX)" in html and "Sector scoreboard" in html and "Top 3 setups" in html and "Weekend checklist" not in html

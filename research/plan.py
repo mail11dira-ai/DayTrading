@@ -34,7 +34,7 @@ def plan(agent, now):
     calls = []
     for c in chunks(allsyms, 20):
         calls.append((P + "get_equity_quotes", {"symbols": c}))
-    for c in chunks(allsyms, 5):
+    for c in chunks(allsyms, 10):  # tool limit: 10 symbols per call
         calls.append((P + "get_equity_historicals", {"symbols": c, "interval": "5minute", "bounds": "extended", "start_time": start5}))
     for c in chunks(allsyms, 10):
         calls.append((P + "get_equity_historicals", {"symbols": c, "interval": "day", "start_time": startd}))

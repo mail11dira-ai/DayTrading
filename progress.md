@@ -169,3 +169,8 @@ structure component left unchanged). The validation fail rows in checks.md stand
   complete at 9:00). Disabled, not deleted: AI Sectors 100 8:59 (trig_01D3Gr9p5a4cJvwRkuHVThUg, prompt intact) and
   Super 100 8:30 no-repo (trig_01TZoDuVzveBgkv4RqgL2pSs). Spare trig_01BRGe391GXt4kzok9eotfwp still disabled.
   Cost ~ $1.70/day (~$37/month) vs ~$3.35/day before. AI100 code and tests kept, so it can be re-enabled.
+- 2026-10-27 cost cuts (user approved 1,2,3,5): Super 100 scheduled tasks (8:15 and 9:01 CT) now run claude-haiku-5-5.
+  plan.py: 5-minute history calls batched 5 -> 10 symbols (super100 plan 44 -> 34 calls). report.py/render.py: super100
+  email drops the weekend checklist, shows 3 setups with short cards (render.card brief=True); synthetic build 25.0 -> 19.5 KB
+  (not the ~10 KB estimated before). The 9:01 "send a notification email on finish" setting cannot be changed by the
+  scheduler API - set it in the task UI. Tests: 97 passed.
