@@ -174,3 +174,8 @@ structure component left unchanged). The validation fail rows in checks.md stand
   email drops the weekend checklist, shows 3 setups with short cards (render.card brief=True); synthetic build 25.0 -> 19.5 KB
   (not the ~10 KB estimated before). The 9:01 "send a notification email on finish" setting cannot be changed by the
   scheduler API - set it in the task UI. Tests: 97 passed.
+- 2026-10-27 AI Sectors 100 back on, two runs Mon-Fri CT: 8:45 (trig_01D3Gr9p5a4cJvwRkuHVThUg, repo attached) and
+  1:30 pm (trig_01BRGe391GXt4kzok9eotfwp, no repo: its prompt clones the public repo at run time, which may be blocked).
+  Both on claude-haiku-5-5. Code: ai100 skips analyst ratings (plan 32 -> 30 calls); ai100 email is short like super100
+  (no weekend checklist, 3 setups, short cards; synthetic build 14.6 KB). Option 5 (shorter 400-day daily history) NOT
+  applied: the 52-week high/low use 252 sessions, so it would change the numbers; the saving is about 5%.

@@ -158,7 +158,7 @@ def test_ai100_universe_is_100_unique_stocks():
     from research.plan import plan
     calls = plan("ai100", datetime(2026, 10, 20, 7, 59, tzinfo=CT))
     ratings = [a for t, a in calls if t.endswith("get_equity_analyst_ratings")]
-    assert len(ratings) == 2 and all(len(a["symbols"]) <= 75 for a in ratings)  # tool limit
+    assert ratings == []  # the short AI Sectors 100 email does not use analyst ratings
 
 
 def test_collect_reads_inline_and_saved_results(tmp_path):
@@ -242,8 +242,8 @@ def test_end_to_end_report_closed_session(agent):
         assert "Neo-Cloud ecosystem" in html
         assert not any(f"<b>{m}</b>" in html for m in MAG7)
     if agent == "ai100":
-        assert "Weekend checklist" in html and "ETFs Day %" not in html and "15</td>" in html
-        assert ">4. Top 5 setups</h3>" in html and "Nearest S / R" not in html  # compact: no per-sector tables
+        assert "Weekend checklist" not in html and "ETFs Day %" not in html and "15</td>" in html
+        assert ">3. Top 3 setups</h3>" in html and "Nearest S / R" not in html  # compact: no checklist, no per-sector tables
     if agent == "modern":
         assert "Weekend checklist" in html and "Sector scoreboard" in html and "removed for day trading" in html
         assert "12 Neo-Cloud" in html and not any(f"<b>{m}</b>" in html for m in MAG7)
@@ -403,7 +403,7 @@ def test_plan_uses_one_extended_5min_pull_and_vix():
     five = [a for t, a in calls if t.endswith("get_equity_historicals") and a["interval"] == "5minute"]
     assert five and all(a["bounds"] == "extended" and a["start_time"] == "2026-10-06T08:00:00Z" for a in five)
     assert max(len(a["symbols"]) for a in five) == 10  # the tool's per-call limit
-    assert len(calls) == 32 and calls[-1][1] == {"instrument_ids": [VIX_ID]}  # 10 symbols per 5-minute call
+    assert len(calls) == 30 and calls[-1][1] == {"instrument_ids": [VIX_ID]}  # 10 symbols per 5-minute call, no ratings for ai100
 
 
 def test_validate_stats_helpers():

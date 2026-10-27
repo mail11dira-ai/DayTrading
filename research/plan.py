@@ -39,8 +39,9 @@ def plan(agent, now):
     for c in chunks(allsyms, 10):
         calls.append((P + "get_equity_historicals", {"symbols": c, "interval": "day", "start_time": startd}))
     calls.append((P + "get_earnings_calendar", {"days": 15, "filter": "high_market_cap"}))
-    for c in chunks(ratings_symbols(agent), 75):  # tool limit: 75 symbols per call
-        calls.append((P + "get_equity_analyst_ratings", {"symbols": c}))
+    if agent != "ai100":  # analyst ratings are not in the short AI Sectors 100 email
+        for c in chunks(ratings_symbols(agent), 75):  # tool limit: 75 symbols per call
+            calls.append((P + "get_equity_analyst_ratings", {"symbols": c}))
     calls.append((P + "get_index_quotes", {"instrument_ids": [VIX_ID]}))
     if agent in ("mag7", "super100"):  # market deep dive: VIX history (1 year daily) and its intraday path (last few sessions)
         calls.append((P + "get_index_historicals", {"instrument_ids": [VIX_ID], "interval": "day", "start_time": startd}))

@@ -395,13 +395,13 @@ def _modern(res, syms, bench, earn, ds, agent="modern", sday=None):
         ["#", "Sector"] + (["ETFs Day %", "Leaders Day %"] if has_etf else ["Avg Day %"])
         + ["vs QQQ", "RS 30m", "20d RS vs SPY", "Avg bias", "Holding 8/21", "Best", "Worst"], score_rows, left=2,
         tint=3 if has_etf else 2)  # leaders' / average day % column
-    large = agent == "super100"  # large caps: MAG 7 thresholds (2% gaps, RSI 70/30); short email (no checklist, 3 setups)
+    large = agent == "super100"  # large caps: MAG 7 thresholds (2% gaps, RSI 70/30)
+    short = agent in ("ai100", "super100")  # short email: no weekend checklist, 3 setups, short cards
     n = 3
-    if not large:
+    if not short:
         out += "<h3>3. Weekend checklist</h3>" + _checklist(res, syms, stats, spy20, qqq20)
         n = 4
-    compact = agent in ("ai100", "super100")  # short email: no per-sector tables (scoreboard already has best/worst per sector)
-    for sec in ([] if compact else secs):
+    for sec in ([] if short else secs):  # short email: no per-sector tables (scoreboard already has best/worst per sector)
         rows = []
         for s, k, desc in sec["members"]:
             if k == "n/a":
@@ -414,9 +414,9 @@ def _modern(res, syms, bench, earn, ds, agent="modern", sday=None):
         if sec["notes"]:
             out += "<p><i>" + "; ".join(escape(x) for x in sec["notes"]) + ".</i></p>"
         n += 1
-    top, note = _top(res, syms, 3 if large else 5)
+    top, note = _top(res, syms, 3 if short else 5)
     out += (f"<h3>{n}. Top {len(top)} setups</h3>" + _top_html(top, note)
-            + "".join(R.card(r, _ratings_extra(ds, r), brief=large) for r in top))
+            + "".join(R.card(r, _ratings_extra(ds, r), brief=short) for r in top))
     out += f"<h3>{n + 1}. Risks / catalysts</h3>" + (_risks(res, syms, earn, 2, 1.0, 70, 30) if large
                                                      else _risks(res, syms, earn, 3, 1.2, 75, 25))
     return out
