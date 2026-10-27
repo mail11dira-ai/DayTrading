@@ -164,3 +164,8 @@ structure component left unchanged). The validation fail rows in checks.md stand
 4. Optional: refresh the live routines' FALLBACK text to point at `routine_prompt_legacy.txt`.
 - 2026-10-27: Super 100 now 100 stocks - SPCX added (user request) to 11 Industrials & Defense. SPCX: active, real daily bars
   since 2026-06-12 (93 sessions), ~111M shares/day. Plan still 44 calls. Both Super 100 scheduled tasks' fallback lists updated.
+- 2026-10-27: ONE agent only (user request): Super 100 runs Mon-Fri 8:15 CT (pre-market mode, trig_01BSEzw8DL1JRFyRSmVnQK6B -
+  the former AI100 8:30 task, repo attached) and 9:01 CT (trig_012DY3peEQUikJ9MBxYuLXpG, repo attached; 30-min window
+  complete at 9:00). Disabled, not deleted: AI Sectors 100 8:59 (trig_01D3Gr9p5a4cJvwRkuHVThUg, prompt intact) and
+  Super 100 8:30 no-repo (trig_01TZoDuVzveBgkv4RqgL2pSs). Spare trig_01BRGe391GXt4kzok9eotfwp still disabled.
+  Cost ~ $1.70/day (~$37/month) vs ~$3.35/day before. AI100 code and tests kept, so it can be re-enabled.
