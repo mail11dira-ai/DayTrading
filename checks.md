@@ -29,3 +29,4 @@ Completion checklist (Option A). Each item must point to observable evidence.
 | research agents | full test suite after the indicator review changes | pass | `python -m pytest -q` → 92 passed |
 | research agents | slim email: both reports build with no missing data and fit in one part | pass | research.report --test: MAG 7 19,586 B, AI Sectors 100 21,287 B, missing [] ; pytest 92 passed |
 | MAG 7 | market deep dive builds on live data (SPY/QQQ/VIX), no missing data | pass | research.report --test 2026-10-23 00:36 CT: 26,819 B, missing [] ; pytest 95 passed |
+| Super 100 | report builds on live data for all 99 stocks + SPY/QQQ/VIX | pass | research.report --agent super100 --test 2026-10-27 00:55 CT: 26,992 B, missing [] ; pytest 97 passed |

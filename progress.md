@@ -147,6 +147,10 @@ gap, breaks · 5m EMA 9/21; daily EMA 9/21, SMA 20/50/200, stack, golden/death c
   work: the session blocks running downloaded code, so the MAG 7 8:30 task falls back to the model-built report until
   the user attaches mail11dira-ai/DayTrading to it in the Claude app. trig_01BRGe391GXt4kzok9eotfwp disabled (spare).
   Server staggers the 8:30 start by a few minutes (~8:33-8:38 CT).
+- 2026-10-27: MAG 7 agent renamed Super 100 (agent key `super100`, research/universe.py SUPER100): the user's 99-stock
+  list in 13 sectors, incl. the MAG 7, no day-trading screen, BRK.B. AI Sectors 100 layout + the SPY/QQQ/VIX deep dive.
+  44 calls/run (MAG 7 had 9). Live check 2026-10-27 00:55 CT: 26,992 B, missing []. Both former MAG 7 tasks now run
+  `--agent super100`. The `mag7` code path is kept for history.
 
 ## Next actions (proceed in the next run)
 Build status: COMPLETE (2026-10-20). Both agents (MAG 7, AI Sectors 100) are live, Mon-Fri 7:59 and 8:59 CT.

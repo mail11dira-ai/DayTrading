@@ -15,7 +15,8 @@ from . import collect, market as M, render as R
 from .analyze import analyze, detect_mode, earnings_within, now_ct
 from .universe import (AI_SECTORS, EMPTY_LAYER_NOTE, INVERSE, modern_layout, symbols)
 
-TITLES = {"mag7": "MAG 7", "aisectors": "AI Sectors", "modern": "Modern AI Sectors", "ai100": "AI Sectors 100"}
+TITLES = {"mag7": "MAG 7", "aisectors": "AI Sectors", "modern": "Modern AI Sectors", "ai100": "AI Sectors 100",
+          "super100": "Super 100"}
 
 
 def build(agent, ds, now, test=False):
@@ -47,8 +48,8 @@ def build(agent, ds, now, test=False):
     if missing:
         note += f" No data for: {', '.join(missing)}."
 
-    if agent in ("modern", "ai100"):
-        body = _modern(res, syms, bench, earn, ds, agent)
+    if agent in ("modern", "ai100", "super100"):
+        body = _modern(res, syms, bench, earn, ds, agent, sday)
     else:
         body = _mag7(res, syms, bench, earn, ds, sday) if agent == "mag7" else _ai(res, syms, bench, earn, ds)
     return title, R.doc(title, note, body), missing, mode
@@ -355,7 +356,7 @@ def _m_row(r, kind, spy20, show_type=True):
             f"{R.short_lvl(r['sup'])} / {R.short_lvl(r['res'])}", f"{r.get('in_play', 0)}/4"]
 
 
-def _modern(res, syms, bench, earn, ds, agent="modern"):
+def _modern(res, syms, bench, earn, ds, agent="modern", sday=None):
     spy = res.get("SPY", {})
     qqq = res.get("QQQ", {})
     spy20 = spy.get("ret20") if spy.get("ok") else None
@@ -386,14 +387,17 @@ def _modern(res, syms, bench, earn, ds, agent="modern"):
     lag = min(valid, key=lambda x: x[1]) if valid else None
     tape = "Tape: " + (f"leader {lead[0]['num']} {escape(lead[0]['name'])} {R.pct(lead[1])}, "
                        f"laggard {lag[0]['num']} {escape(lag[0]['name'])} {R.pct(lag[1])}." if lead else R.NA)
-    out = _snapshot(res, bench, tape, _breadth(res, syms, ds))
+    if agent == "super100":  # replaces the MAG 7 agent, so it keeps the SPY / QQQ / VIX deep dive
+        out = _market(res, syms, bench, ds, sday, tape)
+    else:
+        out = _snapshot(res, bench, tape, _breadth(res, syms, ds))
     out += "<h3>2. Sector scoreboard</h3>" + R.table(
         ["#", "Sector"] + (["ETFs Day %", "Leaders Day %"] if has_etf else ["Avg Day %"])
         + ["vs QQQ", "RS 30m", "20d RS vs SPY", "Avg bias", "Holding 8/21", "Best", "Worst"], score_rows, left=2,
         tint=3 if has_etf else 2)  # leaders' / average day % column
     out += "<h3>3. Weekend checklist</h3>" + _checklist(res, syms, stats, spy20, qqq20)
     n = 4
-    compact = agent == "ai100"  # short email: no per-sector tables (scoreboard already has best/worst per sector)
+    compact = agent in ("ai100", "super100")  # short email: no per-sector tables (scoreboard already has best/worst per sector)
     for sec in ([] if compact else secs):
         rows = []
         for s, k, desc in sec["members"]:
@@ -409,7 +413,9 @@ def _modern(res, syms, bench, earn, ds, agent="modern"):
         n += 1
     top, note = _top(res, syms, 5)
     out += f"<h3>{n}. Top 5 setups</h3>" + _top_html(top, note) + "".join(R.card(r, _ratings_extra(ds, r)) for r in top)
-    out += f"<h3>{n + 1}. Risks / catalysts</h3>" + _risks(res, syms, earn, 3, 1.2, 75, 25)
+    large = agent == "super100"  # large caps: MAG 7 thresholds (2% gaps, RSI 70/30)
+    out += f"<h3>{n + 1}. Risks / catalysts</h3>" + (_risks(res, syms, earn, 2, 1.0, 70, 30) if large
+                                                     else _risks(res, syms, earn, 3, 1.2, 75, 25))
     return out
 
 
@@ -466,7 +472,7 @@ def _write_parts(out, html, limit):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--agent", required=True, choices=["mag7", "aisectors", "modern", "ai100"])
+    ap.add_argument("--agent", required=True, choices=["mag7", "aisectors", "modern", "ai100", "super100"])
     ap.add_argument("--transcript", help="session transcript (.jsonl); default: newest")
     ap.add_argument("--data", help="directory of raw tool-result JSON files (instead of / in addition to transcript)")
     ap.add_argument("--now", help="override current time (ISO, CT if no offset)")

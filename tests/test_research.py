@@ -223,18 +223,19 @@ def _synthetic_dataset(symbols, session):
     return ds
 
 
-@pytest.mark.parametrize("agent", ["mag7", "aisectors", "modern", "ai100"])
+@pytest.mark.parametrize("agent", ["mag7", "aisectors", "modern", "ai100", "super100"])
 def test_end_to_end_report_closed_session(agent):
     syms = {"mag7": MAG7 + ["SPY", "QQQ"], "aisectors": ai_symbols() + ["SPY", "QQQ", "SMH", "XLU"],
             "modern": modern_symbols() + ["SPY", "QQQ"],
-            "ai100": modern_symbols(agent="ai100") + ["SPY", "QQQ"]}[agent]
+            "ai100": modern_symbols(agent="ai100") + ["SPY", "QQQ"],
+            "super100": modern_symbols(agent="super100") + ["SPY", "QQQ"]}[agent]
     session = date(2026, 10, 12)
     ds = _synthetic_dataset(syms, session)
     now = datetime(2026, 10, 13, 1, 0, tzinfo=CT)
     assert detect_mode(ds, now) == ("closed", session)
     title, html, missing, mode = build(agent, ds, now, test=True)
     assert title.startswith("[TEST]") and mode == "closed" and missing == []
-    for s in ([] if agent == "ai100" else syms):  # ai100 email is compact (no per-sector tables)
+    for s in ([] if agent in ("ai100", "super100") else syms):  # compact emails: no per-sector tables
         assert f"<b>{s}</b>" in html
     assert "Research only, not financial advice. No orders placed." in html
     if agent == "aisectors":
@@ -523,3 +524,18 @@ def test_mag7_plan_fetches_vix_history():
     idx = [a for t, a in calls if t.endswith("get_index_historicals")]
     assert [a["interval"] for a in idx] == ["day", "5minute"] and all(a["instrument_ids"] == [VIX_ID] for a in idx)
     assert not any(t.endswith("get_index_historicals") for t, _ in plan("ai100", datetime(2026, 10, 23, 7, 59, tzinfo=CT)))
+
+
+
+def test_super100_universe_and_report():
+    from research.plan import plan
+    from research.universe import symbols
+    syms, bench = symbols("super100")
+    assert len(syms) == 99 == len(set(syms)) and set(MAG7) <= set(syms) and "BRK.B" in syms
+    assert {"ABBV", "RTX", "LMT"} <= set(syms)  # the user's list is not day-trading screened
+    calls = plan("super100", datetime(2026, 10, 27, 8, 30, tzinfo=CT))
+    assert sum(t.endswith("get_index_historicals") for t, _ in calls) == 2
+    ds = _synthetic_dataset(syms + bench, date(2026, 10, 12))
+    title, html, missing, mode = build("super100", ds, datetime(2026, 10, 13, 1, 0, tzinfo=CT), test=True)
+    assert title.startswith("[TEST] Super 100 Research") and missing == []
+    assert "Market deep dive (SPY, QQQ, VIX)" in html and "Sector scoreboard" in html and "Top 5 setups" in html

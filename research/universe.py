@@ -183,6 +183,35 @@ AI100 = [
     ("15", "Industrials / Housing", "Machinery | Homebuilders",
      [], ["CAT", "LEN"]),
 ]
+# Super 100 (2026-10-27): the user's list of 99 large / liquid US-listed leaders (MSFT was listed twice), grouped
+# by sector. Unlike the AI universes it INCLUDES the MAG 7 - this agent replaces the MAG 7 agent.
+SUPER100_BENCHMARKS = ["SPY", "QQQ"]
+SUPER100 = [
+    ("01", "Mega-cap Tech", "Platforms | Devices | Cloud", [], ["MSFT", "NVDA", "AAPL", "GOOGL", "AMZN", "META"]),
+    ("02", "Semiconductors & Equipment", "Chips | Foundry | Memory | Equipment | EDA",
+     [], ["AVGO", "TSM", "AMD", "MU", "QCOM", "INTC", "MRVL", "ASML", "AMAT", "LRCX", "KLAC", "SNPS"]),
+    ("03", "Software & Cloud", "Enterprise | Data | AI Platforms | IT Services",
+     [], ["ORCL", "NOW", "CRM", "ADBE", "IBM", "ACN", "PLTR", "APP", "DDOG", "SNOW", "NBIS"]),
+    ("04", "Cybersecurity & Networking", "Security | Edge | Switches",
+     [], ["PANW", "CRWD", "NET", "ANET", "CSCO"]),
+    ("05", "Internet & Platforms", "Streaming | Travel | Ride-share | E-commerce | Media",
+     [], ["NFLX", "BKNG", "UBER", "ABNB", "MELI", "SHOP", "BABA", "DIS"]),
+    ("06", "Consumer Discretionary", "Autos | Home Improvement | Apparel | Restaurants | Retail",
+     [], ["TSLA", "HD", "LOW", "TJX", "MCD", "SBUX", "CMG", "NKE", "ORLY"]),
+    ("07", "Consumer Staples", "Big-box Retail | Household | Beverages", [], ["WMT", "COST", "PG", "KO", "PEP"]),
+    ("08", "Healthcare", "Pharma | Managed Care | Devices | Tools | Biotech",
+     [], ["LLY", "UNH", "JNJ", "ABBV", "MRK", "ABT", "TMO", "ISRG", "VRTX"]),
+    ("09", "Banks & Brokers", "Money-centre Banks | Investment Banks | Asset Managers",
+     [], ["JPM", "BAC", "WFC", "GS", "MS", "SCHW", "BLK"]),
+    ("10", "Payments, Insurance & Data", "Card Networks | Insurance | Ratings | Crypto",
+     [], ["V", "MA", "AXP", "BRK.B", "PGR", "SPGI", "COIN"]),
+    ("11", "Industrials & Defense", "Aerospace | Defense | Machinery | Rail | Electrical",
+     [], ["GE", "HON", "RTX", "LMT", "CAT", "DE", "UNP", "BA", "ETN"]),
+    ("12", "Energy & Utilities", "Oil | Power | Nuclear", [], ["XOM", "CVX", "NEE", "CEG", "VST", "SO"]),
+    ("13", "Materials & Real Estate", "Industrial Gases | Copper | Gold | REITs", [], ["LIN", "FCX", "NEM", "PLD", "AMT"]),
+]
+INCLUDES_MAG7 = {"super100"}  # universes that list the MAG 7 themselves instead of deferring to the MAG 7 agent
+USER_LISTS = {"super100"}  # the user's own list: kept as given (no day-trading screen, no MODERN sector notes)
 SECTOR_MAPS = {}  # filled below: agent -> sector list
 
 
@@ -190,11 +219,12 @@ def modern_layout(agent="modern"):
     """Sectors after de-duplication: list of dicts
     {num, name, sub, members: [(sym, kind, desc)], notes: [str]}; kind is 'ETF', 'Stock' or 'n/a'."""
     seen, out = {}, []
+    removed = {} if agent in USER_LISTS else DAYTRADE_REMOVED
     for num, name, sub, etfs, leaders in SECTOR_MAPS[agent]:
         members, notes, dup = [], [], []
-        cut = list(dict.fromkeys(x for x in [e for e, _ in etfs] + leaders if x in DAYTRADE_REMOVED and x not in seen))
+        cut = list(dict.fromkeys(x for x in [e for e, _ in etfs] + leaders if x in removed and x not in seen))
         for sym, desc in etfs:
-            if sym in DAYTRADE_REMOVED:
+            if sym in removed:
                 seen.setdefault(sym, num)
                 continue
             if sym in seen:
@@ -204,10 +234,10 @@ def modern_layout(agent="modern"):
             members.append((sym, "n/a" if sym in NOT_ON_ROBINHOOD else "ETF", desc))
         mag = []
         for sym in leaders:
-            if sym in DAYTRADE_REMOVED:
+            if sym in removed:
                 seen.setdefault(sym, num)
                 continue
-            if sym in MAG7:
+            if sym in MAG7 and agent not in INCLUDES_MAG7:
                 mag.append(sym)
             elif sym in seen:
                 if seen[sym] != num:
@@ -222,22 +252,22 @@ def modern_layout(agent="modern"):
         if cut:
             by = {}
             for x in cut:
-                by.setdefault(DAYTRADE_REMOVED[x], []).append(x)
+                by.setdefault(removed[x], []).append(x)
             notes.append("removed for day trading: " + "; ".join(f"{', '.join(v)} ({k})" for k, v in by.items()))
-        if num in MODERN_NOTES:
+        if num in MODERN_NOTES and agent not in USER_LISTS:
             notes.append(MODERN_NOTES[num])
         out.append({"num": num, "name": name, "sub": sub, "members": members, "notes": notes})
     return out
 
 
-SECTOR_MAPS.update(modern=MODERN, ai100=AI100)
+SECTOR_MAPS.update(modern=MODERN, ai100=AI100, super100=SUPER100)
 
 
 def modern_symbols(kind=None, agent="modern"):
     out = [s for sec in modern_layout(agent) for s, k, _ in sec["members"]
            if k != "n/a" and (kind is None or k == kind)]
     assert len(out) == len(set(out)), "Modern universe has duplicates"
-    assert not set(out) & set(MAG7), "Modern universe must exclude MAG 7"
+    assert agent in INCLUDES_MAG7 or not set(out) & set(MAG7), "Modern universe must exclude MAG 7"
     return out
 
 
@@ -255,4 +285,6 @@ def symbols(agent):
         return modern_symbols(), MODERN_BENCHMARKS
     if agent == "ai100":
         return modern_symbols(agent="ai100"), AI100_BENCHMARKS
+    if agent == "super100":
+        return modern_symbols(agent="super100"), SUPER100_BENCHMARKS
     raise ValueError(f"unknown agent {agent!r}")
