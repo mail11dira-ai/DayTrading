@@ -183,7 +183,7 @@ AI100 = [
     ("15", "Industrials / Housing", "Machinery | Homebuilders",
      [], ["CAT", "LEN"]),
 ]
-# Super 100 (2026-10-27): the user's list of 99 large / liquid US-listed leaders (MSFT was listed twice), grouped
+# Super 100 (2026-10-27): the user's list of 100 large / liquid US-listed leaders (MSFT was listed twice; SPCX added as #100), grouped
 # by sector. Unlike the AI universes it INCLUDES the MAG 7 - this agent replaces the MAG 7 agent.
 SUPER100_BENCHMARKS = ["SPY", "QQQ"]
 SUPER100 = [
@@ -206,7 +206,7 @@ SUPER100 = [
     ("10", "Payments, Insurance & Data", "Card Networks | Insurance | Ratings | Crypto",
      [], ["V", "MA", "AXP", "BRK.B", "PGR", "SPGI", "COIN"]),
     ("11", "Industrials & Defense", "Aerospace | Defense | Machinery | Rail | Electrical",
-     [], ["GE", "HON", "RTX", "LMT", "CAT", "DE", "UNP", "BA", "ETN"]),
+     [], ["GE", "HON", "RTX", "LMT", "CAT", "DE", "UNP", "BA", "ETN", "SPCX"]),
     ("12", "Energy & Utilities", "Oil | Power | Nuclear", [], ["XOM", "CVX", "NEE", "CEG", "VST", "SO"]),
     ("13", "Materials & Real Estate", "Industrial Gases | Copper | Gold | REITs", [], ["LIN", "FCX", "NEM", "PLD", "AMT"]),
 ]

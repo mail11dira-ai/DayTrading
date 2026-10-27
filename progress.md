@@ -162,3 +162,5 @@ structure component left unchanged). The validation fail rows in checks.md stand
 3. Maintenance only: re-run `python -m research.validate` and `python -m research.indicator_review` after ~60 more sessions (held-out period) before any
    change to the bias score. Never tune on the same 65 sessions.
 4. Optional: refresh the live routines' FALLBACK text to point at `routine_prompt_legacy.txt`.
+- 2026-10-27: Super 100 now 100 stocks - SPCX added (user request) to 11 Industrials & Defense. SPCX: active, real daily bars
+  since 2026-06-12 (93 sessions), ~111M shares/day. Plan still 44 calls. Both Super 100 scheduled tasks' fallback lists updated.

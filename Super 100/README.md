@@ -4,7 +4,7 @@ Replaces the MAG 7 agent (2026-10-27). Research only - no orders. Emails mail11d
 Mon-Fri at 8:30 and 8:59 CT. Code: `python3 -m research.plan --agent super100`, then
 `python3 -m research.report --agent super100`.
 
-**Universe: 99 stocks** from the user's list (MSFT appeared twice), grouped in 13 sectors. Kept exactly as given:
+**Universe: 100 stocks** from the user's list (MSFT appeared twice, so SPCX was added as #100), grouped in 13 sectors. Kept exactly as given:
 no day-trading screen. Berkshire is `BRK.B` on Robinhood. Benchmarks SPY, QQQ, plus the VIX.
 
 | # | Sector | Stocks | Tickers |
@@ -19,7 +19,7 @@ no day-trading screen. Berkshire is `BRK.B` on Robinhood. Benchmarks SPY, QQQ, p
 | 08 | Healthcare | 9 | LLY, UNH, JNJ, ABBV, MRK, ABT, TMO, ISRG, VRTX |
 | 09 | Banks & Brokers | 7 | JPM, BAC, WFC, GS, MS, SCHW, BLK |
 | 10 | Payments, Insurance & Data | 7 | V, MA, AXP, BRK.B, PGR, SPGI, COIN |
-| 11 | Industrials & Defense | 9 | GE, HON, RTX, LMT, CAT, DE, UNP, BA, ETN |
+| 11 | Industrials & Defense | 10 | GE, HON, RTX, LMT, CAT, DE, UNP, BA, ETN, SPCX |
 | 12 | Energy & Utilities | 6 | XOM, CVX, NEE, CEG, VST, SO |
 | 13 | Materials & Real Estate | 5 | LIN, FCX, NEM, PLD, AMT |
 

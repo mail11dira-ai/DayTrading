@@ -531,7 +531,7 @@ def test_super100_universe_and_report():
     from research.plan import plan
     from research.universe import symbols
     syms, bench = symbols("super100")
-    assert len(syms) == 99 == len(set(syms)) and set(MAG7) <= set(syms) and "BRK.B" in syms
+    assert len(syms) == 100 == len(set(syms)) and set(MAG7) <= set(syms) and "BRK.B" in syms and "SPCX" in syms
     assert {"ABBV", "RTX", "LMT"} <= set(syms)  # the user's list is not day-trading screened
     calls = plan("super100", datetime(2026, 10, 27, 8, 30, tzinfo=CT))
     assert sum(t.endswith("get_index_historicals") for t, _ in calls) == 2
