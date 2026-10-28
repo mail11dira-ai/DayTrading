@@ -152,7 +152,7 @@ def test_modern_universe_dedup_and_mag7():
 
 def test_ai100_universe_is_100_unique_stocks():
     syms = modern_symbols(agent="ai100")
-    assert len(syms) == 100 and len(set(syms)) == 100
+    assert len(syms) == 101 and len(set(syms)) == 101 and "CRWV" in syms  # 100 + CRWV (added 2026-10-28)
     assert modern_symbols("ETF", agent="ai100") == [] and not set(syms) & set(MAG7)
     assert {"NBIS", "IREN", "MU", "LITE", "MSTR", "UNP", "GE"} <= set(syms)
     from research.plan import plan

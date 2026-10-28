@@ -156,7 +156,7 @@ AI100 = [
     ("02", "AI Infrastructure / Networking / Optical", "Servers | Networking | Optical | Connectivity",
      [], ["SMCI", "HPE", "DELL", "ANET", "LITE", "COHR", "CRDO", "AAOI"]),
     ("03", "Neo-Cloud / AI Hosting", "AI hosting | Data centres | Bitcoin-miner hosting",
-     [], ["NBIS", "IREN", "CIFR", "WULF"]),
+     [], ["NBIS", "IREN", "CIFR", "WULF", "CRWV"]),
     ("04", "Software & AI Apps", "Data | Apps | Enterprise | EDA",
      [], ["DDOG", "INTU", "APP", "IBM", "SNPS"]),
     ("05", "Cybersecurity", "Platforms | Endpoint | Network security",

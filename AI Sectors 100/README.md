@@ -1,6 +1,6 @@
 # AI Sectors 100 — Stock Research Agent
 
-Research-only day-trading report on a fixed list of **100 unique stocks** in **16 sectors** (benchmarks SPY, QQQ),
+Research-only day-trading report on a fixed list of **101 unique stocks** in **16 sectors** (benchmarks SPY, QQQ),
 built from Robinhood data and emailed to mail11dira@gmail.com Mon-Fri. **No orders are ever placed.**
 MAG 7 stays in its own agent (`../MAG 7`) and is excluded here; no ETFs.
 
@@ -10,13 +10,15 @@ excluded): stocks ranked by bullish bias, then in-play score, then confirmations
 bias; the last 18 are neutral (bias 0) or slightly bearish. The list is kept as given: no day-trading dollar-volume
 screen, and no Modern AI Sectors notes. The list is in `research/universe.py` (`AI100`). Re-rank every few months.
 
+**+1 (2026-10-28): CRWV** added as the best stock not already listed: #2 of 249 on a day-trading screen (ATR % x trend-day ratio, $ volume >= $2B/day), behind only SOXL (a leveraged ETF; no ETFs here). 11.8% ATR, $3.7B/day, trend-day ratio 0.59.
+
 The previous list (120 candidates, screened on dollar volume and ATR) is in the git history before 2026-10-28.
 
 | # | Sector | Stocks |
 |---|---|---|
 | 01 | Semiconductors & Memory (17) | TXN, ALAB, MCHP, MRVL, AVGO, AMD, INTC, QCOM, ON, SNDK, TSM, MU, KLAC, LRCX, AMAT, ASML, TER |
 | 02 | AI Infrastructure / Networking / Optical (8) | SMCI, HPE, DELL, ANET, LITE, COHR, CRDO, AAOI |
-| 03 | Neo-Cloud / AI Hosting (4) | NBIS, IREN, CIFR, WULF |
+| 03 | Neo-Cloud / AI Hosting (5) | NBIS, IREN, CIFR, WULF, CRWV |
 | 04 | Software & AI Apps (5) | DDOG, INTU, APP, IBM, SNPS |
 | 05 | Cybersecurity (3) | PANW, CRWD, FTNT |
 | 06 | Power / Energy / Nuclear (7) | GEV, VST, OKLO, ETN, FSLR, SO, NEE |

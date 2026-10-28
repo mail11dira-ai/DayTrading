@@ -195,3 +195,5 @@ structure component left unchanged). The validation fail rows in checks.md stand
 - 2026-10-28 Super 100 runs moved to 8:45 and 9:45 CT (trig_01BSEzw8DL1JRFyRSmVnQK6B, trig_012DY3peEQUikJ9MBxYuLXpG);
   email shows up to 7 setups (report.py: super100 -> 7; only setups with bias and R/R >= 1 qualify). Tests: 97 passed.
 - 2026-10-28 Super 100 renamed "Super 10" (display name only; agent key super100, 12 stocks unchanged). Emails titled "Super 10 Research".
+- 2026-10-28 AI Sectors 100: CRWV added (101 stocks, sector 03 Neo-Cloud). Best unique stock on the day-trading screen
+  (ATR% x trend ratio, >= $2B/day; #2 of 249 behind the SOXL ETF). Plan still 30 calls. Tests: see commit.
