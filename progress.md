@@ -189,3 +189,6 @@ structure component left unchanged). The validation fail rows in checks.md stand
   removed from the email: 20-day RS column, 8/21 holding column and breadth line, daily RSI in the RSI risk list.
   Kept: 5m EMA/RSI, VWAP, PDH/PDL/PDC, PMH/PML, ORB, gap, RVOL, daily ATR (range unit), in-play, bias, confirmations.
   Not added: no new indicators; the review found no validated direction edge to add (see backtests/indicator_review.md).
+- 2026-10-28 Super 100 universe replaced with the user's list only: GOOGL, AAPL, MSFT, META, AMZN, NVDA, AVGO, AMD,
+  VRT, CRWD, TSLA, SPCX (12 unique; the request had 11 numbered items plus GOOGL). research/universe.py SUPER100, README,
+  test updated. Tests: 97 passed.

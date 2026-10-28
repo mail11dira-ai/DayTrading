@@ -188,28 +188,12 @@ AI100 = [
 # by sector. Unlike the AI universes it INCLUDES the MAG 7 - this agent replaces the MAG 7 agent.
 SUPER100_BENCHMARKS = ["SPY", "QQQ"]
 SUPER100 = [
-    ("01", "Mega-cap Tech", "Platforms | Devices | Cloud", [], ["MSFT", "NVDA", "AAPL", "GOOGL", "AMZN", "META"]),
-    ("02", "Semiconductors & Equipment", "Chips | Foundry | Memory | Equipment | EDA",
-     [], ["AVGO", "TSM", "AMD", "MU", "QCOM", "INTC", "MRVL", "ASML", "AMAT", "LRCX", "KLAC", "SNPS"]),
-    ("03", "Software & Cloud", "Enterprise | Data | AI Platforms | IT Services",
-     [], ["ORCL", "NOW", "CRM", "ADBE", "IBM", "ACN", "PLTR", "APP", "DDOG", "SNOW", "NBIS"]),
-    ("04", "Cybersecurity & Networking", "Security | Edge | Switches",
-     [], ["PANW", "CRWD", "NET", "ANET", "CSCO"]),
-    ("05", "Internet & Platforms", "Streaming | Travel | Ride-share | E-commerce | Media",
-     [], ["NFLX", "BKNG", "UBER", "ABNB", "MELI", "SHOP", "BABA", "DIS"]),
-    ("06", "Consumer Discretionary", "Autos | Home Improvement | Apparel | Restaurants | Retail",
-     [], ["TSLA", "HD", "LOW", "TJX", "MCD", "SBUX", "CMG", "NKE", "ORLY"]),
-    ("07", "Consumer Staples", "Big-box Retail | Household | Beverages", [], ["WMT", "COST", "PG", "KO", "PEP"]),
-    ("08", "Healthcare", "Pharma | Managed Care | Devices | Tools | Biotech",
-     [], ["LLY", "UNH", "JNJ", "ABBV", "MRK", "ABT", "TMO", "ISRG", "VRTX"]),
-    ("09", "Banks & Brokers", "Money-centre Banks | Investment Banks | Asset Managers",
-     [], ["JPM", "BAC", "WFC", "GS", "MS", "SCHW", "BLK"]),
-    ("10", "Payments, Insurance & Data", "Card Networks | Insurance | Ratings | Crypto",
-     [], ["V", "MA", "AXP", "BRK.B", "PGR", "SPGI", "COIN"]),
-    ("11", "Industrials & Defense", "Aerospace | Defense | Machinery | Rail | Electrical",
-     [], ["GE", "HON", "RTX", "LMT", "CAT", "DE", "UNP", "BA", "ETN", "SPCX"]),
-    ("12", "Energy & Utilities", "Oil | Power | Nuclear", [], ["XOM", "CVX", "NEE", "CEG", "VST", "SO"]),
-    ("13", "Materials & Real Estate", "Industrial Gases | Copper | Gold | REITs", [], ["LIN", "FCX", "NEM", "PLD", "AMT"]),
+    ("01", "Mega-cap Tech", "Platforms | Devices | Cloud | Ads", [], ["GOOGL", "AAPL", "MSFT", "META", "AMZN", "NVDA"]),
+    ("02", "Semiconductors", "AI accelerators | CPUs", [], ["AVGO", "AMD"]),
+    ("03", "AI Data Center Infrastructure", "Power & cooling for AI data centres", [], ["VRT"]),
+    ("04", "Cybersecurity", "Endpoint | Cloud security", [], ["CRWD"]),
+    ("05", "Autos", "EVs | Energy storage", [], ["TSLA"]),
+    ("06", "Space / Aerospace", "Launch | Satellites", [], ["SPCX"]),
 ]
 INCLUDES_MAG7 = {"super100"}  # universes that list the MAG 7 themselves instead of deferring to the MAG 7 agent
 USER_LISTS = {"super100", "ai100"}  # the user's own list: kept as given (no day-trading screen, no MODERN sector notes)
