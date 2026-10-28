@@ -192,3 +192,5 @@ structure component left unchanged). The validation fail rows in checks.md stand
 - 2026-10-28 Super 100 universe replaced with the user's list only: GOOGL, AAPL, MSFT, META, AMZN, NVDA, AVGO, AMD,
   VRT, CRWD, TSLA, SPCX (12 unique; the request had 11 numbered items plus GOOGL). research/universe.py SUPER100, README,
   test updated. Tests: 97 passed.
+- 2026-10-28 Super 100 runs moved to 8:45 and 9:45 CT (trig_01BSEzw8DL1JRFyRSmVnQK6B, trig_012DY3peEQUikJ9MBxYuLXpG);
+  email shows up to 7 setups (report.py: super100 -> 7; only setups with bias and R/R >= 1 qualify). Tests: 97 passed.
