@@ -185,3 +185,7 @@ structure component left unchanged). The validation fail rows in checks.md stand
   universe (used only if the repo script fails). Tests: 97 passed.
 - 2026-10-28 AI Sectors 100: runs moved to 9:00 and 10:00 CT (trig_01D3Gr9p5a4cJvwRkuHVThUg and trig_01BRGe391GXt4kzok9eotfwp);
   email shows top 7 setups (report.py: ai100 -> 7; Super 100 unchanged at 3). Tests: 97 passed.
+- 2026-10-28 AI Sectors 100 day-trading cleanup (user request, scope: this agent only, bias formula unchanged):
+  removed from the email: 20-day RS column, 8/21 holding column and breadth line, daily RSI in the RSI risk list.
+  Kept: 5m EMA/RSI, VWAP, PDH/PDL/PDC, PMH/PML, ORB, gap, RVOL, daily ATR (range unit), in-play, bias, confirmations.
+  Not added: no new indicators; the review found no validated direction edge to add (see backtests/indicator_review.md).

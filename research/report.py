@@ -55,7 +55,7 @@ def build(agent, ds, now, test=False):
     return title, R.doc(title, note, body), missing, mode
 
 
-def _breadth(res, syms, ds):
+def _breadth(res, syms, ds, day_only=False):
     """Breadth / regime lines for the snapshot: how broad is the move, plus VIX."""
     ok = [res[s] for s in syms if res[s]["ok"] and s not in INVERSE]
     n = len(ok)
@@ -73,7 +73,8 @@ def _breadth(res, syms, ds):
     parts = [sp(up, f"{up:.0f}% up")]
     if ab is not None:
         parts.append(sp(ab, f"{ab:.0f}% above VWAP"))
-    parts.append(sp(hold, f"{hold:.0f}% holding 8/21"))
+    if not day_only:  # AI Sectors 100 is day-trading only: no daily 8/21 trend line
+        parts.append(sp(hold, f"{hold:.0f}% holding 8/21"))
     parts.append(f'<span class="g">{bull} bullish</span> / <span class="r">{bear} bearish</span> bias')
     parts.append(f"{lead} leading QQQ (30m)")
     # Regime uses today's (intraday) measures only; holding 8/21 is slow daily context and
@@ -144,7 +145,7 @@ def _ratings_extra(ds, r):
     return out
 
 
-def _risks(res, syms, earn, gap_thr, rng_thr, rsi_hi, rsi_lo):
+def _risks(res, syms, earn, gap_thr, rng_thr, rsi_hi, rsi_lo, day_only=False):
     items = []
     e = [f"{s} {d:%m/%d} {t}".strip() for s, (d, t) in sorted(earn.items(), key=lambda x: x[1][0]) if s in syms]
     items.append("Earnings within 14 days: " + (", ".join(e[:14]) + (f" (+{len(e) - 14} more)" if len(e) > 14 else "") if e else "none in universe"))
@@ -157,8 +158,12 @@ def _risks(res, syms, earn, gap_thr, rng_thr, rsi_hi, rsi_lo):
                  "expect bigger moves, direction not implied): " + lst(ip, lambda r: f"{r['sym']} {r['in_play']}/4", 15))
     items.append("RVOL &gt; 2: " + lst([r for r in ok if (r["rvol"] or 0) > 2 and not r["thin"]], lambda r: f"{r['sym']} {r['rvol']:.1f}"))
     items.append(f"Gaps &gt; {gap_thr:g}%: " + lst(sorted([r for r in ok if r["gap_pct"] is not None and abs(r["gap_pct"]) > gap_thr], key=lambda r: -abs(r["gap_pct"])), lambda r: f"{r['sym']} {r['gap_pct']:+.1f}%"))
-    ext = [r for r in ok if any(x is not None and (x > rsi_hi or x < rsi_lo) for x in (r["rsi_5"], r["rsi_d"]))]
-    items.append(f"RSI &gt; {rsi_hi} or &lt; {rsi_lo}: " + lst(ext, lambda r: f"{r['sym']} ({R.rsi(r['rsi_5'])}/{R.rsi(r['rsi_d'])})"))
+    if day_only:  # 5-minute RSI only: the daily RSI is swing context
+        ext = [r for r in ok if r["rsi_5"] is not None and (r["rsi_5"] > rsi_hi or r["rsi_5"] < rsi_lo)]
+        items.append(f"5m RSI &gt; {rsi_hi} or &lt; {rsi_lo}: " + lst(ext, lambda r: f"{r['sym']} ({R.rsi(r['rsi_5'])})"))
+    else:
+        ext = [r for r in ok if any(x is not None and (x > rsi_hi or x < rsi_lo) for x in (r["rsi_5"], r["rsi_d"]))]
+        items.append(f"RSI &gt; {rsi_hi} or &lt; {rsi_lo}: " + lst(ext, lambda r: f"{r['sym']} ({R.rsi(r['rsi_5'])}/{R.rsi(r['rsi_d'])})"))
     def orb(state, d=None):
         return [r for r in ok if r.get("orb") and r["orb"]["state"] == state and (d is None or r["orb"]["dir"] == d)]
     f_orb = lambda r: f"{r['sym']} ({r['orb']['volx']:.1f}x @ {r['orb']['time']})" if r["orb"]["volx"] else f"{r['sym']} @ {r['orb']['time']}"
@@ -390,11 +395,14 @@ def _modern(res, syms, bench, earn, ds, agent="modern", sday=None):
     if agent == "super100":  # replaces the MAG 7 agent, so it keeps the SPY / QQQ / VIX deep dive
         out = _market(res, syms, bench, ds, sday, tape)
     else:
-        out = _snapshot(res, bench, tape, _breadth(res, syms, ds))
+        out = _snapshot(res, bench, tape, _breadth(res, syms, ds, day_only=agent == "ai100"))
+    drop = {x + has_etf for x in (5, 7)} if agent == "ai100" else set()  # column indexes: 20d RS, Holding 8/21  # AI Sectors 100 is day-trading only: no 20-day RS, no 8/21 holding
+    keep = [i for i in range(len(score_rows[0]) if score_rows else 0) if i not in drop]
     out += "<h3>2. Sector scoreboard</h3>" + R.table(
-        ["#", "Sector"] + (["ETFs Day %", "Leaders Day %"] if has_etf else ["Avg Day %"])
-        + ["vs QQQ", "RS 30m", "20d RS vs SPY", "Avg bias", "Holding 8/21", "Best", "Worst"], score_rows, left=2,
-        tint=3 if has_etf else 2)  # leaders' / average day % column
+        [h for i, h in enumerate(["#", "Sector"] + (["ETFs Day %", "Leaders Day %"] if has_etf else ["Avg Day %"])
+                                 + ["vs QQQ", "RS 30m", "20d RS vs SPY", "Avg bias", "Holding 8/21", "Best", "Worst"]) if i not in drop],
+        [[row[i] for i in keep] for row in score_rows], left=2,
+        tint=(3 if has_etf else 2) - sum(1 for d in drop if d < (3 if has_etf else 2)))  # leaders' / average day % column
     large = agent == "super100"  # large caps: MAG 7 thresholds (2% gaps, RSI 70/30)
     short = agent in ("ai100", "super100")  # short email: no weekend checklist, 3 setups, short cards
     n = 3
@@ -418,7 +426,7 @@ def _modern(res, syms, bench, earn, ds, agent="modern", sday=None):
     out += (f"<h3>{n}. Top {len(top)} setups</h3>" + _top_html(top, note)
             + "".join(R.card(r, _ratings_extra(ds, r), brief=short) for r in top))
     out += f"<h3>{n + 1}. Risks / catalysts</h3>" + (_risks(res, syms, earn, 2, 1.0, 70, 30) if large
-                                                     else _risks(res, syms, earn, 3, 1.2, 75, 25))
+                                                     else _risks(res, syms, earn, 3, 1.2, 75, 25, day_only=agent == "ai100"))
     return out
 
 

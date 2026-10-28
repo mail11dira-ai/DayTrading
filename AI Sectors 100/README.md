@@ -35,11 +35,11 @@ Benchmarks: SPY, QQQ. Sector grouping is by business line.
 
 ## Email (short since 2026-10-28, one part)
 1. Market snapshot (SPY, QQQ) + tape (leading / lagging sector)
-2. Sector scoreboard: avg day %, vs QQQ, 20-day RS vs SPY, avg bias, # holding 8/21, best / worst stock per sector
+2. Sector scoreboard (day-trading only): avg day %, vs QQQ, 30-min RS vs QQQ, avg bias, best / worst stock per sector
 3. Top 3 setups (ranked by in-play score, then bias), with short cards
 4. Risks / catalysts
 
-No weekend checklist and no per-sector tables (both were removed to cut cost).
+No weekend checklist, no per-sector tables, and no daily-timeframe items (20-day RS, 8/21 holding, daily RSI), since 2026-10-28; the daily ATR is kept as the range unit for the in-play score. The bias score still uses the daily MA stack as an input, so its formula is unchanged.
 
 ## Technical analysis (every run)
 Same engine as the other agents: Volume (RVOL, up/down volume, spikes) · VWAP (±1/2σ, slope, reclaim/loss) ·
