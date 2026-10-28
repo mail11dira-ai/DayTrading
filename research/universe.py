@@ -184,7 +184,7 @@ AI100 = [
     ("16", "Crypto & Bitcoin Miners", "Bitcoin treasury | Exchange | Stablecoin | Miners",
      [], ["MSTR", "COIN", "CRCL", "RIOT", "CLSK", "MARA"]),
 ]
-# Super 100 (2026-10-27): the user's list of 100 large / liquid US-listed leaders (MSFT was listed twice; SPCX added as #100), grouped
+# Super 10 (formerly Super 100; 2026-10-27): the user's list of 100 large / liquid US-listed leaders (MSFT was listed twice; SPCX added as #100), grouped
 # by sector. Unlike the AI universes it INCLUDES the MAG 7 - this agent replaces the MAG 7 agent.
 SUPER100_BENCHMARKS = ["SPY", "QQQ"]
 SUPER100 = [

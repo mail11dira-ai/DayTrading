@@ -1,6 +1,6 @@
-# Super 100 Research Agent
+# Super 10 Research Agent
 
-Research only - no orders. Emails mail11dira@gmail.com Mon-Fri at 8:15 and 9:01 CT. Code:
+Research only - no orders. Named "Super 10" (was "Super 100"; the agent key stays `super100`). Emails mail11dira@gmail.com Mon-Fri at 8:45 and 9:45 CT. Code:
 `python3 -m research.plan --agent super100`, then `python3 -m research.report --agent super100`.
 
 **Universe: 12 stocks** (updated 2026-10-28, the user's list only): GOOGL, AAPL, MSFT, META, AMZN, NVDA, AVGO, AMD,

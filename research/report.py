@@ -16,7 +16,7 @@ from .analyze import analyze, detect_mode, earnings_within, now_ct
 from .universe import (AI_SECTORS, EMPTY_LAYER_NOTE, INVERSE, modern_layout, symbols)
 
 TITLES = {"mag7": "MAG 7", "aisectors": "AI Sectors", "modern": "Modern AI Sectors", "ai100": "AI Sectors 100",
-          "super100": "Super 100"}
+          "super100": "Super 10"}
 
 
 def build(agent, ds, now, test=False):

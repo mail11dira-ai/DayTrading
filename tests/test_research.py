@@ -539,5 +539,5 @@ def test_super100_universe_and_report():
     assert sum(t.endswith("get_index_historicals") for t, _ in calls) == 2
     ds = _synthetic_dataset(syms + bench, date(2026, 10, 12))
     title, html, missing, mode = build("super100", ds, datetime(2026, 10, 13, 1, 0, tzinfo=CT), test=True)
-    assert title.startswith("[TEST] Super 100 Research") and missing == []
+    assert title.startswith("[TEST] Super 10 Research") and missing == []
     assert "Market deep dive (SPY, QQQ, VIX)" in html and "Sector scoreboard" in html and "Top 3 setups" in html and "Weekend checklist" not in html
