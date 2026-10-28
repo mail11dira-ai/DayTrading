@@ -414,7 +414,7 @@ def _modern(res, syms, bench, earn, ds, agent="modern", sday=None):
         if sec["notes"]:
             out += "<p><i>" + "; ".join(escape(x) for x in sec["notes"]) + ".</i></p>"
         n += 1
-    top, note = _top(res, syms, 3 if short else 5)
+    top, note = _top(res, syms, {"ai100": 7}.get(agent, 3 if short else 5))  # AI Sectors 100 shows 7 setups
     out += (f"<h3>{n}. Top {len(top)} setups</h3>" + _top_html(top, note)
             + "".join(R.card(r, _ratings_extra(ds, r), brief=short) for r in top))
     out += f"<h3>{n + 1}. Risks / catalysts</h3>" + (_risks(res, syms, earn, 2, 1.0, 70, 30) if large

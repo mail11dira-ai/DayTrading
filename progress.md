@@ -183,3 +183,5 @@ structure component left unchanged). The validation fail rows in checks.md stand
   (SNPS, TXN, ... FSLR; 16 sectors, research/universe.py AI100, USER_LISTS now includes ai100: no day-trade screen,
   no MODERN notes). Email/plan unchanged; ai100 plan 30 calls. Routine prompt fallback lists still show the old
   universe (used only if the repo script fails). Tests: 97 passed.
+- 2026-10-28 AI Sectors 100: runs moved to 9:00 and 10:00 CT (trig_01D3Gr9p5a4cJvwRkuHVThUg and trig_01BRGe391GXt4kzok9eotfwp);
+  email shows top 7 setups (report.py: ai100 -> 7; Super 100 unchanged at 3). Tests: 97 passed.

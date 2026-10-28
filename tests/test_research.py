@@ -243,7 +243,7 @@ def test_end_to_end_report_closed_session(agent):
         assert not any(f"<b>{m}</b>" in html for m in MAG7)
     if agent == "ai100":
         assert "Weekend checklist" not in html and "ETFs Day %" not in html and "15</td>" in html
-        assert ">3. Top 3 setups</h3>" in html and "Nearest S / R" not in html  # compact: no checklist, no per-sector tables
+        assert ">3. Top 7 setups</h3>" in html and "Nearest S / R" not in html  # compact: no checklist, no per-sector tables, 7 setups
     if agent == "modern":
         assert "Weekend checklist" in html and "Sector scoreboard" in html and "removed for day trading" in html
         assert "12 Neo-Cloud" in html and not any(f"<b>{m}</b>" in html for m in MAG7)
