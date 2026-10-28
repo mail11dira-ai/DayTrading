@@ -179,3 +179,7 @@ structure component left unchanged). The validation fail rows in checks.md stand
   Both on claude-haiku-5-5. Code: ai100 skips analyst ratings (plan 32 -> 30 calls); ai100 email is short like super100
   (no weekend checklist, 3 setups, short cards; synthetic build 14.6 KB). Option 5 (shorter 400-day daily history) NOT
   applied: the 52-week high/low use 252 sessions, so it would change the numbers; the saving is about 5%.
+- 2026-10-28 AI Sectors 100 universe replaced with the top-100 list (user request) from the 10-27 close ranking
+  (SNPS, TXN, ... FSLR; 16 sectors, research/universe.py AI100, USER_LISTS now includes ai100: no day-trade screen,
+  no MODERN notes). Email/plan unchanged; ai100 plan 30 calls. Routine prompt fallback lists still show the old
+  universe (used only if the repo script fails). Tests: 97 passed.

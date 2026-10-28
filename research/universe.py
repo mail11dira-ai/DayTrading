@@ -151,37 +151,38 @@ MODERN_NOTES = {"13": "SQQQ, SOXS and UVXY are inverse / volatility hedges: show
 # the percentile ranks of dollar volume and ATR %. Same layout as MODERN (no ETF column).
 AI100_BENCHMARKS = ["SPY", "QQQ"]
 AI100 = [
-    ("01", "Semiconductors / Memory", "GPUs | CPUs | Memory | Analog",
-     [], ["SNDK", "MU", "INTC", "AMD", "AVGO", "MRVL", "WDC", "SKHY", "ARM", "ALAB", "QCOM", "TSM", "ON", "TXN",
-          "MCHP"]),
-    ("02", "Semiconductor Equipment", "Lithography | Etch | Inspection | Test",
-     [], ["LRCX", "AMAT", "KLAC", "ASML", "TER"]),
-    ("03", "AI Infrastructure / Networking / Optical", "Servers | Cooling | Switches | Optics",
-     [], ["DELL", "SMCI", "HPE", "VRT", "ANET", "CSCO", "LITE", "COHR", "CRDO", "AAOI"]),
-    ("04", "Neo-Cloud / AI Hosting", "GPU Clouds | AI Data-Center Hosting",
-     [], ["NBIS", "CRWV", "IREN", "CIFR", "APLD", "WULF"]),
-    ("05", "Software / AI Apps", "Cloud | Data | AI Platforms",
-     [], ["ORCL", "PLTR", "APP", "CRM", "NOW", "SNOW", "MDB", "DDOG", "INTU", "ADBE"]),
-    ("06", "Cybersecurity", "Network | Endpoint | Edge",
-     [], ["PANW", "CRWD", "NET", "ZS", "FTNT"]),
-    ("07", "Power / Energy / Nuclear", "Fuel Cells | Turbines | Utilities | Nuclear | Solar",
-     [], ["BE", "GEV", "CEG", "VST", "OKLO", "ETN", "FSLR"]),
-    ("08", "Crypto / Fintech / Banks", "Bitcoin | Brokers | Miners | Lending | Banks",
-     [], ["MSTR", "HOOD", "COIN", "CRCL", "MARA", "RIOT", "CLSK", "SOFI", "AFRM", "GS"]),
-    ("09", "Space / Aerospace", "Satellites | Launch | Aircraft",
-     [], ["RKLB", "ASTS", "BA"]),
-    ("10", "Quantum", "Quantum Computing",
-     [], ["IONQ", "QBTS", "RGTI"]),
-    ("11", "Consumer / Internet", "E-commerce | Streaming | Social | Autos | Ad-tech | China",
-     [], ["SHOP", "NFLX", "RDDT", "CVNA", "NKE", "DKNG", "UBER", "TTD", "RIVN", "BABA"]),
-    ("12", "Health / Biotech", "Vaccines | Pharma | Managed Care | Telehealth",
-     [], ["MRNA", "LLY", "UNH", "HIMS"]),
-    ("13", "Travel / Airlines / Cruise", "Airlines | Cruise Lines",
-     [], ["AAL", "UAL", "DAL", "RCL", "CCL"]),
-    ("14", "Metals / Miners", "Gold | Silver | Copper | Rare Earths",
-     [], ["CDE", "HL", "MP", "FCX", "NEM"]),
-    ("15", "Industrials / Housing", "Machinery | Homebuilders",
-     [], ["CAT", "LEN"]),
+    ("01", "Semiconductors & Memory", "GPUs | Analog | Memory | Foundry | Equipment",
+     [], ["TXN", "ALAB", "MCHP", "MRVL", "AVGO", "AMD", "INTC", "QCOM", "ON", "SNDK", "TSM", "MU", "KLAC", "LRCX", "AMAT", "ASML", "TER"]),
+    ("02", "AI Infrastructure / Networking / Optical", "Servers | Networking | Optical | Connectivity",
+     [], ["SMCI", "HPE", "DELL", "ANET", "LITE", "COHR", "CRDO", "AAOI"]),
+    ("03", "Neo-Cloud / AI Hosting", "AI hosting | Data centres | Bitcoin-miner hosting",
+     [], ["NBIS", "IREN", "CIFR", "WULF"]),
+    ("04", "Software & AI Apps", "Data | Apps | Enterprise | EDA",
+     [], ["DDOG", "INTU", "APP", "IBM", "SNPS"]),
+    ("05", "Cybersecurity", "Platforms | Endpoint | Network security",
+     [], ["PANW", "CRWD", "FTNT"]),
+    ("06", "Power / Energy / Nuclear", "Turbines | Utilities | Nuclear | Solar | Grid",
+     [], ["GEV", "VST", "OKLO", "ETN", "FSLR", "SO", "NEE"]),
+    ("07", "Metals & Miners", "Gold | Copper | Rare earths | Coal",
+     [], ["MP", "CDE", "HL", "NEM"]),
+    ("08", "Materials & Real Estate", "Industrial gases | REITs",
+     [], ["LIN", "AMT"]),
+    ("09", "Quantum", "Quantum computing",
+     [], ["IONQ", "RGTI", "QBTS"]),
+    ("10", "Industrials & Defense", "Machinery | Aerospace | Rail | Space",
+     [], ["UNP", "GE", "HON", "CAT", "DE", "RKLB"]),
+    ("11", "Airlines, Travel & Cruise", "Airlines | Cruise | Lodging",
+     [], ["DAL", "UAL", "AAL", "RCL", "CCL", "ABNB"]),
+    ("12", "Consumer & Internet", "Retail | Restaurants | Autos | Streaming | Gaming",
+     [], ["SBUX", "NKE", "LOW", "HD", "ORLY", "RIVN", "CVNA", "DIS", "BABA", "DKNG", "LEN"]),
+    ("13", "Consumer Staples", "Big-box retail | Household",
+     [], ["WMT", "PG"]),
+    ("14", "Healthcare", "Pharma | Biotech | Managed care | Tools | Devices",
+     [], ["MRNA", "VRTX", "JNJ", "ABBV", "LLY", "UNH", "TMO", "ISRG"]),
+    ("15", "Banks, Payments & Insurance", "Banks | Brokers | Payments | Insurance",
+     [], ["GS", "WFC", "BLK", "V", "MA", "AFRM", "SOFI", "PGR"]),
+    ("16", "Crypto & Bitcoin Miners", "Bitcoin treasury | Exchange | Stablecoin | Miners",
+     [], ["MSTR", "COIN", "CRCL", "RIOT", "CLSK", "MARA"]),
 ]
 # Super 100 (2026-10-27): the user's list of 100 large / liquid US-listed leaders (MSFT was listed twice; SPCX added as #100), grouped
 # by sector. Unlike the AI universes it INCLUDES the MAG 7 - this agent replaces the MAG 7 agent.
@@ -211,7 +212,7 @@ SUPER100 = [
     ("13", "Materials & Real Estate", "Industrial Gases | Copper | Gold | REITs", [], ["LIN", "FCX", "NEM", "PLD", "AMT"]),
 ]
 INCLUDES_MAG7 = {"super100"}  # universes that list the MAG 7 themselves instead of deferring to the MAG 7 agent
-USER_LISTS = {"super100"}  # the user's own list: kept as given (no day-trading screen, no MODERN sector notes)
+USER_LISTS = {"super100", "ai100"}  # the user's own list: kept as given (no day-trading screen, no MODERN sector notes)
 SECTOR_MAPS = {}  # filled below: agent -> sector list
 
 

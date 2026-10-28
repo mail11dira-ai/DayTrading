@@ -154,7 +154,7 @@ def test_ai100_universe_is_100_unique_stocks():
     syms = modern_symbols(agent="ai100")
     assert len(syms) == 100 and len(set(syms)) == 100
     assert modern_symbols("ETF", agent="ai100") == [] and not set(syms) & set(MAG7)
-    assert {"NBIS", "CRWV", "IREN", "MU", "LITE", "BE", "PLTR", "SHOP"} <= set(syms)
+    assert {"NBIS", "IREN", "MU", "LITE", "MSTR", "UNP", "GE"} <= set(syms)
     from research.plan import plan
     calls = plan("ai100", datetime(2026, 10, 20, 7, 59, tzinfo=CT))
     ratings = [a for t, a in calls if t.endswith("get_equity_analyst_ratings")]
