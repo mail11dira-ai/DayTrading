@@ -34,3 +34,4 @@ Completion checklist (Option A). Each item must point to observable evidence.
 | Super 100 | cost cuts: haiku model on both tasks; 10-symbol 5-min batches (34 calls); short email (3 setups, no checklist) | pass | pytest 97 passed; synthetic build 25052 -> 19487 bytes |
 | AI Sectors 100 | short email + no ratings for ai100; Haiku; schedule 8:45 and 1:30 CT | pass | pytest 97 passed; plan 30 calls; synthetic build 14612 bytes |
 | AI Sectors 100 | universe = user's top-100 list (100 unique, 16 sectors, no MAG 7) | pass | pytest 97 passed; universe.symbols('ai100') = 100 unique |
+| ER Agent | stages produce valid calls; score + report build on live data | pass | pytest 99 passed; er report --now 2026-10-29T08:15: 15 scored, missing [] |

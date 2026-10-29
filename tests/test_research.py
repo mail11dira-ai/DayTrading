@@ -541,3 +541,67 @@ def test_super100_universe_and_report():
     title, html, missing, mode = build("super100", ds, datetime(2026, 10, 13, 1, 0, tzinfo=CT), test=True)
     assert title.startswith("[TEST] Super 10 Research") and missing == []
     assert "Market deep dive (SPY, QQQ, VIX)" in html and "Sector scoreboard" in html and "Top 3 setups" in html and "Weekend checklist" not in html
+
+
+def _er_dataset(today):
+    """Synthetic ER day: UP (BMO, beat, gapping up), DN (AMC, misses, downtrend), THIN (too little volume)."""
+    from research.collect import Dataset
+    ds = Dataset()
+    days = []
+    d = today - timedelta(days=1)
+    while len(days) < 60:
+        if d.weekday() < 5:
+            days.append(d)
+        d -= timedelta(days=1)
+    days = days[::-1]
+    def bars(sym, start, step, vol):
+        out = []
+        for i, dd in enumerate(days):
+            c = start + step * i
+            out.append({"begins_at": f"{dd}T00:00:00Z", "open_price": str(c), "high_price": str(c * 1.01),
+                        "low_price": str(c * 0.99), "close_price": str(c), "volume": vol})
+        ds.add({"data": {"results": [{"symbol": sym, "interval": "day", "bars": out}]}})
+    bars("UP", 100, 0.5, 5e6)
+    bars("DN", 100, -0.5, 5e6)
+    bars("THIN", 100, 0, 1e4)
+    bars("SPY", 500, 0.1, 1e8)
+    cal = [{"symbol": "UP", "year": 2026, "quarter": 3, "eps": {"estimate": "1.00", "actual": "1.20"}, "report": {"date": str(today), "timing": "am"}},
+           {"symbol": "DN", "year": 2026, "quarter": 3, "eps": {"estimate": "1.00", "actual": None}, "report": {"date": str(today), "timing": "pm"}},
+           {"symbol": "THIN", "year": 2026, "quarter": 3, "eps": {"estimate": "1.00", "actual": None}, "report": {"date": str(today), "timing": "am"}}]
+    hist = []
+    for k, dd in enumerate(days[5:45:10]):  # four past reports inside the bar window
+        hist.append({"symbol": "UP", "year": 2025, "quarter": k, "eps": {"estimate": "1.0", "actual": "1.1"}, "report": {"date": str(dd), "timing": "am"}})
+        hist.append({"symbol": "DN", "year": 2025, "quarter": k, "eps": {"estimate": "1.0", "actual": "0.9"}, "report": {"date": str(dd), "timing": "pm"}})
+    ds.add({"data": {"results": cal + hist}})
+    up_close = 100 + 0.5 * 59
+    ds.add({"data": {"results": [{"quote": {"symbol": "UP", "last_trade_price": str(up_close), "venue_last_trade_time": f"{days[-1]}T20:00:00Z",
+                                             "last_non_reg_trade_price": str(up_close * 1.03), "venue_last_non_reg_trade_time": f"{today}T12:00:00Z",
+                                             "adjusted_previous_close": str(up_close)}}]}})
+    ds.add({"data": {"results": [{"symbol": "UP", "ratings": {"num_buy_ratings": 9, "num_hold_ratings": 1, "num_sell_ratings": 0, "mean_price_target": "200"}},
+                                 {"symbol": "DN", "ratings": {"num_buy_ratings": 1, "num_hold_ratings": 5, "num_sell_ratings": 4, "mean_price_target": "50"}}]}})
+    return ds
+
+
+def test_er_stages_and_scores():
+    from research import er
+    today = date(2026, 10, 29)
+    ds = _er_dataset(today)
+    assert er.calls_calendar(today)[0][1] == {"days": 1, "filter": "high_market_cap", "start_date": "2026-10-29"}
+    screen = er.calls_screen(ds, today)
+    assert all(len(a["symbols"]) <= 10 for _, a in screen) and "SPY" in screen[-1][1]["symbols"]
+    assert er.shortlist(ds, today) == ["UP", "DN"] or er.shortlist(ds, today) == ["DN", "UP"]  # THIN fails the $ volume screen
+    detail = er.calls_detail(ds, today)
+    assert sum(t.endswith("get_earnings_results") for t, _ in detail) == 2
+    up = er.score(ds, "UP", er.reporters(ds, today)["UP"], today)
+    dn = er.score(ds, "DN", er.reporters(ds, today)["DN"], today)
+    assert up["label"] == "BULLISH" and up["pts"]["reaction"] > 0 and up["pts"]["surprise"] == 1 and up["pts"]["beats"] == 1
+    assert dn["label"] == "BEARISH" and "reaction" not in dn["pts"] and dn["pts"]["beats"] == -1 and dn["pts"]["analysts"] == -1
+
+
+def test_er_report_html():
+    from research import er
+    today = date(2026, 10, 29)
+    title, html, missing, scored = er.build(_er_dataset(today), datetime(2026, 10, 29, 8, 15, tzinfo=CT), test=True)
+    assert title == "[TEST] ER Research - 2026-10-29 08:15 CT" and missing == [] and len(scored) == 2
+    assert "Top 5 earnings names today" in html and "<b>UP</b>" in html and "<b>THIN</b>" not in html
+    assert "Not validated out of sample" in html and "No orders placed." in html
