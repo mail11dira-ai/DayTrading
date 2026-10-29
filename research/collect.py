@@ -52,7 +52,8 @@ class Dataset:
                         continue
                     store[b["begins_at"]] = b
             elif "quote" in r and isinstance(r["quote"], dict):
-                self.quotes[r["quote"]["symbol"]] = r
+                if r["quote"].get("symbol"):  # equity quote (option quotes carry instrument_id instead)
+                    self.quotes[r["quote"]["symbol"]] = r
             elif "ratings" in r and "symbol" in r:
                 if r["ratings"]:
                     self.ratings[r["symbol"]] = r["ratings"]

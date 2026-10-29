@@ -613,3 +613,84 @@ def test_er_session_day():
     assert session_day(datetime(2026, 10, 28, 23, 49, tzinfo=CT)) == date(2026, 10, 29)  # late evening -> next day
     assert session_day(datetime(2026, 10, 30, 17, 0, tzinfo=CT)) == date(2026, 11, 2)    # Friday evening -> Monday
     assert session_day(datetime(2026, 10, 31, 10, 0, tzinfo=CT)) == date(2026, 11, 2)    # Saturday -> Monday
+
+
+# ---------------------------------------------------------------- UNUSUAL agent
+def _flow():
+    """Scan rows (2 stocks + 1 ETF with no market cap), a chain each, and nearest-expiry contracts with quotes."""
+    from research.unusual import Flow
+    fl = Flow()
+
+    def row(sym, last, cp, pp, chg, mcap="5e10", er="2.0261102e+07"):
+        return {"ticker": sym, "columns": {"Last": str(last), "Market cap": mcap, "Call prem": str(cp), "Put prem": str(pp),
+                                           "Total call volume": "60000", "Total put volume": "20000", "Opt vol 10d avg": "10000",
+                                           "Total OI": "200000", "% Change": str(chg), "IV rank": "0.9", "Implied volatility": "0.5",
+                                           "Front IV": "0.8", "Back IV": "0.5", "Earnings date": er, "Stock RVOL": "2.5"}}
+    fl.add({"data": {"result": {"results": [row("UPP", 100, 8e7, 2e7, 0.02), row("DWN", 50, 1e7, 4e7, -0.03),
+                                            row("SPY", 700, 9e8, 9e8, 0.0, mcap="")]}}})
+    for s in ("UPP", "DWN"):
+        fl.add({"data": {"chains": [{"symbol": s, "expiration_dates": ["2026-10-28", "2026-10-30", "2026-11-06"]}]}})
+    inst, quotes = [], []
+    for s, px, hot in (("UPP", 100, "call"), ("DWN", 50, "put")):
+        for k in range(-3, 4):
+            for t in ("call", "put"):
+                iid = f"{s}-{t}-{k}"
+                inst.append({"id": iid, "chain_symbol": s, "type": t, "strike_price": f"{px + k * 5:.4f}", "expiration_date": "2026-10-30"})
+                big = t == hot and k == 1
+                quotes.append({"quote": {"instrument_id": iid, "volume": 5000 if big else 10, "open_interest": 1000,
+                                         "mark_price": "2.00", "bid_price": "1.95", "ask_price": "2.05", "bid_size": 3, "ask_size": 4,
+                                         "implied_volatility": "0.6", "gamma": "0.05", "delta": "0.5"}})
+    fl.add({"data": {"instruments": inst}})
+    fl.add({"data": {"results": quotes}})
+    return fl
+
+
+def test_unusual_pace_and_cursor():
+    import base64
+    from research.unusual import cursor, pace
+    assert pace(datetime(2026, 10, 29, 7, 0, tzinfo=CT)) == 1.0       # pre-market: full prior day
+    assert abs(pace(datetime(2026, 10, 29, 11, 45, tzinfo=CT)) - 0.5) < 1e-9
+    assert pace(datetime(2026, 10, 29, 8, 31, tzinfo=CT)) == 0.1      # floor
+    assert base64.b64decode(cursor(93.0)).decode() == "p=93.0000"
+
+
+def test_unusual_scan_and_stages():
+    from research import unusual as U
+    now = datetime(2026, 10, 29, 11, 45, tzinfo=CT)                    # half the session
+    (tool, args), = U.calls_scan(now)
+    assert tool.endswith("preview_scan")
+    assert args["filters"][0]["expression"] == "optionsTotalDayVolume > 1.0 * optionsTotalVolumeAvg10Day"
+    assert args["filters"][1]["values"] == ["2500000"]
+    fl = _flow()
+    syms = {u["sym"] for u in U.candidates(fl, now)}
+    assert syms == {"UPP", "DWN"}                                      # the ETF (no market cap) drops out
+    assert U.shortlist(fl, now) == ["UPP", "DWN"]
+    assert [a["underlying_symbol"] for _, a in U.calls_chains(fl, now)] == ["UPP", "DWN"]
+    c = U.calls_contracts(fl, now)
+    assert c[0][1]["expiration_dates"] == "2026-10-30"                 # nearest expiry on/after the session day
+    q = U.calls_quotes(fl, now)
+    assert len(q) == 1 and len(q[0][1]["instrument_ids"]) == 28
+
+
+def test_unusual_scores_and_contracts():
+    from research import unusual as U
+    now = datetime(2026, 10, 29, 11, 45, tzinfo=CT)
+    fl = _flow()
+    by = {u["sym"]: U.score(fl, u, date(2026, 10, 29)) for u in U.candidates(fl, now)}
+    up, dn = by["UPP"], by["DWN"]
+    assert up["pts"] == {"premium mix": 2, "tape": 1, "contracts": 1} and up["label"] == "BULLISH"
+    assert dn["pts"] == {"premium mix": -2, "tape": -1, "contracts": -1} and dn["label"] == "BEARISH"
+    assert len(up["cs"]["unusual"]) == 1 and up["cs"]["unusual"][0]["prem"] == 5000 * 2.0 * 100
+    assert up["cs"]["gex"] == 0                                        # equal call/put OI and gamma cancel
+    assert up["orvol"] == 16 and up["srvol"] == 5                      # 8x average at half the session
+    assert "earnings in 4d" in up["flags"] and "event IV (front > back)" in up["flags"] and "IV rich" in up["flags"]
+
+
+def test_unusual_report_html():
+    from research import unusual as U
+    title, html, missing, scored = U.build(_flow(), datetime(2026, 10, 29, 11, 45, tzinfo=CT), test=True)
+    assert title == "[TEST] UNUSUAL Options Flow - 2026-10-29 11:45 CT" and missing == [] and len(scored) == 2
+    text = re.sub(r"<[^>]+>", "", html)
+    assert "Top 5 bullish flow" in text and "Top 5 bearish flow" in text and "&amp;gt;" not in html
+    assert "<b>UPP</b>" in html and "<b>DWN</b>" in html and "SPY" not in html
+    assert "sweeps and trade side" in html and "Not validated out of sample." in html and "No orders placed." in html

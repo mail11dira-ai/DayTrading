@@ -35,3 +35,6 @@ Completion checklist (Option A). Each item must point to observable evidence.
 | AI Sectors 100 | short email + no ratings for ai100; Haiku; schedule 8:45 and 1:30 CT | pass | pytest 97 passed; plan 30 calls; synthetic build 14612 bytes |
 | AI Sectors 100 | universe = user's top-100 list (100 unique, 16 sectors, no MAG 7) | pass | pytest 97 passed; universe.symbols('ai100') = 100 unique |
 | ER Agent | stages produce valid calls; score + report build on live data | pass | pytest 99 passed; er report --now 2026-10-29T08:15: 15 scored, missing [] |
+| UNUSUAL Agent | 5 stages produce valid read-only calls; score + report build on live data | pass | pytest 104 passed; live run 2026-10-29 00:25 CT (10-28 data): 179 scanned, 10 scored, missing [], 13.6 KB |
+| UNUSUAL Agent | requested technicals: Volume>OI, Premium>50K, RVOL, Bid/Ask, IV, GEX, Catalyst | pass | research/unusual.py contract_stats/underlying; tests test_unusual_* |
+| UNUSUAL Agent | sweeps / trade side | unresolved | Robinhood option quotes have no prints or aggressor side; stated in the email method note |

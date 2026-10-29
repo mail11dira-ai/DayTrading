@@ -202,3 +202,11 @@ structure component left unchanged). The validation fail rows in checks.md stand
   Live test on 2026-10-29 data: 245 reporters, 15 scored, missing []. Tests: 99 passed. Scheduled Mon-Fri 8:15 CT.
 - 2026-10-29 ER agent runs moved to 9:00 and 1:00 pm CT (one task, cron 0 9,13); reaction = move since the prior close.
 - 2026-10-29 ER agent: runs after 4 pm CT or on weekends analyse the next weekday's reporters (session_day).
+- 2026-10-29 NEW UNUSUAL Options Flow Agent (research/unusual.py, "Unusual Agent/README.md"): one market-wide
+  preview_scan (options volume > 2x 10-day avg, premium >= $5M, price >= $10, pace-adjusted to the time of day; ETFs
+  and < $2B market cap dropped), then chains -> nearest-expiry contracts -> option quotes for the 5 most bullish and
+  5 most bearish names; score = premium mix (+-2) + unusual contracts vol > OI and >= $50K (+-1) + tape (+-1).
+  Email: top 5 Bullish, top 5 Bearish, contracts with bid/ask and spread, IV/IV rank, GEX and walls, catalysts.
+  Sweeps and trade side are not available from Robinhood (stated in the email). Live test on 2026-10-28 full-day data:
+  179 scanned, 145 single stocks, 10 detailed, missing []. collect.py now skips option quotes (no symbol).
+  Tests: 104 passed. Schedule: Mon-Fri 9:35 am and 1:35 pm CT.
