@@ -6,7 +6,7 @@ Four stages, each printing the read-only Robinhood calls for the next one (the s
 
 The score is a fixed-weight checklist (nothing tuned, NOT validated out of sample). Earnings direction is close
 to a coin flip; the email says so. Factors (points):
-  reaction  only after the report (BMO names at the 8:15 CT run): pre-market gap in daily-ATR units
+  reaction  only after the report (BMO names): move since the prior close, in daily-ATR units
             >= 1.0 -> 3, >= 0.5 -> 2, >= 0.2 -> 1 (same negative)
   surprise  EPS actual vs estimate >= +5% -> 1, <= -5% -> -1
   beats     share of the last 8 reports that beat the estimate >= 75% -> 1, <= 40% -> -1
@@ -102,7 +102,7 @@ def score(ds, sym, entry, today):
             g = gap / atr_pct if atr_pct else 0
             pts["reaction"] = (3 if g >= 1 else 2 if g >= 0.5 else 1 if g >= 0.2 else
                                -3 if g <= -1 else -2 if g <= -0.5 else -1 if g <= -0.2 else 0)
-            why["reaction"] = f"pre-market {gap:+.1f}% ({g:+.1f} ATR)"
+            why["reaction"] = f"{gap:+.1f}% since prior close ({g:+.1f} ATR)"
     surprise = None
     if est is not None and act is not None and est != 0:
         surprise = (act - est) / abs(est) * 100
@@ -216,7 +216,7 @@ def build(ds, now, test=False):
                      f"&plusmn;{r['avg_move']:.1f}%" if r["avg_move"] is not None else "n/a",
                      f"{r['atr_pct']:.1f}%"])
     body = "<h3>1. Top 5 earnings names today</h3>"
-    body += (R.table(["#", "Stock", "Report", "Call", "Score", "Pre-mkt", "EPS est", "EPS actual", "Beat rate (8q)",
+    body += (R.table(["#", "Stock", "Report", "Call", "Score", "Move", "EPS est", "EPS actual", "Beat rate (8q)",
                       "Avg ER move", "ATR"], rows, left=3, tint=3) if rows else "<p>No liquid large-cap reporters today.</p>")
     body += "<h3>2. Why</h3><ul>" + "".join(
         f"<li><b>{r['sym']}</b> {_label(r)} ({r['total']:+d}): "
@@ -224,7 +224,7 @@ def build(ds, now, test=False):
     rest = scored[TOP_N:]
     if rest:
         body += "<h3>3. Rest of the screened list</h3><p>" + ", ".join(f"{r['sym']} {_label(r)} {r['total']:+d}" for r in rest) + "</p>"
-    body += ("<h3>Method</h3><p>Fixed-weight checklist, nothing tuned: pre-market reaction in ATR units (reported names only, "
+    body += ("<h3>Method</h3><p>Fixed-weight checklist, nothing tuned: reaction since the prior close in ATR units (reported names only, "
              "up to &plusmn;3), EPS surprise (&plusmn;1), 8-quarter beat rate (&plusmn;1), up-day rate after past reports "
              "(&plusmn;1), 20-day return vs SPY (&plusmn;1), price vs 50-day average (&plusmn;1), analyst buy share and "
              "target (&plusmn;1). Score &ge; +2 Bullish, &le; -2 Bearish. <b>Not validated out of sample</b>: post-earnings "

@@ -1,7 +1,7 @@
 # ER Research Agent
 
-Research only - no orders. Emails mail11dira@gmail.com Mon-Fri at 8:15 CT (before the open, after most
-before-the-open reports). Code: `research/er.py` (tests in `tests/test_research.py`).
+Research only - no orders. Emails mail11dira@gmail.com Mon-Fri at 9:00 and 1:00 pm CT (after the open, so
+before-the-open reporters show their real reaction). Code: `research/er.py` (tests in `tests/test_research.py`).
 
 **What it does:** takes every large-cap (> $1B) company reporting earnings today from the Robinhood calendar,
 keeps the liquid ones (price >= $10, >= $300M traded per day), scores the 15 most liquid with a fixed-weight
@@ -18,7 +18,7 @@ checklist and emails the top 5 with a Bullish / Bearish / Neutral call.
 
 | Factor | Rule | Points |
 |---|---|---|
-| Reaction (reported names only) | pre-market gap in daily-ATR units: >= 1 / 0.5 / 0.2 | +3 / +2 / +1 (same negative) |
+| Reaction (reported names only) | move since the prior close in daily-ATR units: >= 1 / 0.5 / 0.2 | +3 / +2 / +1 (same negative) |
 | EPS surprise | actual vs estimate >= +5% / <= -5% | +1 / -1 |
 | Beat rate | last 8 reports beat the estimate >= 75% / <= 40% | +1 / -1 |
 | Reaction history | up day after past reports >= 75% / <= 25% | +1 / -1 |
