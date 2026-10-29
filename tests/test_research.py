@@ -605,3 +605,11 @@ def test_er_report_html():
     assert title == "[TEST] ER Research - 2026-10-29 08:15 CT" and missing == [] and len(scored) == 2
     assert "Top 5 earnings names today" in html and "<b>UP</b>" in html and "<b>THIN</b>" not in html
     assert "Not validated out of sample" in html and "No orders placed." in html
+
+
+def test_er_session_day():
+    from research.er import session_day
+    assert session_day(datetime(2026, 10, 29, 9, 0, tzinfo=CT)) == date(2026, 10, 29)    # Thursday morning
+    assert session_day(datetime(2026, 10, 28, 23, 49, tzinfo=CT)) == date(2026, 10, 29)  # late evening -> next day
+    assert session_day(datetime(2026, 10, 30, 17, 0, tzinfo=CT)) == date(2026, 11, 2)    # Friday evening -> Monday
+    assert session_day(datetime(2026, 10, 31, 10, 0, tzinfo=CT)) == date(2026, 11, 2)    # Saturday -> Monday

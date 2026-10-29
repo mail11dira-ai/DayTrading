@@ -201,3 +201,4 @@ structure component left unchanged). The validation fail rows in checks.md stand
   4-stage plan (calendar -> screen -> detail -> report), fixed-weight checklist score, top 5 Bullish/Bearish email.
   Live test on 2026-10-29 data: 245 reporters, 15 scored, missing []. Tests: 99 passed. Scheduled Mon-Fri 8:15 CT.
 - 2026-10-29 ER agent runs moved to 9:00 and 1:00 pm CT (one task, cron 0 9,13); reaction = move since the prior close.
+- 2026-10-29 ER agent: runs after 4 pm CT or on weekends analyse the next weekday's reporters (session_day).

@@ -38,6 +38,15 @@ def _f(x):
         return None
 
 
+def session_day(now):
+    """The report day to analyse: today, or the next weekday when run after 4 pm CT or on a weekend
+    (a late-evening or weekend run is preparing for the next session)."""
+    d = now.date() + timedelta(days=1 if now.hour >= 16 else 0)
+    while d.weekday() >= 5:
+        d += timedelta(days=1)
+    return d
+
+
 def reporters(ds, today):
     """{sym: entry} for today's calendar entries (one per symbol; OTC ADRs with no bars drop out later)."""
     out = {}
@@ -195,7 +204,7 @@ def _label(r):
 
 
 def build(ds, now, test=False):
-    today = now.date()
+    today = session_day(now)
     rep = reporters(ds, today)
     short = shortlist(ds, today)
     scored = [x for x in (score(ds, s, rep[s], today) for s in short) if x]
@@ -252,8 +261,9 @@ def main(argv=None):
         if path:
             collect.load_transcript(path, ds)
     if a.stage != "report":
-        calls = {"calendar": lambda: calls_calendar(now.date()), "screen": lambda: calls_screen(ds, now.date()),
-                 "detail": lambda: calls_detail(ds, now.date())}[a.stage]()
+        day = session_day(now)
+        calls = {"calendar": lambda: calls_calendar(day), "screen": lambda: calls_screen(ds, day),
+                 "detail": lambda: calls_detail(ds, day)}[a.stage]()
         for tool, args in calls:
             print(json.dumps({"tool": tool, "args": args}))
         return
