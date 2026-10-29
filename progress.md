@@ -210,3 +210,7 @@ structure component left unchanged). The validation fail rows in checks.md stand
   Sweeps and trade side are not available from Robinhood (stated in the email). Live test on 2026-10-28 full-day data:
   179 scanned, 145 single stocks, 10 detailed, missing []. collect.py now skips option quotes (no symbol).
   Tests: 104 passed. Schedule: Mon-Fri 9:35 am and 1:35 pm CT.
+- 2026-10-29 Scheduling: Super 10 merged into one task trig_01BSEzw8DL1JRFyRSmVnQK6B (cron 45 8,9 - same 8:45 and 9:45
+  runs, same prompt). The freed task trig_012DY3peEQUikJ9MBxYuLXpG (Robinhood + Gmail attached; create_trigger cannot
+  attach connectors in this org) is now "UNUSUAL Options Flow Agent (9:35 + 1:35 pm)", Haiku, prompt in
+  "Unusual Agent/README.md".
