@@ -1,6 +1,6 @@
 # UNUSUAL Options Flow Agent
 
-Research only - no orders. Emails mail11dira@gmail.com Mon-Fri at 9:35 am and 1:35 pm CT. Code:
+Research only - no orders. Emails mail11dira@gmail.com Mon-Fri at 8:59 am and 12:59 pm CT. Code:
 `research/unusual.py` (tests in `tests/test_research.py`).
 
 **What it does:** scans the whole market for unusual options activity, keeps single stocks (ETFs drop out: index-ETF
@@ -16,7 +16,7 @@ bearish names, and emails the top 5 Bullish and top 5 Bearish with the contracts
 
 Every stage uses the scan's time (saved in `/tmp/unusual_now.txt`), so the shortlist cannot change between stages.
 
-**Scan filter** (pace-adjusted: at 9:35 only ~17% of the day has traded, so the thresholds scale with the share of
+**Scan filter** (pace-adjusted: at 8:59 only ~7% of the day has traded (floored at 10%), so the thresholds scale with the share of
 the session elapsed): options volume > 2x the 10-day average, options premium >= $5M, price >= $10; then market
 cap >= $2B in code.
 

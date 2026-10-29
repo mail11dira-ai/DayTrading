@@ -214,3 +214,4 @@ structure component left unchanged). The validation fail rows in checks.md stand
   runs, same prompt). The freed task trig_012DY3peEQUikJ9MBxYuLXpG (Robinhood + Gmail attached; create_trigger cannot
   attach connectors in this org) is now "UNUSUAL Options Flow Agent (9:35 + 1:35 pm)", Haiku, prompt in
   "Unusual Agent/README.md".
+- 2026-10-29 UNUSUAL agent runs moved to 8:59 am and 12:59 pm CT (user request; one task, cron 59 8,12).
