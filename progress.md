@@ -219,3 +219,8 @@ structure component left unchanged). The validation fail rows in checks.md stand
   and safety rules). Task trig_01UYeZ6Dm4douirodKhcPTG8, Mon-Fri 8:00 am CT (scheduler anchor ~8:04), Sonnet.
   No script: the model writes the brief from Robinhood + web search. Created WITHOUT connectors (API limit); the user
   will attach Robinhood + Gmail in the claude.ai task settings. Open issue: until then runs cannot fetch data or email.
+- 2026-10-30 Daily Quant Brief v2.0 (user: "simple, sleek, more info"): first email (manual run 01:05 CT) was
+  ~3,000 words with T-tags, UNAVAILABLE rows, empty analyst tables, a 17-item gap list and a source log. New spec:
+  6 sections (Today in 30 seconds, Levels, Movers & earnings, Analyst calls, Global & macro + calendar, Game plan),
+  700-1,100 words, research rules kept but silent, missing data omitted, fixed 680px email design, subject shows
+  regime + SPY bias. Task prompt updated; connectors now attached by the user.
