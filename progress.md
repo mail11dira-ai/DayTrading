@@ -215,3 +215,7 @@ structure component left unchanged). The validation fail rows in checks.md stand
   attach connectors in this org) is now "UNUSUAL Options Flow Agent (9:35 + 1:35 pm)", Haiku, prompt in
   "Unusual Agent/README.md".
 - 2026-10-29 UNUSUAL agent runs moved to 8:59 am and 12:59 pm CT (user request; one task, cron 59 8,12).
+- 2026-10-30 NEW Daily Quant Brief agent ("Daily Quant Brief/": prompt.md = user's v1.0 spec, wrapper.txt = delivery
+  and safety rules). Task trig_01UYeZ6Dm4douirodKhcPTG8, Mon-Fri 8:00 am CT (scheduler anchor ~8:04), Sonnet.
+  No script: the model writes the brief from Robinhood + web search. Created WITHOUT connectors (API limit); the user
+  will attach Robinhood + Gmail in the claude.ai task settings. Open issue: until then runs cannot fetch data or email.
