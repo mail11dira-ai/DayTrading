@@ -5,7 +5,8 @@ before-the-open reporters show their real reaction). Code: `research/er.py` (tes
 
 **What it does:** takes every large-cap (> $1B) company reporting earnings today from the Robinhood calendar,
 keeps the liquid ones (price >= $10, >= $300M traded per day), scores the 15 most liquid with a fixed-weight
-checklist and emails the top 5 with a Bullish / Bearish / Neutral call.
+checklist and emails the top 3 Bullish and top 3 Bearish setups, separately for names reporting before the open (BMO)
+and after the close (AMC).
 
 **Stages** (each prints the read-only Robinhood calls for the next; symbols depend on the day's calendar):
 1. `python3 -m research.er calendar` - today's earnings calendar (1 call)

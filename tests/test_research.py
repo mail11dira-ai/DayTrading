@@ -598,12 +598,25 @@ def test_er_stages_and_scores():
     assert dn["label"] == "BEARISH" and "reaction" not in dn["pts"] and dn["pts"]["beats"] == -1 and dn["pts"]["analysts"] == -1
 
 
+def test_er_setups_split_by_timing():
+    from research import er
+    today = date(2026, 10, 29)
+    ds = _er_dataset(today)
+    scored = [er.score(ds, s, er.reporters(ds, today)[s], today) for s in er.shortlist(ds, today)]
+    assert [r["sym"] for r in er._pick(scored, "am", "BULLISH")] == ["UP"]
+    assert er._pick(scored, "am", "BEARISH") == []                       # no BMO bearish name in the fixture
+    assert [r["sym"] for r in er._pick(scored, "pm", "BEARISH")] == ["DN"]
+    assert er._pick(scored, "pm", "BULLISH") == []
+
+
 def test_er_report_html():
     from research import er
     today = date(2026, 10, 29)
     title, html, missing, scored = er.build(_er_dataset(today), datetime(2026, 10, 29, 8, 15, tzinfo=CT), test=True)
     assert title == "[TEST] ER Research - 2026-10-29 08:15 CT" and missing == [] and len(scored) == 2
-    assert "Top 5 earnings names today" in html and "<b>UP</b>" in html and "<b>THIN</b>" not in html
+    text = re.sub(r"<[^>]+>", "", html)
+    assert "1. Before the open (BMO): top 3 Bullish and 3 Bearish" in text and "2. After the close (AMC): top 3 Bullish and 3 Bearish" in text
+    assert "<b>UP</b>" in html and "<b>DN</b>" in html and "<b>THIN</b>" not in html
     assert "Not validated out of sample" in html and "No orders placed." in html
 
 

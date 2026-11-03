@@ -224,3 +224,4 @@ structure component left unchanged). The validation fail rows in checks.md stand
   6 sections (Today in 30 seconds, Levels, Movers & earnings, Analyst calls, Global & macro + calendar, Game plan),
   700-1,100 words, research rules kept but silent, missing data omitted, fixed 680px email design, subject shows
   regime + SPY bias. Task prompt updated; connectors now attached by the user.
+- 2026-11-03 ER report: top 3 Bullish and top 3 Bearish setups, shown separately for before-the-open (BMO) and after-the-close (AMC) reporters (research/er.py PER_SIDE, _pick). Tests: 105 passed.

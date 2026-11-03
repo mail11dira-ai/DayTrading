@@ -14,7 +14,8 @@ to a coin flip; the email says so. Factors (points):
   momentum  20-day return vs SPY > +5% -> 1, < -5% -> -1
   trend     close vs 50-day average above -> 1, below -> -1
   analysts  buy >= 70% and target >= 10% above price -> 1; buy < 40% or target below price -> -1
-Label: total >= 2 Bullish, <= -2 Bearish, else Neutral. Top 5 by |total|, then $ volume.
+Label: total >= 2 Bullish, <= -2 Bearish, else Neutral. Top 3 Bullish and top 3 Bearish, separately for
+before-the-open and after-the-close reporters, ranked by |total| then $ volume.
 """
 import argparse
 import json
@@ -28,7 +29,7 @@ from .plan import P, chunks
 
 MIN_PRICE, MIN_DVOL = 10.0, 3e8  # liquid enough to day-trade: >= $10 and >= $300M traded per day (20-day average)
 DETAIL_N = 15                    # names that get the detailed (per-symbol) calls
-TOP_N = 5
+PER_SIDE = 3                     # setups per side (Bullish / Bearish) for each report timing
 
 
 def _f(x):
@@ -203,20 +204,15 @@ def _label(r):
     return {"BULLISH": '<span class="g">Bullish</span>', "BEARISH": '<span class="r">Bearish</span>'}.get(r["label"], "Neutral")
 
 
-def build(ds, now, test=False):
-    today = session_day(now)
-    rep = reporters(ds, today)
-    short = shortlist(ds, today)
-    scored = [x for x in (score(ds, s, rep[s], today) for s in short) if x]
-    scored.sort(key=lambda r: (-abs(r["total"]), short.index(r["sym"])))
-    top = scored[:TOP_N]
-    title = f"{'[TEST] ' if test else ''}ER Research - {now:%Y-%m-%d %H:%M} CT"
-    am = sum(1 for e in rep.values() if (e.get("report") or {}).get("timing") == "am")
-    note = (f"{len(rep)} large-cap companies report on {today} ({am} before the open, {len(rep) - am} after the close or unknown); "
-            f"{len(short)} pass the liquidity screen (price >= ${MIN_PRICE:.0f}, >= ${MIN_DVOL / 1e6:.0f}M/day) and are scored.")
+def _pick(scored, timing, label, n=PER_SIDE):
+    """Top n names with this timing and call, strongest score first (scored is already ranked)."""
+    return [r for r in scored if r["timing"] == timing and r["label"] == label][:n]
+
+
+def _rows(picks):
     rows = []
-    for i, r in enumerate(top, 1):
-        when = "BMO, reported" if r["timing"] == "am" and r["reported"] else "BMO" if r["timing"] == "am" else "AMC tonight" if r["timing"] == "pm" else "time n/a"
+    for i, r in enumerate(picks, 1):
+        when = "BMO, reported" if r["timing"] == "am" and r["reported"] else "BMO" if r["timing"] == "am" else "AMC tonight"
         rows.append([i, f"<b>{r['sym']}</b>", when, _label(r), f"{r['total']:+d}",
                      R.pct(r["gap"], 1) if r["gap"] is not None else "n/a",
                      f"{r['est']:.2f}" if r["est"] is not None else "n/a",
@@ -224,19 +220,39 @@ def build(ds, now, test=False):
                      f"{r['beat']:.0%}" if r["beat"] is not None else "n/a",
                      f"&plusmn;{r['avg_move']:.1f}%" if r["avg_move"] is not None else "n/a",
                      f"{r['atr_pct']:.1f}%"])
-    body = "<h3>1. Top 5 earnings names today</h3>"
-    body += (R.table(["#", "Stock", "Report", "Call", "Score", "Move", "EPS est", "EPS actual", "Beat rate (8q)",
-                      "Avg ER move", "ATR"], rows, left=3, tint=3) if rows else "<p>No liquid large-cap reporters today.</p>")
-    body += "<h3>2. Why</h3><ul>" + "".join(
+    return rows
+
+
+def build(ds, now, test=False):
+    today = session_day(now)
+    rep = reporters(ds, today)
+    short = shortlist(ds, today)
+    scored = [x for x in (score(ds, s, rep[s], today) for s in short) if x]
+    scored.sort(key=lambda r: (-abs(r["total"]), short.index(r["sym"])))
+    title = f"{'[TEST] ' if test else ''}ER Research - {now:%Y-%m-%d %H:%M} CT"
+    am = sum(1 for e in rep.values() if (e.get("report") or {}).get("timing") == "am")
+    note = (f"{len(rep)} large-cap companies report on {today} ({am} before the open, {len(rep) - am} after the close or unknown); "
+            f"{len(short)} pass the liquidity screen (price >= ${MIN_PRICE:.0f}, >= ${MIN_DVOL / 1e6:.0f}M/day) and are scored.")
+    head = ["#", "Stock", "Report", "Call", "Score", "Move", "EPS est", "EPS actual", "Beat rate (8q)", "Avg ER move", "ATR"]
+    picked = []
+    body = ""
+    for n, (timing, name) in enumerate((("am", "Before the open (BMO)"), ("pm", "After the close (AMC)")), 1):
+        bull, bear = _pick(scored, timing, "BULLISH"), _pick(scored, timing, "BEARISH")
+        picked += bull + bear
+        body += f"<h3>{n}. {name}: top {PER_SIDE} Bullish and {PER_SIDE} Bearish</h3>"
+        body += (R.table(head, _rows(bull + bear), left=3, tint=3) if bull or bear
+                 else f"<p>No {name.split(' (')[0].lower()} names with a Bullish or Bearish call today.</p>")
+    body += "<h3>3. Why</h3><ul>" + "".join(
         f"<li><b>{r['sym']}</b> {_label(r)} ({r['total']:+d}): "
-        + "; ".join(f"{k} {r['pts'][k]:+d} ({escape(r['why'][k])})" for k in r["pts"]) + "</li>" for r in top) + "</ul>"
-    rest = scored[TOP_N:]
+        + "; ".join(f"{k} {r['pts'][k]:+d} ({escape(r['why'][k])})" for k in r["pts"]) + "</li>" for r in picked) + "</ul>"
+    rest = [r for r in scored if r not in picked]
     if rest:
-        body += "<h3>3. Rest of the screened list</h3><p>" + ", ".join(f"{r['sym']} {_label(r)} {r['total']:+d}" for r in rest) + "</p>"
+        body += "<h3>4. Rest of the screened list</h3><p>" + ", ".join(f"{r['sym']} {_label(r)} {r['total']:+d}" for r in rest) + "</p>"
     body += ("<h3>Method</h3><p>Fixed-weight checklist, nothing tuned: reaction since the prior close in ATR units (reported names only, "
              "up to &plusmn;3), EPS surprise (&plusmn;1), 8-quarter beat rate (&plusmn;1), up-day rate after past reports "
              "(&plusmn;1), 20-day return vs SPY (&plusmn;1), price vs 50-day average (&plusmn;1), analyst buy share and "
-             "target (&plusmn;1). Score &ge; +2 Bullish, &le; -2 Bearish. <b>Not validated out of sample</b>: post-earnings "
+             "target (&plusmn;1). Score &ge; +2 Bullish, &le; -2 Bearish. Setups are ranked separately for names reporting before "
+             "the open and after the close. <b>Not validated out of sample</b>: post-earnings "
              "direction is close to a coin flip, and names reporting after the close (AMC) have no reaction yet, so their "
              "call rests on history only. Size positions for the average earnings move shown.</p>")
     missing = [s for s in short if s not in {r["sym"] for r in scored}]
