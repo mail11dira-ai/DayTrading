@@ -557,7 +557,7 @@ def _er_dataset(today):
     def bars(sym, start, step, vol):
         out = []
         for i, dd in enumerate(days):
-            c = start + step * i
+            c = start + step * i + (0.8 if i % 2 else -0.8)  # wiggle so RSI14 stays inside the 25-75 band
             out.append({"begins_at": f"{dd}T00:00:00Z", "open_price": str(c), "high_price": str(c * 1.01),
                         "low_price": str(c * 0.99), "close_price": str(c), "volume": vol})
         ds.add({"data": {"results": [{"symbol": sym, "interval": "day", "bars": out}]}})
@@ -573,7 +573,7 @@ def _er_dataset(today):
         hist.append({"symbol": "UP", "year": 2025, "quarter": k, "eps": {"estimate": "1.0", "actual": "1.1"}, "report": {"date": str(dd), "timing": "am"}})
         hist.append({"symbol": "DN", "year": 2025, "quarter": k, "eps": {"estimate": "1.0", "actual": "0.9"}, "report": {"date": str(dd), "timing": "pm"}})
     ds.add({"data": {"results": cal + hist}})
-    up_close = 100 + 0.5 * 59
+    up_close = 100 + 0.5 * 59 + 0.8  # last bar of the wiggled UP series
     ds.add({"data": {"results": [{"quote": {"symbol": "UP", "last_trade_price": str(up_close), "venue_last_trade_time": f"{days[-1]}T20:00:00Z",
                                              "last_non_reg_trade_price": str(up_close * 1.03), "venue_last_non_reg_trade_time": f"{today}T12:00:00Z",
                                              "adjusted_previous_close": str(up_close)}}]}})
@@ -707,3 +707,14 @@ def test_unusual_report_html():
     assert "Top 5 bullish flow" in text and "Top 5 bearish flow" in text and "&amp;gt;" not in html
     assert "<b>UPP</b>" in html and "<b>DWN</b>" in html and "SPY" not in html
     assert "sweeps and trade side" in html and "Not validated out of sample." in html and "No orders placed." in html
+
+
+def test_er_screen_filters():
+    from research import er
+    today = date(2026, 10, 29)
+    ds = _er_dataset(today)
+    assert er.screen_fail(ds, "UP", today) is None and er.screen_fail(ds, "DN", today) is None
+    assert er.screen_fail(ds, "THIN", today) == "liquidity"        # 10k shares at $100 is also under $300M/day
+    assert er.rsi14([100 + i for i in range(30)]) == 100.0           # straight up -> overbought, outside the band
+    assert er.rsi14([100] * 5) is None                               # too short
+    assert er.RSI_BAND == (25, 75) and er.MIN_SHARES == 2e6

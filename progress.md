@@ -225,3 +225,4 @@ structure component left unchanged). The validation fail rows in checks.md stand
   700-1,100 words, research rules kept but silent, missing data omitted, fixed 680px email design, subject shows
   regime + SPY bias. Task prompt updated; connectors now attached by the user.
 - 2026-11-03 ER report: top 3 Bullish and top 3 Bearish setups, shown separately for before-the-open (BMO) and after-the-close (AMC) reporters (research/er.py PER_SIDE, _pick). Tests: 105 passed.
+- 2026-11-03 ER agent: runs 8:10 am and 1:10 pm CT (cron 10 8,13). Filters added: >= 2M shares/day (20-day avg), ATR14 >= 1.5%, RSI14 25-75, prior-day move <= 10%. Tests: 106 passed.

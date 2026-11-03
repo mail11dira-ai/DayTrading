@@ -1,10 +1,10 @@
 # ER Research Agent
 
-Research only - no orders. Emails mail11dira@gmail.com Mon-Fri at 9:00 and 1:00 pm CT (after the open, so
+Research only - no orders. Emails mail11dira@gmail.com Mon-Fri at 8:10 am and 1:10 pm CT (the 8:10 run is before the open; the 1:10 run is after the open, so
 before-the-open reporters show their real reaction). Code: `research/er.py` (tests in `tests/test_research.py`).
 
 **What it does:** takes every large-cap (> $1B) company reporting earnings today from the Robinhood calendar,
-keeps the liquid ones (price >= $10, >= $300M traded per day), scores the 15 most liquid with a fixed-weight
+keeps the liquid ones (price >= $10, >= $300M traded per day, >= 2M shares per day; technical filters: ATR14 >= 1.5% of price, RSI14 between 25 and 75; context filter: prior session moved <= 10%), scores the 15 most liquid with a fixed-weight
 checklist and emails the top 3 Bullish and top 3 Bearish setups, separately for names reporting before the open (BMO)
 and after the close (AMC).
 

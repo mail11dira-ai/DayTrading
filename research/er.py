@@ -28,6 +28,10 @@ from .analyze import CT, now_ct
 from .plan import P, chunks
 
 MIN_PRICE, MIN_DVOL = 10.0, 3e8  # liquid enough to day-trade: >= $10 and >= $300M traded per day (20-day average)
+MIN_SHARES = 2e6                 # high-volume shares: >= 2M shares traded per day (20-day average)
+MIN_ATR = 1.5                    # technical: daily ATR14 >= 1.5% of price, enough movement to trade
+RSI_BAND = (25, 75)              # technical: RSI14 inside 25-75, not already stretched
+MAX_PRIOR_MOVE = 10.0            # context: prior session moved <= 10%, so the news is not already priced in
 DETAIL_N = 15                    # names that get the detailed (per-symbol) calls
 PER_SIDE = 3                     # setups per side (Bullish / Bearish) for each report timing
 
@@ -78,10 +82,45 @@ def _daily(ds, sym, today):
 
 
 def liquidity(ds, sym, today):
+    """(last close, 20-day average $ volume, 20-day average shares) or None."""
     d = _daily(ds, sym, today)
     if len(d) < 20:
         return None
-    return d[-1][4], st.mean(x[4] * x[5] for x in d[-20:])
+    return d[-1][4], st.mean(x[4] * x[5] for x in d[-20:]), st.mean(x[5] for x in d[-20:])
+
+
+def rsi14(closes):
+    """Wilder RSI(14) of a close series (None if too short)."""
+    if len(closes) < 15:
+        return None
+    gains = [max(b - a, 0) for a, b in zip(closes, closes[1:])]
+    losses = [max(a - b, 0) for a, b in zip(closes, closes[1:])]
+    ag, al = st.mean(gains[:14]), st.mean(losses[:14])
+    for g, l in zip(gains[14:], losses[14:]):
+        ag, al = (ag * 13 + g) / 14, (al * 13 + l) / 14
+    return 100.0 if al == 0 else 100 - 100 / (1 + ag / al)
+
+
+def screen_fail(ds, sym, today):
+    """Why a reporter is excluded before the detailed calls, or None if it passes the liquidity, technical and context filters."""
+    d = _daily(ds, sym, today)
+    liq = liquidity(ds, sym, today)
+    if not liq or len(d) < 21:
+        return "no bars"
+    close, dvol, shares = liq
+    if close < MIN_PRICE or dvol < MIN_DVOL:
+        return "liquidity"
+    if shares < MIN_SHARES:
+        return "share volume"
+    tr = [max(d[i][2], d[i - 1][4]) - min(d[i][3], d[i - 1][4]) for i in range(1, len(d))]
+    if st.mean(tr[-14:]) / close * 100 < MIN_ATR:
+        return "ATR"
+    rsi = rsi14([x[4] for x in d])
+    if rsi is None or not RSI_BAND[0] <= rsi <= RSI_BAND[1]:
+        return "RSI"
+    if abs(d[-1][4] / d[-2][4] - 1) * 100 > MAX_PRIOR_MOVE:
+        return "prior-day move"
+    return None
 
 
 def _price(q):
@@ -179,11 +218,11 @@ def calls_screen(ds, today):
 
 
 def shortlist(ds, today, n=DETAIL_N):
+    """Reporters that pass the screen, most liquid (by $ volume) first."""
     rows = []
     for s in reporters(ds, today):
-        liq = liquidity(ds, s, today)
-        if liq and liq[0] >= MIN_PRICE and liq[1] >= MIN_DVOL:
-            rows.append((s, liq[1]))
+        if screen_fail(ds, s, today) is None:
+            rows.append((s, liquidity(ds, s, today)[1]))
     return [s for s, _ in sorted(rows, key=lambda x: -x[1])[:n]]
 
 
@@ -232,7 +271,8 @@ def build(ds, now, test=False):
     title = f"{'[TEST] ' if test else ''}ER Research - {now:%Y-%m-%d %H:%M} CT"
     am = sum(1 for e in rep.values() if (e.get("report") or {}).get("timing") == "am")
     note = (f"{len(rep)} large-cap companies report on {today} ({am} before the open, {len(rep) - am} after the close or unknown); "
-            f"{len(short)} pass the liquidity screen (price >= ${MIN_PRICE:.0f}, >= ${MIN_DVOL / 1e6:.0f}M/day) and are scored.")
+            f"{len(short)} pass the screen (price >= ${MIN_PRICE:.0f}, >= ${MIN_DVOL / 1e6:.0f}M/day and >= {MIN_SHARES / 1e6:.0f}M shares/day, "
+            f"ATR >= {MIN_ATR}%, RSI {RSI_BAND[0]}-{RSI_BAND[1]}, prior-day move <= {MAX_PRIOR_MOVE:.0f}%) and are scored.")
     head = ["#", "Stock", "Report", "Call", "Score", "Move", "EPS est", "EPS actual", "Beat rate (8q)", "Avg ER move", "ATR"]
     picked = []
     body = ""
