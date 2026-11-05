@@ -23,6 +23,7 @@ class Dataset:
         self.ratings = {}       # sym -> ratings dict
         self.fundamentals = {}  # sym -> dict
         self.indexes = {}       # index symbol (e.g. VIX) -> level
+        self.options = {}       # sym -> scanner columns (IV, option volume and premium), from preview_scan
         self.sources = 0
 
     def add(self, payload):
@@ -36,6 +37,13 @@ class Dataset:
                 except (KeyError, TypeError, ValueError):
                     pass
             self.sources += 1
+            return
+        scan = data.get("result") if isinstance(data, dict) else None
+        if isinstance(scan, dict) and isinstance(scan.get("results"), list):  # preview_scan rows
+            self.sources += 1
+            for r in scan["results"]:
+                if isinstance(r, dict) and r.get("ticker") and isinstance(r.get("columns"), dict):
+                    self.options[r["ticker"]] = r["columns"]
             return
         results = data.get("results") if isinstance(data, dict) else None
         if not isinstance(results, list) or not results:

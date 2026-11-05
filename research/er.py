@@ -121,6 +121,24 @@ def rsi14(closes):
     return 100.0 if al == 0 else 100 - 100 / (1 + ag / al)
 
 
+OPTION_COLS = ["IV rank", "IV30", "Call vol", "Put vol", "Total OI", "Call prem", "Put prem"]
+
+
+def _opt(ds, sym):
+    """Options metrics for sym from the market scan (None if the scan had no row for it)."""
+    c = ds.options.get(sym)
+    if not c:
+        return None
+
+    def col(*names):
+        return next((_f(c[n]) for n in names if c.get(n) not in (None, "")), None)
+    iv30 = col("Implied volatility", "IV30")
+    cp, pp = col("Call prem") or 0, col("Put prem") or 0
+    cv, pv = col("Total call volume", "Call vol") or 0, col("Total put volume", "Put vol") or 0
+    return {"iv_rank": col("IV rank"), "iv30": iv30, "call_share": cp / (cp + pp) if cp + pp else None,
+            "pc_vol": pv / cv if cv else None, "oi": col("Total OI")}
+
+
 def _ema(values, n):
     """EMA series (same length as values, seeded with the first value)."""
     k, out = 2 / (n + 1), [values[0]]
@@ -290,6 +308,19 @@ def score(ds, sym, entry, today, reacted=True):
         lv.append(f"pivot {tech['pivot']:.2f}, R1 {tech['r1']:.2f}, S1 {tech['s1']:.2f}")
     if lv:
         why["levels"] = "; ".join(lv)
+    opt = _opt(ds, sym)
+    if opt:
+        if opt["call_share"] is not None:
+            cs = opt["call_share"]
+            pts["option flow"] = 1 if cs >= 0.65 else -1 if cs <= 0.35 else 0
+            why["option flow"] = f"calls {cs:.0%} of options premium"
+        if opt["iv30"]:
+            day_move = opt["iv30"] * (1 / 252) ** 0.5 * 100
+            why["implied move"] = f"+/-{day_move:.1f}%/day at IV30 {opt['iv30'] * 100:.0f}%"
+        if opt["iv_rank"] is not None:
+            why["IV rank"] = f"{opt['iv_rank'] * 100:.0f}% (high = expensive options)"
+        if opt["pc_vol"] is not None:
+            why["put/call volume"] = f"{opt['pc_vol']:.2f}"
     a = ds.ratings.get(sym)
     if a:
         nb, nh, ns = (int(_f(a.get(k)) or 0) for k in ("num_buy_ratings", "num_hold_ratings", "num_sell_ratings"))
@@ -303,7 +334,7 @@ def score(ds, sym, entry, today, reacted=True):
     label = "BULLISH" if total >= 2 else "BEARISH" if total <= -2 else "NEUTRAL"
     return {"sym": sym, "timing": timing, "rdate": today, "reacted": reacted, "reported": act is not None or "reaction" in pts,
             "total": total, "label": label, "pts": pts, "why": why, "atr_pct": atr_pct, "gap": gap, "surprise": surprise,
-            "est": est, "act": act, "beat": beat, "up": up, "avg_move": avg_move, "price": close, "tech": tech}
+            "est": est, "act": act, "beat": beat, "up": up, "avg_move": avg_move, "price": close, "tech": tech, "opt": opt}
 
 
 def shortlist(ds, slots, n=DETAIL_N):
@@ -321,10 +352,24 @@ def calls_calendar(slots):
             for d in sorted({d for d, _ in slots})]
 
 
+def calls_options(slots):
+    """One market scan per report date: IV rank, implied volatility, option volume and premium for every
+    reporter with a market cap of $10B or more (the same universe as the calendar's high-cap filter)."""
+    cols = [{"display_name": n, "expression": e} for n, e in [
+        ("IV rank", "ivRank"), ("IV30", "atmIv30Day"), ("Call vol", "optionsCallDayVolume"), ("Put vol", "optionsPutDayVolume"),
+        ("Total OI", "optionsTotalOpenInterest"), ("Call prem", 'optionsDayPremium(callput="C")'),
+        ("Put prem", 'optionsDayPremium(callput="P")')]]
+    return [(P + "preview_scan", {"filters": [
+        {"expression": "fundamental.earningsYmd", "predicate": "PREDICATE_EQUAL", "values": [d.strftime("%Y%m%d")], "display_title": "Earnings date"},
+        {"expression": "fundamental.marketCap", "predicate": "PREDICATE_GREATER_THAN_OR_EQUAL", "values": ["10000000000"], "display_title": "Market cap"}],
+        "columns": cols}) for d in sorted({d for d, _ in slots})]
+
+
 def calls_screen(ds, slots):
     syms = sorted(candidates(ds, slots)) + ["SPY"]
     start = f"{min(d for d, _ in slots) - timedelta(days=300)}T00:00:00Z"  # 200-day average + 20-day levels
-    return [(P + "get_equity_historicals", {"symbols": c, "interval": "day", "start_time": start}) for c in chunks(syms, 10)]
+    hist = [(P + "get_equity_historicals", {"symbols": c, "interval": "day", "start_time": start}) for c in chunks(syms, 10)]
+    return hist + calls_options(slots)
 
 
 def calls_detail(ds, slots):
@@ -405,7 +450,7 @@ def build(ds, now, test=False):
     body += ("<h3>Method</h3><p>Fixed-weight checklist, nothing tuned: reaction since the prior close in ATR units (BMO names that "
              "have already reported, up to &plusmn;3), EPS surprise (&plusmn;1), 8-quarter beat rate (&plusmn;1), up-day rate after "
              "past reports (&plusmn;1), 20-day return vs SPY (&plusmn;1), price vs 50-day average (&plusmn;1), analyst buy share and "
-             "target (&plusmn;1), VWAP, 200-day average, MACD, volume flow (up/down volume and OBV) (&plusmn;1 each). Score &ge; +2 Bullish, &le; -2 Bearish. <b>Not validated out of sample</b>: post-earnings "
+             "target (&plusmn;1), VWAP, 200-day average, MACD, volume flow (up/down volume and OBV), option flow (call share of premium) (&plusmn;1 each). Implied volatility and implied daily move are shown, not scored. Score &ge; +2 Bullish, &le; -2 Bearish. <b>Not validated out of sample</b>: post-earnings "
              "direction is close to a coin flip. Names reporting after the close, and next session's before-the-open names, have no "
              "reaction yet, so their call rests on history, trend and analysts. Size positions for the average earnings move shown.</p>")
     missing = [s for s in short if s not in {r["sym"] for r in scored}]

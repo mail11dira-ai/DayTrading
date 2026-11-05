@@ -14,7 +14,8 @@ checklist and emails the top 5 Bullish and top 5 Bearish setups among the 20 mos
 - Volume flow: up-volume vs down-volume ratio and on-balance volume (OBV) over 20 sessions; RVOL vs the 20-day average.
 - Levels: 20- and 60-day support and resistance; classic pivots (P, R1, S1) from the last session.
 - Each of VWAP, 200-day average, MACD and volume flow adds +1 or -1 to the score (the Bullish/Bearish cut-offs stay at +2/-2).
-- Not yet included: implied volatility and option flow (they need about 40 extra option calls per run).
+- Options (one market scan per report date, about +$0.01-0.03 per run): call share of options premium (above 65% = +1, below 35% = -1, added to the score); implied volatility (IV30) with the implied daily move; IV rank (shown, not scored: high IV means expensive options); put/call volume.
+- The options scan covers reporters with a market cap of $10B or more.
 
 **Which names each run covers:**
 - **8:10 am run:** today's before-the-open (BMO) and after-the-close (AMC) reporters.

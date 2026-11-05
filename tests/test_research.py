@@ -590,7 +590,10 @@ def test_er_stages_and_scores():
     assert er.calls_calendar(morning) == [("mcp__Robinhood_Agentic__get_earnings_calendar",
                                            {"days": 1, "filter": "high_market_cap", "start_date": "2026-10-29"})]
     screen = er.calls_screen(ds, morning)
-    assert all(len(a["symbols"]) <= 10 for _, a in screen) and "SPY" in screen[-1][1]["symbols"]
+    hist = [a for t_, a in screen if "symbols" in a]
+    assert all(len(a["symbols"]) <= 10 for a in hist) and "SPY" in hist[-1]["symbols"]
+    scan = [a for t_, a in screen if "filters" in a]
+    assert len(scan) == 1 and scan[0]["filters"][0]["values"] == ["20261029"]  # one option scan per report date
     assert sorted(er.shortlist(ds, morning)) == ["DN", "UP"]          # THIN fails the share and $ volume screens
     detail = er.calls_detail(ds, morning)
     assert sum(t.endswith("get_earnings_results") for t, _ in detail) == 2
@@ -599,6 +602,33 @@ def test_er_stages_and_scores():
     dn = er.score(ds, "DN", cands["DN"][0], today, reacted=True)
     assert up["label"] == "BULLISH" and up["pts"]["reaction"] > 0 and up["pts"]["surprise"] == 1 and up["pts"]["beats"] == 1
     assert dn["label"] == "BEARISH" and "reaction" not in dn["pts"] and dn["pts"]["beats"] == -1 and dn["pts"]["analysts"] == -1
+
+
+def test_er_option_flow_and_implied_move():
+    from research import er
+    from research.collect import Dataset
+    today = date(2026, 10, 29)
+    ds = _er_dataset(today)
+    ds.options = {"UP": {"IV rank": "0.25", "Implied volatility": "0.50", "Total call volume": "900", "Total put volume": "100",
+                         "Call prem": "8000000", "Put prem": "2000000", "Total OI": "5000"},
+                  "DN": {"IV rank": "0.85", "IV30": "0.40", "Call prem": "1000000", "Put prem": "9000000"}}
+    cands = er.candidates(ds, er.plan(datetime(2026, 10, 29, 8, 10, tzinfo=CT))[1])
+    up = er.score(ds, "UP", cands["UP"][0], today)
+    dn = er.score(ds, "DN", cands["DN"][0], today)
+    assert up["pts"]["option flow"] == 1 and dn["pts"]["option flow"] == -1            # 80% calls vs 10% calls
+    assert up["opt"]["iv_rank"] == 0.25 and up["why"]["implied move"].startswith("+/-3.1%")  # 50% IV30 / sqrt(252)
+    assert up["why"]["IV rank"].startswith("25%") and "put/call volume" in up["why"]
+    assert "IV rank" not in up["pts"]                                                 # shown, not scored
+    # a name with no scan row is scored without the option factors
+    ds2 = _er_dataset(today)
+    assert "option flow" not in er.score(ds2, "UP", cands["UP"][0], today)["pts"]
+
+
+def test_er_option_scan_is_parsed():
+    from research.collect import Dataset
+    ds = Dataset()
+    ds.add({"data": {"result": {"results": [{"ticker": "MTD", "columns": {"IV rank": "0.88", "Call prem": "2e6"}}]}}})
+    assert ds.options["MTD"]["IV rank"] == "0.88" and ds.sources == 1
 
 
 def test_er_run_plans():
