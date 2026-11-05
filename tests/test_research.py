@@ -739,8 +739,9 @@ def test_er_technicals():
     from research import er
     from datetime import date as _d, timedelta as _td
     import math
-    d = [(str(_d(2025, 1, 1) + _td(days=i)), 100 + i * 0.1 - 0.5, 101 + i * 0.1, 99 + i * 0.1, 100 + i * 0.1, 1e6 * (1 + i % 3))
-         for i in range(260)]
+    # rising with a wiggle, so there are both up and down sessions (a straight line has no down volume)
+    d = [(str(_d(2025, 1, 1) + _td(days=i)), 100 + i * 0.1 - 0.5, 101 + i * 0.1, 99 + i * 0.1,
+          100 + i * 0.1 + (0.8 if i % 2 else -0.8), 1e6 * (1 + i % 3)) for i in range(260)]
     t = er.technicals(d)
     assert t["macd_hist"] > 0 and t["sma200"] < d[-1][4] and t["vwap20"] < d[-1][4]     # steady uptrend
     assert 0.5 < t["bb_pct"] <= 1.5 and t["support20"] < t["resist20"] and t["r1"] > t["pivot"] > t["s1"]
