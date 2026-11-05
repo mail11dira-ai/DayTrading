@@ -121,6 +121,57 @@ def rsi14(closes):
     return 100.0 if al == 0 else 100 - 100 / (1 + ag / al)
 
 
+def _ema(values, n):
+    """EMA series (same length as values, seeded with the first value)."""
+    k, out = 2 / (n + 1), [values[0]]
+    for x in values[1:]:
+        out.append(x * k + out[-1] * (1 - k))
+    return out
+
+
+def technicals(d):
+    """Technical state from daily bars d = [(date, open, high, low, close, volume), ...] (last bar = last session).
+    Every field is None when there are too few bars for it."""
+    c = [x[4] for x in d]
+    h = [x[2] for x in d]
+    lo = [x[3] for x in d]
+    v = [x[5] for x in d]
+    t = {}
+    if len(d) >= 35:  # MACD 12/26/9 histogram
+        macd = [a - b for a, b in zip(_ema(c, 12), _ema(c, 26))]
+        sig = _ema(macd, 9)
+        t["macd_hist"] = macd[-1] - sig[-1]
+    if len(d) >= 20:  # Bollinger 20, 2 sd
+        m20 = st.mean(c[-20:])
+        sd = st.pstdev(c[-20:])
+        up, dn = m20 + 2 * sd, m20 - 2 * sd
+        t["bb_pct"] = (c[-1] - dn) / (up - dn) if up > dn else None
+        t["bb_width"] = (up - dn) / m20 * 100
+        tp = [(a + b + e) / 3 for a, b, e in zip(h[-20:], lo[-20:], c[-20:])]
+        vol20 = sum(v[-20:])
+        t["vwap20"] = sum(x * y for x, y in zip(tp, v[-20:])) / vol20 if vol20 else None  # rolling 20-session VWAP
+        t["support20"], t["resist20"] = min(lo[-20:]), max(h[-20:])
+        t["rvol"] = v[-1] / st.mean(v[-21:-1]) if len(d) >= 21 and st.mean(v[-21:-1]) else None
+    if len(d) >= 21:  # volume flow: on-balance volume and up-volume vs down-volume over 20 sessions
+        obv = [0.0]
+        for i in range(1, len(d)):
+            obv.append(obv[-1] + (v[i] if c[i] > c[i - 1] else -v[i] if c[i] < c[i - 1] else 0))
+        t["obv_chg"] = obv[-1] - obv[-21]
+        up_v = sum(v[i] for i in range(len(d) - 20, len(d)) if c[i] > c[i - 1])
+        dn_v = sum(v[i] for i in range(len(d) - 20, len(d)) if c[i] < c[i - 1])
+        t["updown"] = up_v / dn_v if dn_v else None
+    if len(d) >= 60:
+        t["support60"], t["resist60"] = min(lo[-60:]), max(h[-60:])
+    if len(d) >= 50:
+        t["sma50"] = st.mean(c[-50:])
+    if len(d) >= 200:
+        t["sma200"] = st.mean(c[-200:])
+    if len(d) >= 1:  # classic pivots from the last session
+        p = (h[-1] + lo[-1] + c[-1]) / 3
+        t["pivot"], t["r1"], t["s1"] = p, 2 * p - lo[-1], 2 * p - h[-1]
+    return t
+
+
 def screen_fail(ds, sym, today):
     """Why a reporter is excluded before the detailed calls, or None if it passes the liquidity, technical and context filters."""
     d = _daily(ds, sym, today)
@@ -211,6 +262,34 @@ def score(ds, sym, entry, today, reacted=True):
         sma50 = st.mean(x[4] for x in d[-50:])
         pts["trend"] = 1 if close > sma50 else -1
         why["trend"] = f"{(close / sma50 - 1) * 100:+.1f}% vs 50d avg"
+    tech = technicals(d)
+    if tech.get("vwap20"):
+        gap_v = (close / tech["vwap20"] - 1) * 100
+        pts["VWAP"] = 1 if close > tech["vwap20"] else -1
+        why["VWAP"] = f"{gap_v:+.1f}% vs 20d VWAP {tech['vwap20']:.2f}"
+    if tech.get("sma200"):
+        pts["SMA200"] = 1 if close > tech["sma200"] else -1
+        why["SMA200"] = f"{(close / tech['sma200'] - 1) * 100:+.1f}% vs 200d avg"
+    if tech.get("macd_hist") is not None:
+        pts["MACD"] = 1 if tech["macd_hist"] > 0 else -1
+        why["MACD"] = f"histogram {tech['macd_hist']:+.2f}"
+    if tech.get("updown") is not None and tech.get("obv_chg") is not None:
+        ud = tech["updown"]
+        pts["volume flow"] = 1 if ud >= 1.2 and tech["obv_chg"] > 0 else -1 if ud <= 1 / 1.2 and tech["obv_chg"] < 0 else 0
+        why["volume flow"] = f"up/down volume {ud:.2f}x, OBV {'up' if tech['obv_chg'] > 0 else 'down'} (20d)"
+    if tech.get("bb_pct") is not None:
+        why["Bollinger"] = f"%B {tech['bb_pct']:.2f}, band width {tech['bb_width']:.1f}%"
+    if tech.get("rvol") is not None:
+        why["RVOL"] = f"{tech['rvol']:.1f}x 20d avg volume"
+    lv = []
+    if tech.get("support20") is not None:
+        lv.append(f"support {tech['support20']:.2f} / resistance {tech['resist20']:.2f} (20d)")
+    if tech.get("support60") is not None:
+        lv.append(f"{tech['support60']:.2f} / {tech['resist60']:.2f} (60d)")
+    if tech.get("pivot") is not None:
+        lv.append(f"pivot {tech['pivot']:.2f}, R1 {tech['r1']:.2f}, S1 {tech['s1']:.2f}")
+    if lv:
+        why["levels"] = "; ".join(lv)
     a = ds.ratings.get(sym)
     if a:
         nb, nh, ns = (int(_f(a.get(k)) or 0) for k in ("num_buy_ratings", "num_hold_ratings", "num_sell_ratings"))
@@ -224,7 +303,7 @@ def score(ds, sym, entry, today, reacted=True):
     label = "BULLISH" if total >= 2 else "BEARISH" if total <= -2 else "NEUTRAL"
     return {"sym": sym, "timing": timing, "rdate": today, "reacted": reacted, "reported": act is not None or "reaction" in pts,
             "total": total, "label": label, "pts": pts, "why": why, "atr_pct": atr_pct, "gap": gap, "surprise": surprise,
-            "est": est, "act": act, "beat": beat, "up": up, "avg_move": avg_move, "price": close}
+            "est": est, "act": act, "beat": beat, "up": up, "avg_move": avg_move, "price": close, "tech": tech}
 
 
 def shortlist(ds, slots, n=DETAIL_N):
@@ -244,7 +323,7 @@ def calls_calendar(slots):
 
 def calls_screen(ds, slots):
     syms = sorted(candidates(ds, slots)) + ["SPY"]
-    start = f"{min(d for d, _ in slots) - timedelta(days=130)}T00:00:00Z"
+    start = f"{min(d for d, _ in slots) - timedelta(days=300)}T00:00:00Z"  # 200-day average + 20-day levels
     return [(P + "get_equity_historicals", {"symbols": c, "interval": "day", "start_time": start}) for c in chunks(syms, 10)]
 
 
@@ -316,14 +395,17 @@ def build(ds, now, test=False):
     body += R.table(head, _rows(bear, day), left=3, tint=3) if bear else "<p>No Bearish setups in this run.</p>"
     body += "<h3>3. Why</h3><ul>" + "".join(
         f"<li><b>{r['sym']}</b> {_label(r)} ({r['total']:+d}): "
-        + "; ".join(f"{k} {r['pts'][k]:+d} ({escape(r['why'][k])})" for k in r["pts"]) + "</li>" for r in picked) + "</ul>"
+        + "; ".join(f"{k} {r['pts'][k]:+d} ({escape(r['why'][k])})" for k in r["pts"]) + "</li>"
+        + (f"<li style='list-style:none;margin-left:-18px;color:#4b5563'>Levels: {escape(r['why']['levels'])}; "
+           f"{escape(r['why'].get('Bollinger', ''))}; {escape(r['why'].get('RVOL', ''))}</li>" if 'levels' in r['why'] else "")
+        for r in picked) + "</ul>"
     rest = [r for r in scored if r not in picked]
     if rest:
         body += "<h3>4. Rest of the screened list</h3><p>" + ", ".join(f"{r['sym']} {_label(r)} {r['total']:+d}" for r in rest) + "</p>"
     body += ("<h3>Method</h3><p>Fixed-weight checklist, nothing tuned: reaction since the prior close in ATR units (BMO names that "
              "have already reported, up to &plusmn;3), EPS surprise (&plusmn;1), 8-quarter beat rate (&plusmn;1), up-day rate after "
              "past reports (&plusmn;1), 20-day return vs SPY (&plusmn;1), price vs 50-day average (&plusmn;1), analyst buy share and "
-             "target (&plusmn;1). Score &ge; +2 Bullish, &le; -2 Bearish. <b>Not validated out of sample</b>: post-earnings "
+             "target (&plusmn;1), VWAP, 200-day average, MACD, volume flow (up/down volume and OBV) (&plusmn;1 each). Score &ge; +2 Bullish, &le; -2 Bearish. <b>Not validated out of sample</b>: post-earnings "
              "direction is close to a coin flip. Names reporting after the close, and next session's before-the-open names, have no "
              "reaction yet, so their call rests on history, trend and analysts. Size positions for the average earnings move shown.</p>")
     missing = [s for s in short if s not in {r["sym"] for r in scored}]

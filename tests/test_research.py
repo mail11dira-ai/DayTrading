@@ -733,3 +733,16 @@ def test_er_screen_filters():
     assert er.rsi14([100 + i for i in range(30)]) == 100.0           # straight up -> overbought, outside the band
     assert er.rsi14([100] * 5) is None                               # too short
     assert er.RSI_BAND == (25, 75) and er.MIN_SHARES == 2e6
+
+
+def test_er_technicals():
+    from research import er
+    from datetime import date as _d, timedelta as _td
+    import math
+    d = [(str(_d(2025, 1, 1) + _td(days=i)), 100 + i * 0.1 - 0.5, 101 + i * 0.1, 99 + i * 0.1, 100 + i * 0.1, 1e6 * (1 + i % 3))
+         for i in range(260)]
+    t = er.technicals(d)
+    assert t["macd_hist"] > 0 and t["sma200"] < d[-1][4] and t["vwap20"] < d[-1][4]     # steady uptrend
+    assert 0.5 < t["bb_pct"] <= 1.5 and t["support20"] < t["resist20"] and t["r1"] > t["pivot"] > t["s1"]
+    assert t["updown"] is not None and t["obv_chg"] is not None
+    assert er.technicals(d[:10]).get("sma200") is None and er.technicals(d[:10]).get("macd_hist") is None

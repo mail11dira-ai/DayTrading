@@ -7,6 +7,15 @@ before-the-open reporters show their real reaction). Code: `research/er.py` (tes
 keeps the liquid ones (price >= $10, >= $300M traded per day, >= 2M shares per day; technical filters: ATR14 >= 1.5% of price, RSI14 between 25 and 75; context filter: prior session moved <= 10%), scores the 15 most liquid with a fixed-weight
 checklist and emails the top 5 Bullish and top 5 Bearish setups among the 20 most traded names in scope.
 
+**Technicals (computed in code from the daily bars, no extra Robinhood calls):**
+- Trend: 50-day and 200-day averages; MACD (12/26/9) histogram.
+- Bollinger Bands (20, 2 sd): %B position and band width.
+- VWAP: rolling 20-session VWAP; price above or below it.
+- Volume flow: up-volume vs down-volume ratio and on-balance volume (OBV) over 20 sessions; RVOL vs the 20-day average.
+- Levels: 20- and 60-day support and resistance; classic pivots (P, R1, S1) from the last session.
+- Each of VWAP, 200-day average, MACD and volume flow adds +1 or -1 to the score (the Bullish/Bearish cut-offs stay at +2/-2).
+- Not yet included: implied volatility and option flow (they need about 40 extra option calls per run).
+
 **Which names each run covers:**
 - **8:10 am run:** today's before-the-open (BMO) and after-the-close (AMC) reporters.
 - **1:10 pm run:** today's AMC reporters and tomorrow's BMO reporters (today's BMO have already reported).
