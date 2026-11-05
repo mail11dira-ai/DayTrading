@@ -586,36 +586,51 @@ def test_er_stages_and_scores():
     from research import er
     today = date(2026, 10, 29)
     ds = _er_dataset(today)
-    assert er.calls_calendar(today)[0][1] == {"days": 1, "filter": "high_market_cap", "start_date": "2026-10-29"}
-    screen = er.calls_screen(ds, today)
+    morning = er.plan(datetime(2026, 10, 29, 8, 10, tzinfo=CT))[1]
+    assert er.calls_calendar(morning) == [("mcp__Robinhood_Agentic__get_earnings_calendar",
+                                           {"days": 1, "filter": "high_market_cap", "start_date": "2026-10-29"})]
+    screen = er.calls_screen(ds, morning)
     assert all(len(a["symbols"]) <= 10 for _, a in screen) and "SPY" in screen[-1][1]["symbols"]
-    assert er.shortlist(ds, today) == ["UP", "DN"] or er.shortlist(ds, today) == ["DN", "UP"]  # THIN fails the $ volume screen
-    detail = er.calls_detail(ds, today)
+    assert sorted(er.shortlist(ds, morning)) == ["DN", "UP"]          # THIN fails the share and $ volume screens
+    detail = er.calls_detail(ds, morning)
     assert sum(t.endswith("get_earnings_results") for t, _ in detail) == 2
-    up = er.score(ds, "UP", er.reporters(ds, today)["UP"], today)
-    dn = er.score(ds, "DN", er.reporters(ds, today)["DN"], today)
+    cands = er.candidates(ds, morning)
+    up = er.score(ds, "UP", cands["UP"][0], today, reacted=True)
+    dn = er.score(ds, "DN", cands["DN"][0], today, reacted=True)
     assert up["label"] == "BULLISH" and up["pts"]["reaction"] > 0 and up["pts"]["surprise"] == 1 and up["pts"]["beats"] == 1
     assert dn["label"] == "BEARISH" and "reaction" not in dn["pts"] and dn["pts"]["beats"] == -1 and dn["pts"]["analysts"] == -1
 
 
-def test_er_setups_split_by_timing():
+def test_er_run_plans():
+    from research import er
+    tomorrow = date(2026, 10, 30)
+    assert er.plan(datetime(2026, 10, 29, 8, 10, tzinfo=CT)) == (date(2026, 10, 29), [(date(2026, 10, 29), "am"), (date(2026, 10, 29), "pm")])
+    assert er.plan(datetime(2026, 10, 29, 13, 10, tzinfo=CT)) == (date(2026, 10, 29), [(date(2026, 10, 29), "pm"), (tomorrow, "am")])
+    # Friday afternoon: the next session's BMO names are on Monday
+    assert er.plan(datetime(2026, 10, 30, 13, 10, tzinfo=CT))[1][1] == (date(2026, 11, 2), "am")
+
+
+def test_er_afternoon_scope_takes_next_session_bmo():
     from research import er
     today = date(2026, 10, 29)
+    tomorrow = today + timedelta(days=1)
     ds = _er_dataset(today)
-    scored = [er.score(ds, s, er.reporters(ds, today)[s], today) for s in er.shortlist(ds, today)]
-    assert [r["sym"] for r in er._pick(scored, "am", "BULLISH")] == ["UP"]
-    assert er._pick(scored, "am", "BEARISH") == []                       # no BMO bearish name in the fixture
-    assert [r["sym"] for r in er._pick(scored, "pm", "BEARISH")] == ["DN"]
-    assert er._pick(scored, "pm", "BULLISH") == []
+    # UP also reports BMO tomorrow: at 1:10 pm that is the name in scope, today's BMO report is not
+    ds.earnings.append({"symbol": "UP", "year": 2026, "quarter": 4, "eps": {"estimate": "1.0", "actual": None},
+                        "report": {"date": str(tomorrow), "timing": "am"}})
+    cands = er.candidates(ds, er.plan(datetime(2026, 10, 29, 13, 10, tzinfo=CT))[1])
+    assert cands["UP"][1] == tomorrow and cands["DN"][1] == today and "THIN" not in cands
+    r = er.score(ds, "UP", cands["UP"][0], tomorrow, reacted=False)
+    assert r is not None and "reaction" not in r["pts"]               # tomorrow's report has no reaction yet
 
 
 def test_er_report_html():
     from research import er
     today = date(2026, 10, 29)
-    title, html, missing, scored = er.build(_er_dataset(today), datetime(2026, 10, 29, 8, 15, tzinfo=CT), test=True)
-    assert title == "[TEST] ER Research - 2026-10-29 08:15 CT" and missing == [] and len(scored) == 2
+    title, html, missing, scored = er.build(_er_dataset(today), datetime(2026, 10, 29, 8, 10, tzinfo=CT), test=True)
+    assert title == "[TEST] ER Research - 2026-10-29 08:10 CT" and missing == [] and len(scored) == 2
     text = re.sub(r"<[^>]+>", "", html)
-    assert "1. Before the open (BMO): top 3 Bullish and 3 Bearish" in text and "2. After the close (AMC): top 3 Bullish and 3 Bearish" in text
+    assert "1. Top 5 Bullish" in text and "2. Top 5 Bearish" in text and "Morning run" in text
     assert "<b>UP</b>" in html and "<b>DN</b>" in html and "<b>THIN</b>" not in html
     assert "Not validated out of sample" in html and "No orders placed." in html
 

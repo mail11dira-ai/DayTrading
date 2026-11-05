@@ -1,12 +1,16 @@
-"""ER agent: today's earnings reporters, scored like a quant desk would - research only, no orders.
+"""ER agent: earnings reporters, scored like a quant desk would - research only, no orders.
 
-Four stages, each printing the read-only Robinhood calls for the next one (the symbols depend on today's calendar):
-  calendar -> screen (daily bars for every large-cap reporter) -> detail (quotes, analyst ratings,
-  8-quarter EPS history and 2-year daily bars for the most liquid names) -> report (HTML email).
+Four stages, each printing the read-only Robinhood calls for the next one (the symbols depend on the calendar):
+  calendar -> screen (daily bars for every reporter in scope) -> detail (quotes, analyst ratings,
+  8-quarter EPS history and 2-year daily bars for the most traded names) -> report (HTML email).
+
+Which reporters are in scope depends on the run time (CT):
+  morning run (before noon)   today's before-the-open (BMO) and after-the-close (AMC) reporters
+  afternoon run (noon onward) today's AMC reporters and the next session's BMO reporters (today's BMO have already reported)
 
 The score is a fixed-weight checklist (nothing tuned, NOT validated out of sample). Earnings direction is close
 to a coin flip; the email says so. Factors (points):
-  reaction  only after the report (BMO names): move since the prior close, in daily-ATR units
+  reaction  only after the report (BMO names already reported): move since the prior close, in daily-ATR units
             >= 1.0 -> 3, >= 0.5 -> 2, >= 0.2 -> 1 (same negative)
   surprise  EPS actual vs estimate >= +5% -> 1, <= -5% -> -1
   beats     share of the last 8 reports that beat the estimate >= 75% -> 1, <= 40% -> -1
@@ -14,8 +18,8 @@ to a coin flip; the email says so. Factors (points):
   momentum  20-day return vs SPY > +5% -> 1, < -5% -> -1
   trend     close vs 50-day average above -> 1, below -> -1
   analysts  buy >= 70% and target >= 10% above price -> 1; buy < 40% or target below price -> -1
-Label: total >= 2 Bullish, <= -2 Bearish, else Neutral. Top 3 Bullish and top 3 Bearish, separately for
-before-the-open and after-the-close reporters, ranked by |total| then $ volume.
+Label: total >= 2 Bullish, <= -2 Bearish, else Neutral. The email shows the top 5 Bullish and top 5 Bearish
+among the most traded names in scope (DETAIL_N by dollar volume), ranked by |total| then dollar volume.
 """
 import argparse
 import json
@@ -32,8 +36,8 @@ MIN_SHARES = 2e6                 # high-volume shares: >= 2M shares traded per d
 MIN_ATR = 1.5                    # technical: daily ATR14 >= 1.5% of price, enough movement to trade
 RSI_BAND = (25, 75)              # technical: RSI14 inside 25-75, not already stretched
 MAX_PRIOR_MOVE = 10.0            # context: prior session moved <= 10%, so the news is not already priced in
-DETAIL_N = 15                    # names that get the detailed (per-symbol) calls
-PER_SIDE = 3                     # setups per side (Bullish / Bearish) for each report timing
+DETAIL_N = 20                    # "popular" = the 20 most traded screened names; they get the detailed calls
+TOP_N = 5                        # setups per side (Bullish / Bearish) in each email
 
 
 def _f(x):
@@ -52,13 +56,29 @@ def session_day(now):
     return d
 
 
-def reporters(ds, today):
-    """{sym: entry} for today's calendar entries (one per symbol; OTC ADRs with no bars drop out later)."""
+def plan(now):
+    """(report day, [(date, timing), ...]) for this run.
+    Morning (before noon CT): today's BMO and AMC. Afternoon: today's AMC and the next session's BMO."""
+    day = session_day(now)
+    if now.hour < 12:
+        return day, [(day, "am"), (day, "pm")]
+    nxt = day + timedelta(days=1)
+    while nxt.weekday() >= 5:
+        nxt += timedelta(days=1)
+    return day, [(day, "pm"), (nxt, "am")]
+
+
+def candidates(ds, slots):
+    """{sym: (calendar entry, report date, timing)} for the reporters in scope (first entry per symbol)."""
     out = {}
     for e in ds.earnings:
         rep = e.get("report") or {}
-        if rep.get("date") == str(today) and e.get("symbol"):
-            out.setdefault(e["symbol"], e)
+        sym = e.get("symbol")
+        if not sym or not rep.get("date"):
+            continue
+        rd = date.fromisoformat(rep["date"])
+        if (rd, rep.get("timing")) in slots and sym not in out:
+            out[sym] = (e, rd, rep.get("timing"))
     return out
 
 
@@ -131,7 +151,8 @@ def _price(q):
     return _f(p), _f(quote.get("adjusted_previous_close"))
 
 
-def score(ds, sym, entry, today):
+def score(ds, sym, entry, today, reacted=True):
+    """Score one reporter. today = its report date; reacted = the report has already happened (so a BMO reaction exists)."""
     d = _daily(ds, sym, today)
     if len(d) < 21:
         return None
@@ -141,10 +162,10 @@ def score(ds, sym, entry, today):
     pts, why = {}, {}
     timing = (entry.get("report") or {}).get("timing")
     est, act = _f((entry.get("eps") or {}).get("estimate")), _f((entry.get("eps") or {}).get("actual"))
-    # reaction (only once the company has reported: BMO names at a pre-open run)
+    # reaction (only once the company has reported: BMO names that have already reported)
     gap = None
     q = ds.quotes.get(sym)
-    if q and timing == "am":
+    if q and timing == "am" and reacted:
         px, prev = _price(q)
         if px and prev:
             gap = (px / prev - 1) * 100
@@ -201,38 +222,39 @@ def score(ds, sym, entry, today):
             why["analysts"] = f"{buy:.0%} buy, target {upside:+.0f}%"
     total = sum(pts.values())
     label = "BULLISH" if total >= 2 else "BEARISH" if total <= -2 else "NEUTRAL"
-    return {"sym": sym, "timing": timing, "reported": act is not None or "reaction" in pts, "total": total,
-            "label": label, "pts": pts, "why": why, "atr_pct": atr_pct, "gap": gap, "surprise": surprise,
+    return {"sym": sym, "timing": timing, "rdate": today, "reacted": reacted, "reported": act is not None or "reaction" in pts,
+            "total": total, "label": label, "pts": pts, "why": why, "atr_pct": atr_pct, "gap": gap, "surprise": surprise,
             "est": est, "act": act, "beat": beat, "up": up, "avg_move": avg_move, "price": close}
 
 
-# ---------------------------------------------------------------- calls per stage
-def calls_calendar(today):
-    return [(P + "get_earnings_calendar", {"days": 1, "filter": "high_market_cap", "start_date": str(today)})]
-
-
-def calls_screen(ds, today):
-    syms = sorted(reporters(ds, today)) + ["SPY"]
-    start = f"{today - timedelta(days=130)}T00:00:00Z"
-    return [(P + "get_equity_historicals", {"symbols": c, "interval": "day", "start_time": start}) for c in chunks(syms, 10)]
-
-
-def shortlist(ds, today, n=DETAIL_N):
-    """Reporters that pass the screen, most liquid (by $ volume) first."""
+def shortlist(ds, slots, n=DETAIL_N):
+    """Reporters in scope that pass the screen, most traded (by $ volume) first."""
     rows = []
-    for s in reporters(ds, today):
-        if screen_fail(ds, s, today) is None:
-            rows.append((s, liquidity(ds, s, today)[1]))
+    for s, (_, rd, _) in candidates(ds, slots).items():
+        if screen_fail(ds, s, rd) is None:
+            rows.append((s, liquidity(ds, s, rd)[1]))
     return [s for s, _ in sorted(rows, key=lambda x: -x[1])[:n]]
 
 
-def calls_detail(ds, today):
-    syms = shortlist(ds, today)
+# ---------------------------------------------------------------- calls per stage
+def calls_calendar(slots):
+    return [(P + "get_earnings_calendar", {"days": 1, "filter": "high_market_cap", "start_date": str(d)})
+            for d in sorted({d for d, _ in slots})]
+
+
+def calls_screen(ds, slots):
+    syms = sorted(candidates(ds, slots)) + ["SPY"]
+    start = f"{min(d for d, _ in slots) - timedelta(days=130)}T00:00:00Z"
+    return [(P + "get_equity_historicals", {"symbols": c, "interval": "day", "start_time": start}) for c in chunks(syms, 10)]
+
+
+def calls_detail(ds, slots):
+    syms = shortlist(ds, slots)
     if not syms:
         return []
     calls = [(P + "get_equity_quotes", {"symbols": syms}),
              (P + "get_equity_analyst_ratings", {"symbols": syms})]
-    start = f"{today - timedelta(days=800)}T00:00:00Z"  # 8 quarters of report-day moves
+    start = f"{min(d for d, _ in slots) - timedelta(days=800)}T00:00:00Z"  # 8 quarters of report-day moves
     calls += [(P + "get_equity_historicals", {"symbols": c, "interval": "day", "start_time": start}) for c in chunks(syms, 10)]
     calls += [(P + "get_earnings_results", {"symbol": s}) for s in syms]
     return calls
@@ -243,16 +265,18 @@ def _label(r):
     return {"BULLISH": '<span class="g">Bullish</span>', "BEARISH": '<span class="r">Bearish</span>'}.get(r["label"], "Neutral")
 
 
-def _pick(scored, timing, label, n=PER_SIDE):
-    """Top n names with this timing and call, strongest score first (scored is already ranked)."""
-    return [r for r in scored if r["timing"] == timing and r["label"] == label][:n]
+def _when(r, day):
+    if r["timing"] == "am":
+        if r["reacted"]:
+            return "BMO, reported"
+        return "BMO today" if r["rdate"] == day else f"BMO {r['rdate']:%a %b %d}"
+    return "AMC tonight" if r["rdate"] == day else f"AMC {r['rdate']:%a %b %d}"
 
 
-def _rows(picks):
+def _rows(picks, day):
     rows = []
     for i, r in enumerate(picks, 1):
-        when = "BMO, reported" if r["timing"] == "am" and r["reported"] else "BMO" if r["timing"] == "am" else "AMC tonight"
-        rows.append([i, f"<b>{r['sym']}</b>", when, _label(r), f"{r['total']:+d}",
+        rows.append([i, f"<b>{r['sym']}</b>", _when(r, day), _label(r), f"{r['total']:+d}",
                      R.pct(r["gap"], 1) if r["gap"] is not None else "n/a",
                      f"{r['est']:.2f}" if r["est"] is not None else "n/a",
                      f"{r['act']:.2f} ({r['surprise']:+.0f}%)" if r["surprise"] is not None else "not yet",
@@ -263,44 +287,51 @@ def _rows(picks):
 
 
 def build(ds, now, test=False):
-    today = session_day(now)
-    rep = reporters(ds, today)
-    short = shortlist(ds, today)
-    scored = [x for x in (score(ds, s, rep[s], today) for s in short) if x]
+    day, slots = plan(now)
+    cands = candidates(ds, slots)
+    short = shortlist(ds, slots)
+    scored = []
+    for s in short:
+        e, rd, _ = cands[s]
+        r = score(ds, s, e, rd, reacted=rd <= now.date())
+        if r:
+            scored.append(r)
     scored.sort(key=lambda r: (-abs(r["total"]), short.index(r["sym"])))
+    bull = [r for r in scored if r["label"] == "BULLISH"][:TOP_N]
+    bear = [r for r in scored if r["label"] == "BEARISH"][:TOP_N]
+    picked = bull + bear
     title = f"{'[TEST] ' if test else ''}ER Research - {now:%Y-%m-%d %H:%M} CT"
-    am = sum(1 for e in rep.values() if (e.get("report") or {}).get("timing") == "am")
-    note = (f"{len(rep)} large-cap companies report on {today} ({am} before the open, {len(rep) - am} after the close or unknown); "
-            f"{len(short)} pass the screen (price >= ${MIN_PRICE:.0f}, >= ${MIN_DVOL / 1e6:.0f}M/day and >= {MIN_SHARES / 1e6:.0f}M shares/day, "
-            f"ATR >= {MIN_ATR}%, RSI {RSI_BAND[0]}-{RSI_BAND[1]}, prior-day move <= {MAX_PRIOR_MOVE:.0f}%) and are scored.")
+    if now.hour < 12:
+        scope = f"Morning run: {day:%a %b %d} before-the-open and after-the-close reporters"
+    else:
+        scope = f"Afternoon run: {day:%a %b %d} after-the-close and {slots[1][0]:%a %b %d} before-the-open reporters"
+    note = (f"{scope}. {len(cands)} reporters in scope; {len(short)} pass the screen (price >= ${MIN_PRICE:.0f}, "
+            f">= ${MIN_DVOL / 1e6:.0f}M/day and >= {MIN_SHARES / 1e6:.0f}M shares/day, ATR >= {MIN_ATR}%, RSI "
+            f"{RSI_BAND[0]}-{RSI_BAND[1]}, prior-day move <= {MAX_PRIOR_MOVE:.0f}%). The top {TOP_N} per side come from the "
+            f"{DETAIL_N} most traded.")
     head = ["#", "Stock", "Report", "Call", "Score", "Move", "EPS est", "EPS actual", "Beat rate (8q)", "Avg ER move", "ATR"]
-    picked = []
-    body = ""
-    for n, (timing, name) in enumerate((("am", "Before the open (BMO)"), ("pm", "After the close (AMC)")), 1):
-        bull, bear = _pick(scored, timing, "BULLISH"), _pick(scored, timing, "BEARISH")
-        picked += bull + bear
-        body += f"<h3>{n}. {name}: top {PER_SIDE} Bullish and {PER_SIDE} Bearish</h3>"
-        body += (R.table(head, _rows(bull + bear), left=3, tint=3) if bull or bear
-                 else f"<p>No {name.split(' (')[0].lower()} names with a Bullish or Bearish call today.</p>")
+    body = f"<h3>1. Top {TOP_N} Bullish</h3>"
+    body += R.table(head, _rows(bull, day), left=3, tint=3) if bull else "<p>No Bullish setups in this run.</p>"
+    body += f"<h3>2. Top {TOP_N} Bearish</h3>"
+    body += R.table(head, _rows(bear, day), left=3, tint=3) if bear else "<p>No Bearish setups in this run.</p>"
     body += "<h3>3. Why</h3><ul>" + "".join(
         f"<li><b>{r['sym']}</b> {_label(r)} ({r['total']:+d}): "
         + "; ".join(f"{k} {r['pts'][k]:+d} ({escape(r['why'][k])})" for k in r["pts"]) + "</li>" for r in picked) + "</ul>"
     rest = [r for r in scored if r not in picked]
     if rest:
         body += "<h3>4. Rest of the screened list</h3><p>" + ", ".join(f"{r['sym']} {_label(r)} {r['total']:+d}" for r in rest) + "</p>"
-    body += ("<h3>Method</h3><p>Fixed-weight checklist, nothing tuned: reaction since the prior close in ATR units (reported names only, "
-             "up to &plusmn;3), EPS surprise (&plusmn;1), 8-quarter beat rate (&plusmn;1), up-day rate after past reports "
-             "(&plusmn;1), 20-day return vs SPY (&plusmn;1), price vs 50-day average (&plusmn;1), analyst buy share and "
-             "target (&plusmn;1). Score &ge; +2 Bullish, &le; -2 Bearish. Setups are ranked separately for names reporting before "
-             "the open and after the close. <b>Not validated out of sample</b>: post-earnings "
-             "direction is close to a coin flip, and names reporting after the close (AMC) have no reaction yet, so their "
-             "call rests on history only. Size positions for the average earnings move shown.</p>")
+    body += ("<h3>Method</h3><p>Fixed-weight checklist, nothing tuned: reaction since the prior close in ATR units (BMO names that "
+             "have already reported, up to &plusmn;3), EPS surprise (&plusmn;1), 8-quarter beat rate (&plusmn;1), up-day rate after "
+             "past reports (&plusmn;1), 20-day return vs SPY (&plusmn;1), price vs 50-day average (&plusmn;1), analyst buy share and "
+             "target (&plusmn;1). Score &ge; +2 Bullish, &le; -2 Bearish. <b>Not validated out of sample</b>: post-earnings "
+             "direction is close to a coin flip. Names reporting after the close, and next session's before-the-open names, have no "
+             "reaction yet, so their call rests on history, trend and analysts. Size positions for the average earnings move shown.</p>")
     missing = [s for s in short if s not in {r["sym"] for r in scored}]
     return title, R.doc(title, note, body), missing, scored
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="ER agent: today's earnings reporters, research only")
+    ap = argparse.ArgumentParser(description="ER agent: earnings reporters, research only")
     ap.add_argument("stage", choices=["calendar", "screen", "detail", "report"])
     ap.add_argument("--transcript")
     ap.add_argument("--data", help="directory of raw tool-result JSON files")
@@ -317,9 +348,9 @@ def main(argv=None):
         if path:
             collect.load_transcript(path, ds)
     if a.stage != "report":
-        day = session_day(now)
-        calls = {"calendar": lambda: calls_calendar(day), "screen": lambda: calls_screen(ds, day),
-                 "detail": lambda: calls_detail(ds, day)}[a.stage]()
+        _, slots = plan(now)
+        calls = {"calendar": lambda: calls_calendar(slots), "screen": lambda: calls_screen(ds, slots),
+                 "detail": lambda: calls_detail(ds, slots)}[a.stage]()
         for tool, args in calls:
             print(json.dumps({"tool": tool, "args": args}))
         return
