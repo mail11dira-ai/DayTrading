@@ -17,3 +17,5 @@ Unlike the other agents there is no Python script: the model gathers the data (R
 the brief itself, so numbers are not computed by tested code; the silent research rules are the check on that. Not validated out of sample.
 
 **Connectors:** Robinhood_Agentic and Gmail were attached by the user in the claude.ai task settings (2026-10-30).
+
+**Recipients:** mail11dira@gmail.com, with CC to shanmugam.ts@gmail.com, ganeshjayar@gmail.com and pradeepr@live.com (added 2026-11-09).
