@@ -658,10 +658,11 @@ def test_er_report_html():
     from research import er
     today = date(2026, 10, 29)
     title, html, missing, scored = er.build(_er_dataset(today), datetime(2026, 10, 29, 8, 10, tzinfo=CT), test=True)
-    assert title == "[TEST] ER Research - 2026-10-29 08:10 CT" and missing == [] and len(scored) == 2
+    assert title == "[TEST] ER Research - 2026-10-29 08:10 CT" and missing == []
+    assert len(scored) == 3 and {r["sym"]: r["partial"] for r in scored} == {"UP": False, "DN": False, "THIN": True}
     text = re.sub(r"<[^>]+>", "", html)
-    assert "1. Top 5 Bullish" in text and "2. Top 5 Bearish" in text and "Morning run" in text
-    assert "<b>UP</b>" in html and "<b>DN</b>" in html and "<b>THIN</b>" not in html
+    assert "1. Top 5 Bullish" in text and "2. Top 5 Bearish" in text and "3. Trade plan" in text and "Morning run" in text
+    assert "<b>UP</b>" in html and "<b>DN</b>" in html and "<b>THIN</b> (partial data)" in html  # THIN fails the screen but is still shown
     assert "Not validated out of sample" in html and "No orders placed." in html
 
 
@@ -777,3 +778,17 @@ def test_er_technicals():
     assert 0.5 < t["bb_pct"] <= 1.5 and t["support20"] < t["resist20"] and t["r1"] > t["pivot"] > t["s1"]
     assert t["updown"] is not None and t["obv_chg"] is not None
     assert er.technicals(d[:10]).get("sma200") is None and er.technicals(d[:10]).get("macd_hist") is None
+
+
+def test_er_trade_plan_levels():
+    from research import er
+    today = date(2026, 10, 29)
+    ds = _er_dataset(today)
+    cands = er.candidates(ds, er.plan(datetime(2026, 10, 29, 8, 10, tzinfo=CT))[1])
+    up = er.score(ds, "UP", cands["UP"][0], today)
+    tp = er.trade_plan(up, "BULL")
+    assert tp["stop"] < up["price"] and tp["entry"] == up["prior_high"] and tp["t1"] > tp["entry"] and tp["t2"] > tp["t1"]
+    assert tp["rr"] and tp["rr"] > 0
+    dn = er.score(ds, "DN", cands["DN"][0], today)
+    tb = er.trade_plan(dn, "BEAR")
+    assert tb["stop"] > dn["price"] and tb["entry"] == dn["prior_low"] and tb["t1"] < tb["entry"] and tb["t2"] < tb["t1"]

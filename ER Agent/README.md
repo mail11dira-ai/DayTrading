@@ -5,7 +5,8 @@ before-the-open reporters show their real reaction). Code: `research/er.py` (tes
 
 **What it does:** takes every large-cap (> $1B) company reporting earnings today from the Robinhood calendar,
 keeps the liquid ones (price >= $10, >= $300M traded per day, >= 2M shares per day; technical filters: ATR14 >= 1.5% of price, RSI14 between 25 and 75; context filter: prior session moved <= 10%), scores the 15 most liquid with a fixed-weight
-checklist and emails the top 5 Bullish and top 5 Bearish setups among the 20 most traded names in scope.
+checklist and always emails the top 5 Bullish and top 5 Bearish names (the highest and lowest scores in scope), plus a trade plan for each.
+A name that fails a liquidity, technical or context filter is still shown when it is in the top or bottom 5, marked "partial data".
 
 **Technicals (computed in code from the daily bars, no extra Robinhood calls):**
 - Trend: 50-day and 200-day averages; MACD (12/26/9) histogram.
@@ -46,3 +47,5 @@ The email shows each name's average past earnings move so position size can matc
 
 First live test (2026-10-29 data, overnight quotes): 245 reporters, 15 scored; top 5 MA, LLY, LIN Bullish,
 COIN, INTC Bearish.
+
+**Trade plan (rule-based levels, next session):** Bullish: entry = break of the prior session's high; stop = the tighter of 20-day support or 1 ATR below the entry; Target 1 = 20-day resistance (or 1.5 ATR); Target 2 = 2.5 ATR. Bearish mirrors this from the prior low. The reward-to-risk ratio is shown. These are levels to watch, not advice; the email says so.

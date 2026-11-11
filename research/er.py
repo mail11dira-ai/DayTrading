@@ -334,7 +334,8 @@ def score(ds, sym, entry, today, reacted=True):
     label = "BULLISH" if total >= 2 else "BEARISH" if total <= -2 else "NEUTRAL"
     return {"sym": sym, "timing": timing, "rdate": today, "reacted": reacted, "reported": act is not None or "reaction" in pts,
             "total": total, "label": label, "pts": pts, "why": why, "atr_pct": atr_pct, "gap": gap, "surprise": surprise,
-            "est": est, "act": act, "beat": beat, "up": up, "avg_move": avg_move, "price": close, "tech": tech, "opt": opt}
+            "est": est, "act": act, "beat": beat, "up": up, "avg_move": avg_move, "price": close, "tech": tech, "opt": opt,
+            "atr_abs": atr_pct / 100 * close, "prior_high": d[-1][2], "prior_low": d[-1][3], "partial": False}
 
 
 def shortlist(ds, slots, n=DETAIL_N):
@@ -410,35 +411,81 @@ def _rows(picks, day):
     return rows
 
 
+def trade_plan(r, side):
+    """Entry, stop and two targets from ATR14 and the 20-day support / resistance (rule-based levels, not advice).
+    Bullish: buy a break of the prior session's high. Bearish: sell a break of the prior session's low."""
+    c, a, t = r["price"], r["atr_abs"], r["tech"]
+    if side == "BULL":
+        entry = r["prior_high"]
+        stop = max(t.get("support20", c - a), entry - a)  # the tighter of 20-day support and 1 ATR below the entry
+        t1 = t["resist20"] if t.get("resist20", 0) > entry else entry + 1.5 * a
+        t2 = entry + 2.5 * a
+    else:
+        entry = r["prior_low"]
+        stop = min(t.get("resist20", c + a), entry + a)  # the tighter of 20-day resistance and 1 ATR above the entry
+        t1 = t["support20"] if t.get("support20", float("inf")) < entry else entry - 1.5 * a
+        t2 = entry - 2.5 * a
+    risk = abs(entry - stop)
+    return {"entry": entry, "stop": stop, "t1": t1, "t2": t2, "rr": abs(t1 - entry) / risk if risk else None}
+
+
+def _plan_rows(picks, side, day):
+    rows = []
+    for i, r in enumerate(picks, 1):
+        tp = trade_plan(r, side)
+        o = r.get("opt") or {}
+        ivr = f"{o['iv_rank'] * 100:.0f}%" if o.get("iv_rank") is not None else "n/a"
+        mv = f"+/-{o['iv30'] * (1 / 252) ** 0.5 * 100:.1f}%" if o.get("iv30") else "n/a"
+        tag = "" if not r["partial"] else " (partial data)"
+        rows.append([i, f"<b>{r['sym']}</b>{tag}", "Strong" if abs(r["total"]) >= 2 else "Lean",
+                     f"{tp['entry']:.2f}", f"{tp['stop']:.2f}", f"{tp['t1']:.2f}", f"{tp['t2']:.2f}",
+                     f"{tp['rr']:.1f}" if tp["rr"] else "n/a", ivr, mv])
+    return rows
+
+
 def build(ds, now, test=False):
     day, slots = plan(now)
     cands = candidates(ds, slots)
     short = shortlist(ds, slots)
     scored = []
-    for s in short:
+    for s in short:  # full data: passed the screen, detailed calls made
         e, rd, _ = cands[s]
         r = score(ds, s, e, rd, reacted=rd <= now.date())
         if r:
             scored.append(r)
-    scored.sort(key=lambda r: (-abs(r["total"]), short.index(r["sym"])))
-    bull = [r for r in scored if r["label"] == "BULLISH"][:TOP_N]
-    bear = [r for r in scored if r["label"] == "BEARISH"][:TOP_N]
+    # the top and bottom 5 are mandatory: names that failed the screen are scored on the data they have, flagged partial
+    for s, (e, rd, _) in cands.items():
+        if s not in short:
+            r = score(ds, s, e, rd, reacted=rd <= now.date())
+            if r:
+                r["partial"] = True
+                scored.append(r)
+    scored.sort(key=lambda r: (-r["total"], short.index(r["sym"]) if r["sym"] in short else len(short)))
+    bull = scored[:TOP_N]
+    bear = sorted([r for r in scored if r not in bull], key=lambda r: (r["total"], short.index(r["sym"]) if r["sym"] in short else len(short)))[:TOP_N]
     picked = bull + bear
     title = f"{'[TEST] ' if test else ''}ER Research - {now:%Y-%m-%d %H:%M} CT"
     if now.hour < 12:
         scope = f"Morning run: {day:%a %b %d} before-the-open and after-the-close reporters"
     else:
         scope = f"Afternoon run: {day:%a %b %d} after-the-close and {slots[1][0]:%a %b %d} before-the-open reporters"
-    note = (f"{scope}. {len(cands)} reporters in scope; {len(short)} pass the screen (price >= ${MIN_PRICE:.0f}, "
+    full = sum(1 for r in scored if not r["partial"])
+    note = (f"{scope}. {len(cands)} reporters in scope, {len(scored)} scored ({full} with full data, "
+            f"{len(scored) - full} partial). Top {TOP_N} Bullish and top {TOP_N} Bearish by score. Filters: price >= ${MIN_PRICE:.0f}, "
             f">= ${MIN_DVOL / 1e6:.0f}M/day and >= {MIN_SHARES / 1e6:.0f}M shares/day, ATR >= {MIN_ATR}%, RSI "
-            f"{RSI_BAND[0]}-{RSI_BAND[1]}, prior-day move <= {MAX_PRIOR_MOVE:.0f}%). The top {TOP_N} per side come from the "
-            f"{DETAIL_N} most traded.")
+            f"{RSI_BAND[0]}-{RSI_BAND[1]}, prior-day move <= {MAX_PRIOR_MOVE:.0f}%.")
     head = ["#", "Stock", "Report", "Call", "Score", "Move", "EPS est", "EPS actual", "Beat rate (8q)", "Avg ER move", "ATR"]
+    plan_head = ["#", "Stock", "Strength", "Entry (break)", "Stop", "Target 1", "Target 2", "R:R", "IV rank", "Implied day move"]
     body = f"<h3>1. Top {TOP_N} Bullish</h3>"
-    body += R.table(head, _rows(bull, day), left=3, tint=3) if bull else "<p>No Bullish setups in this run.</p>"
+    body += R.table(head, _rows(bull, day), left=3, tint=3) if bull else "<p>No names in scope.</p>"
     body += f"<h3>2. Top {TOP_N} Bearish</h3>"
-    body += R.table(head, _rows(bear, day), left=3, tint=3) if bear else "<p>No Bearish setups in this run.</p>"
-    body += "<h3>3. Why</h3><ul>" + "".join(
+    body += R.table(head, _rows(bear, day), left=3, tint=3) if bear else "<p>No names in scope.</p>"
+    body += "<h3>3. Trade plan (rule-based levels, next session)</h3>"
+    body += "<p><b>Bullish:</b> buy a break of the prior high; stop at the tighter of 20-day support or 1 ATR below the entry; targets at 20-day resistance or 1.5 / 2.5 ATR.</p>"
+    body += R.table(plan_head, _plan_rows(bull, "BULL", day), left=2, tint=2) if bull else ""
+    body += "<p><b>Bearish:</b> sell a break of the prior low; stop at the tighter of 20-day resistance or 1 ATR above the entry; targets at 20-day support or 1.5 / 2.5 ATR.</p>"
+    body += R.table(plan_head, _plan_rows(bear, "BEAR", day), left=2, tint=2) if bear else ""
+    body += "<h3>4. Why</h3><ul>" + "".join(
         f"<li><b>{r['sym']}</b> {_label(r)} ({r['total']:+d}): "
         + "; ".join(f"{k} {r['pts'][k]:+d} ({escape(r['why'][k])})" for k in r["pts"]) + "</li>"
         + (f"<li style='list-style:none;margin-left:-18px;color:#4b5563'>Levels: {escape(r['why']['levels'])}; "
@@ -446,14 +493,18 @@ def build(ds, now, test=False):
         for r in picked) + "</ul>"
     rest = [r for r in scored if r not in picked]
     if rest:
-        body += "<h3>4. Rest of the screened list</h3><p>" + ", ".join(f"{r['sym']} {_label(r)} {r['total']:+d}" for r in rest) + "</p>"
+        body += "<h3>5. Rest of the scored list</h3><p>" + ", ".join(f"{r['sym']} {_label(r)} {r['total']:+d}" for r in rest) + "</p>"
     body += ("<h3>Method</h3><p>Fixed-weight checklist, nothing tuned: reaction since the prior close in ATR units (BMO names that "
              "have already reported, up to &plusmn;3), EPS surprise (&plusmn;1), 8-quarter beat rate (&plusmn;1), up-day rate after "
              "past reports (&plusmn;1), 20-day return vs SPY (&plusmn;1), price vs 50-day average (&plusmn;1), analyst buy share and "
-             "target (&plusmn;1), VWAP, 200-day average, MACD, volume flow (up/down volume and OBV), option flow (call share of premium) (&plusmn;1 each). Implied volatility and implied daily move are shown, not scored. Score &ge; +2 Bullish, &le; -2 Bearish. <b>Not validated out of sample</b>: post-earnings "
-             "direction is close to a coin flip. Names reporting after the close, and next session's before-the-open names, have no "
-             "reaction yet, so their call rests on history, trend and analysts. Size positions for the average earnings move shown.</p>")
-    missing = [s for s in short if s not in {r["sym"] for r in scored}]
+             "target (&plusmn;1), VWAP, 200-day average, MACD, volume flow (up/down volume and OBV), option flow (call share of premium) "
+             "(&plusmn;1 each). Implied volatility and implied daily move are shown, not scored. Strength: Strong = score of at least 2 "
+             "in either direction, Lean = 1 or less. The top and bottom 5 are always shown; a name marked partial failed a liquidity, "
+             "technical or context filter or lacked data, so treat its call with more caution. <b>Not validated out of sample</b>: "
+             "post-earnings direction is close to a coin flip. Names reporting after the close, and next session's before-the-open "
+             "names, have no reaction yet, so their call rests on history, trend and analysts. Size positions for the average "
+             "earnings move shown.</p>")
+    missing = [s for s in cands if s not in {r["sym"] for r in scored}]
     return title, R.doc(title, note, body), missing, scored
 
 
