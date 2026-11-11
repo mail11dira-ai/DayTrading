@@ -17,6 +17,7 @@
 - Train/test = 112/48 sessions. Test evaluated exactly once per iteration.
 - iter_1 (long-only) rejected: overfit. iter_2 (60m range) rejected. iter_3 (RVOL ≥ 1.0) rejected
   vs. SPY but the best candidate; recorded as an observation in `graph.md`, not a rule.
+- 2026-11-11: Super 10 scheduled task (trig_01BSEzw8DL1JRFyRSmVnQK6B) moved from 8:42 + 9:42 CT to 9:27 CT Mon-Fri (cron `CRON_TZ=America/Chicago 27 9 * * 1-5`; Robinhood + Gmail connectors and haiku model kept). User asked for 8:42 + 9:27; the 8:42 run could not be kept in the same schedule (different minute) and a second task created from a cloud session gets no connectors, so the 8:42 copy must be added from the claude.ai scheduled-tasks UI.
 
 ## Open issues
 - Short single-regime history (biggest limitation).
