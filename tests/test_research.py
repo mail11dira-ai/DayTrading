@@ -243,7 +243,7 @@ def test_end_to_end_report_closed_session(agent):
         assert not any(f"<b>{m}</b>" in html for m in MAG7)
     if agent == "ai100":
         assert "Weekend checklist" not in html and "ETFs Day %" not in html and "15</td>" in html
-        assert ">3. Top 7 setups</h3>" in html and "Nearest S / R" not in html  # compact: no checklist, no per-sector tables, 7 setups
+        assert "Top 7 setups</h3>" in html and "Nearest S / R" not in html  # compact: no checklist, no per-sector tables, 7 setups
         assert "8/21" not in html and "20d RS" not in html and "5m RSI &gt; 75" in html  # day-trading only
     if agent == "modern":
         assert "Weekend checklist" in html and "Sector scoreboard" in html and "removed for day trading" in html
@@ -833,3 +833,15 @@ def test_super100_report_shows_context_and_events(tmp_path):
     assert 'href="https://example.com/claims"' in html
     _, html2, _, _ = build("super100", ds, datetime(2026, 10, 13, 1, 0, tzinfo=CT), test=True)
     assert "No policy or macro events were filed" in html2
+
+
+def test_ai100_report_shows_context_and_events(tmp_path):
+    import json as _json
+    from research.universe import symbols
+    syms, bench = symbols("ai100")
+    ds = _synthetic_dataset(syms + bench, date(2026, 10, 12))
+    f = tmp_path / "events.json"
+    f.write_text(_json.dumps([{"date": "2026-10-13", "time_ct": "07:30", "event": "Jobless claims", "impact": "Medium",
+                               "source": "https://example.com/claims"}]))
+    _, html, missing, _ = build("ai100", ds, datetime(2026, 10, 13, 1, 0, tzinfo=CT), test=True, events_path=str(f))
+    assert "Session context and policy / macro" in html and "Jobless claims" in html

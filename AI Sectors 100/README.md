@@ -59,3 +59,9 @@ Added 2026-10-20: **volume-confirmed opening-range breakout (ORB)**, **pre-marke
 | Prompt | `routine_prompt.txt` (`research.plan --agent ai100` → calls → `research.report --agent ai100` → Gmail) |
 | Data per run | 30 read-only Robinhood calls (quotes, extended-hours 5-min, daily; no analyst ratings) |
 | Test | `python -m pytest -q`; real-data sample: `sample_reports/2026-10-19_close_test.html` |
+
+## Session context and policy / macro (added 2026-11-11)
+Same as Super 10: calendar flags (monthly options expiry, VIX expiry, quad witching and index rebalancing, month and
+quarter end, Monday and Friday risk) and sourced policy / macro events from a JSON file the agent writes after at most
+three web searches (`python3 -m research.report --agent ai100 --events ...`). Items without a time, impact or source
+link are left out.

@@ -51,7 +51,7 @@ def build(agent, ds, now, test=False, events_path=None):
 
     if agent in ("modern", "ai100", "super100"):
         ctx = None
-        if agent == "super100":  # session flags and sourced policy / macro events for the session being traded
+        if agent in ("super100", "ai100"):  # session flags and sourced policy / macro events for the session being traded
             ctx = _context_html(sday if mode == "intraday" else now.date(), events_path)
         body = _modern(res, syms, bench, earn, ds, agent, sday, context_html=ctx)
     else:
