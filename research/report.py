@@ -12,6 +12,7 @@ import sys
 from html import escape
 
 from . import collect, market as M, render as R
+from .events import load_events, session_context
 from .analyze import analyze, detect_mode, earnings_within, now_ct
 from .universe import (AI_SECTORS, EMPTY_LAYER_NOTE, INVERSE, modern_layout, symbols)
 
@@ -19,7 +20,7 @@ TITLES = {"mag7": "MAG 7", "aisectors": "AI Sectors", "modern": "Modern AI Secto
           "super100": "Super 10"}
 
 
-def build(agent, ds, now, test=False):
+def build(agent, ds, now, test=False, events_path=None):
     syms, bench = symbols(agent)
     mode, sday = detect_mode(ds, now)
     res = {s: analyze(ds, s, mode, sday, now) for s in syms + bench}
@@ -49,7 +50,10 @@ def build(agent, ds, now, test=False):
         note += f" No data for: {', '.join(missing)}."
 
     if agent in ("modern", "ai100", "super100"):
-        body = _modern(res, syms, bench, earn, ds, agent, sday)
+        ctx = None
+        if agent == "super100":  # session flags and sourced policy / macro events for the session being traded
+            ctx = _context_html(sday if mode == "intraday" else now.date(), events_path)
+        body = _modern(res, syms, bench, earn, ds, agent, sday, context_html=ctx)
     else:
         body = _mag7(res, syms, bench, earn, ds, sday) if agent == "mag7" else _ai(res, syms, bench, earn, ds)
     return title, R.doc(title, note, body), missing, mode
@@ -361,7 +365,23 @@ def _m_row(r, kind, spy20, show_type=True):
             f"{R.short_lvl(r['sup'])} / {R.short_lvl(r['res'])}", f"{r.get('in_play', 0)}/4"]
 
 
-def _modern(res, syms, bench, earn, ds, agent="modern", sday=None):
+def _context_html(day, events_path):
+    """Session flags (calendar rules) and the validated policy / macro events for day."""
+    flags = session_context(day)
+    events, dropped = load_events(events_path, day)
+    out = ("<ul>" + "".join(f"<li>{escape(f)}</li>" for f in flags) + "</ul>") if flags else "<p>No calendar flags for this session.</p>"
+    if events:
+        rows = [[e["time_ct"], escape(e["event"]) + (f" - {escape(e['note'])}" if e["note"] else ""), e["impact"],
+                 f'<a href="{escape(e["source"])}">source</a>'] for e in events]
+        out += R.table(["Time (CT)", "Event", "Impact", "Source"], rows, left=2)
+    else:
+        out += "<p>No policy or macro events were filed for this session.</p>"
+    if dropped:
+        out += f"<p><i>{dropped} item(s) left out: no time, impact or source link.</i></p>"
+    return out
+
+
+def _modern(res, syms, bench, earn, ds, agent="modern", sday=None, context_html=None):
     spy = res.get("SPY", {})
     qqq = res.get("QQQ", {})
     spy20 = spy.get("ret20") if spy.get("ok") else None
@@ -421,6 +441,9 @@ def _modern(res, syms, bench, earn, ds, agent="modern", sday=None):
         out += R.table(M_HDR if has_etf else M_HDR[1:], rows, left=2 if has_etf else 1)
         if sec["notes"]:
             out += "<p><i>" + "; ".join(escape(x) for x in sec["notes"]) + ".</i></p>"
+        n += 1
+    if context_html is not None:
+        out += f"<h3>{n}. Session context and policy / macro</h3>" + context_html
         n += 1
     top, note = _top(res, syms, {"ai100": 7, "super100": 7}.get(agent, 3 if short else 5))  # AI Sectors 100 and Super 100 show 7 setups
     out += (f"<h3>{n}. Top {len(top)} setups</h3>" + _top_html(top, note)
@@ -488,6 +511,7 @@ def main(argv=None):
     ap.add_argument("--data", help="directory of raw tool-result JSON files (instead of / in addition to transcript)")
     ap.add_argument("--now", help="override current time (ISO, CT if no offset)")
     ap.add_argument("--out", default="/tmp/report.html")
+    ap.add_argument("--events", help="JSON list of today's dated policy / macro events with sources (Super 10)")
     ap.add_argument("--test", action="store_true", help="prefix subject with [TEST]")
     ap.add_argument("--part-chars", type=int, default=24000,
                     help="split the HTML into files of at most this many characters (on line breaks)")
@@ -499,7 +523,7 @@ def main(argv=None):
         path = a.transcript or collect.latest_transcript()
         if path:
             collect.load_transcript(path, ds)
-    title, html, missing, mode = build(a.agent, ds, now_ct(a.now), a.test)
+    title, html, missing, mode = build(a.agent, ds, now_ct(a.now), a.test, events_path=a.events)
     html = html.replace("</h3>", "</h3>\n").replace("</li>", "</li>\n").replace("</table>", "</table>\n")
     with open(a.out, "w") as f:
         f.write(html)

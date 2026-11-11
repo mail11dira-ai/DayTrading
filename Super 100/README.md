@@ -18,3 +18,11 @@ VRT, CRWD, TSLA, SPCX. Nothing else is added and no day-trading screen is applie
 **Email:** market deep dive (SPY / QQQ / VIX, implied move band, SPY and QQQ cards), sector scoreboard, top 3
 setups with cards, and risks / catalysts (gaps > 2%, RSI 70/30). Indicator rules: `../MAG 7/technical_analysis.md`
 (same engine).
+
+## Session context and policy / macro (added 2026-11-11)
+- **Session context** (calendar rules, no model calls): monthly options expiry, VIX expiry, quad witching with index
+  rebalancing, month and quarter end, Monday and Friday risk.
+- **Policy and macro events:** the agent searches the web (at most 3 searches) for today's dated US policy and macro
+  events (Fed speakers, data releases with times, tariff or government actions, market-moving political headlines),
+  writes them to a JSON file with a source link for each, and the script renders them. Items with no time, impact or
+  source link are left out. Code: `research/events.py`; section added in `research/report.py` (`--events`).

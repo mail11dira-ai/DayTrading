@@ -792,3 +792,44 @@ def test_er_trade_plan_levels():
     dn = er.score(ds, "DN", cands["DN"][0], today)
     tb = er.trade_plan(dn, "BEAR")
     assert tb["stop"] > dn["price"] and tb["entry"] == dn["prior_low"] and tb["t1"] < tb["entry"] and tb["t2"] < tb["t1"]
+
+
+def test_session_context_rules():
+    from research.events import session_context
+    assert any("OPEX" in f for f in session_context(date(2026, 11, 20)))        # third Friday of November
+    assert any("Quad witching" in f for f in session_context(date(2026, 12, 18)))  # third Friday of December
+    assert any("VIX expiry" in f for f in session_context(date(2026, 10, 21)))  # 30 days before Nov's third Friday
+    assert any("Month end" in f for f in session_context(date(2026, 11, 30)))
+    assert session_context(date(2026, 11, 11)) == []                             # plain Wednesday
+
+
+def test_policy_events_are_validated(tmp_path):
+    import json as _json
+    from research.events import load_events
+    day = date(2026, 11, 11)
+    items = [
+        {"date": "2026-11-11", "time_ct": "07:30", "event": "CPI m/m", "impact": "High", "source": "https://example.com/cpi"},
+        {"date": "2026-11-11", "time_ct": "09:00", "event": "No source", "impact": "High", "source": ""},
+        {"date": "2026-11-11", "time_ct": "10:00", "event": "Bad impact", "impact": "Huge", "source": "https://example.com/x"},
+        {"date": "2026-11-12", "time_ct": "08:00", "event": "Other day", "impact": "Low", "source": "https://example.com/y"},
+    ]
+    f = tmp_path / "events.json"
+    f.write_text(_json.dumps(items))
+    kept, dropped = load_events(str(f), day)
+    assert [e["event"] for e in kept] == ["CPI m/m"] and dropped == 2
+    assert load_events(None, day) == ([], 0) and load_events(str(tmp_path / "missing.json"), day) == ([], 0)
+
+
+def test_super100_report_shows_context_and_events(tmp_path):
+    import json as _json
+    from research.universe import symbols
+    syms, bench = symbols("super100")
+    ds = _synthetic_dataset(syms + bench, date(2026, 10, 12))
+    f = tmp_path / "events.json"
+    f.write_text(_json.dumps([{"date": "2026-10-13", "time_ct": "07:30", "event": "Jobless claims", "impact": "Medium",
+                               "source": "https://example.com/claims", "note": "cons 230k"}]))
+    title, html, missing, mode = build("super100", ds, datetime(2026, 10, 13, 1, 0, tzinfo=CT), test=True, events_path=str(f))
+    assert "Session context and policy / macro" in html and "Jobless claims" in html and "cons 230k" in html
+    assert 'href="https://example.com/claims"' in html
+    _, html2, _, _ = build("super100", ds, datetime(2026, 10, 13, 1, 0, tzinfo=CT), test=True)
+    assert "No policy or macro events were filed" in html2
