@@ -382,7 +382,7 @@ def calls_options(slots):
         ("Put prem", 'optionsDayPremium(callput="P")'), ("Market cap", "fundamental.marketCap")]]
     return [(P + "preview_scan", {"filters": [
         {"expression": "fundamental.earningsYmd", "predicate": "PREDICATE_EQUAL", "values": [d.strftime("%Y%m%d")], "display_title": "Earnings date"},
-        {"expression": "fundamental.marketCap", "predicate": "PREDICATE_GREATER_THAN_OR_EQUAL", "values": ["10000000000"], "display_title": "Market cap"}],
+        {"expression": "fundamental.marketCap", "predicate": "PREDICATE_GREATER_THAN_OR_EQUAL", "values": ["10000000000"], "display_title": "Market cap filter"}],
         "columns": cols}) for d in sorted({d for d, _ in slots})]
 
 
