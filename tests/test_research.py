@@ -243,8 +243,8 @@ def test_end_to_end_report_closed_session(agent):
         assert not any(f"<b>{m}</b>" in html for m in MAG7)
     if agent == "ai100":
         assert "Weekend checklist" not in html and "ETFs Day %" not in html and "15</td>" in html
-        assert "Top 7 setups</h3>" in html and "Nearest S / R" not in html  # compact: no checklist, no per-sector tables, 7 setups
-        assert "8/21" not in html and "20d RS" not in html and "5m RSI &gt; 75" in html  # day-trading only
+        assert "Top 5 setups</h3>" in html and "Nearest S / R" not in html  # compact: no checklist, no per-sector tables, 5 setups
+        assert "8/21" not in html and "20d RS" not in html and "5m RSI above 75 or below 25" in html  # day-trading only
     if agent == "modern":
         assert "Weekend checklist" in html and "Sector scoreboard" in html and "removed for day trading" in html
         assert "12 Neo-Cloud" in html and not any(f"<b>{m}</b>" in html for m in MAG7)
@@ -540,7 +540,7 @@ def test_super100_universe_and_report():
     ds = _synthetic_dataset(syms + bench, date(2026, 10, 12))
     title, html, missing, mode = build("super100", ds, datetime(2026, 10, 13, 1, 0, tzinfo=CT), test=True)
     assert title.startswith("[TEST] Super 10 Research") and missing == []
-    assert "Market deep dive (SPY, QQQ, VIX)" in html and "Sector scoreboard" in html and "Top 3 setups" in html and "Weekend checklist" not in html
+    assert ">Market</h3>" in html and ">Sectors</h3>" in html and "Top 5 setups</h3>" in html and "Weekend checklist" not in html
 
 
 def _er_dataset(today):
@@ -661,9 +661,11 @@ def test_er_report_html():
     assert title == "[TEST] ER Research - 2026-10-29 08:10 CT" and missing == []
     assert len(scored) == 3 and {r["sym"]: r["partial"] for r in scored} == {"UP": False, "DN": False, "THIN": True}
     text = re.sub(r"<[^>]+>", "", html)
-    assert "1. Top 5 Bullish" in text and "2. Top 5 Bearish" in text and "3. Trade plan" in text and "Morning run" in text
-    assert "<b>UP</b>" in html and "<b>DN</b>" in html and "<b>THIN</b> (partial data)" in html  # THIN fails the screen but is still shown
-    assert "Not validated out of sample" in html and "No orders placed." in html
+    assert "1. Top 5 Bullish" in text and "2. Top 5 Bearish" in text and "3. Most traded and biggest" in text and "4. Why" in text and "Morning run" in text
+    assert "<b>UP</b>" in html and "<b>DN</b>" in html and "<b>THIN</b> (partial data)" in html
+    bull_html = html[html.index("1. Top 5"):html.index("2. Top 5")]
+    assert "<b>DN</b>" not in bull_html  # a Bearish (negative score) name never appears in the Bullish table  # THIN fails the screen but is still shown
+    assert "not validated out of sample" in html and "No orders placed." in html
 
 
 def test_er_rankings():
@@ -680,7 +682,7 @@ def test_er_rankings():
     assert rk["mcap"] == [("UP", 5e10), ("DN", 2e10)]
     title, html, missing, scored = er.build(ds, datetime(2026, 10, 29, 8, 10, tzinfo=CT), test=True)
     text = re.sub(r"<[^>]+>", "", html)
-    assert "4. Most traded and biggest reporters" in text and "5. Why" in text
+    assert "3. Most traded and biggest in scope" in text and "4. Why" in text
     assert "<b>UP</b> 1,000 contracts" in html and "<b>UP</b> $50B" in html and "<b>THIN</b> 10K sh" in html and "<b>UP</b> 5.0M sh" in html
 
 
@@ -770,7 +772,7 @@ def test_unusual_report_html():
     text = re.sub(r"<[^>]+>", "", html)
     assert "Top 5 bullish flow" in text and "Top 5 bearish flow" in text and "&amp;gt;" not in html
     assert "<b>UPP</b>" in html and "<b>DWN</b>" in html and "SPY" not in html
-    assert "sweeps and trade side" in html and "Not validated out of sample." in html and "No orders placed." in html
+    assert "Sweeps and trade side are not" in html and "not validated out of sample" in html and "No orders placed." in html
 
 
 def test_er_screen_filters():
@@ -847,10 +849,10 @@ def test_super100_report_shows_context_and_events(tmp_path):
     f.write_text(_json.dumps([{"date": "2026-10-13", "time_ct": "07:30", "event": "Jobless claims", "impact": "Medium",
                                "source": "https://example.com/claims", "note": "cons 230k"}]))
     title, html, missing, mode = build("super100", ds, datetime(2026, 10, 13, 1, 0, tzinfo=CT), test=True, events_path=str(f))
-    assert "Session context and policy / macro" in html and "Jobless claims" in html and "cons 230k" in html
+    assert "Events and calendar</h3>" in html and "Jobless claims" in html and "cons 230k" in html
     assert 'href="https://example.com/claims"' in html
     _, html2, _, _ = build("super100", ds, datetime(2026, 10, 13, 1, 0, tzinfo=CT), test=True)
-    assert "No policy or macro events were filed" in html2
+    assert "no policy or macro events filed" in html2
 
 
 def test_ai100_report_shows_context_and_events(tmp_path):
@@ -862,4 +864,4 @@ def test_ai100_report_shows_context_and_events(tmp_path):
     f.write_text(_json.dumps([{"date": "2026-10-13", "time_ct": "07:30", "event": "Jobless claims", "impact": "Medium",
                                "source": "https://example.com/claims"}]))
     _, html, missing, _ = build("ai100", ds, datetime(2026, 10, 13, 1, 0, tzinfo=CT), test=True, events_path=str(f))
-    assert "Session context and policy / macro" in html and "Jobless claims" in html
+    assert "Events and calendar</h3>" in html and "Jobless claims" in html

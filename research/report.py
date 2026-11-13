@@ -49,11 +49,10 @@ def build(agent, ds, now, test=False, events_path=None):
     if missing:
         note += f" No data for: {', '.join(missing)}."
 
-    if agent in ("modern", "ai100", "super100"):
-        ctx = None
-        if agent in ("super100", "ai100"):  # session flags and sourced policy / macro events for the session being traded
-            ctx = _context_html(sday if mode == "intraday" else now.date(), events_path)
-        body = _modern(res, syms, bench, earn, ds, agent, sday, context_html=ctx)
+    if agent in ("super100", "ai100"):  # short emails: market, sectors, top 5 setups, watch list, events
+        body = _brief_body(agent, res, syms, bench, earn, ds, sday, sday if mode == "intraday" else now.date(), events_path)
+    elif agent == "modern":
+        body = _modern(res, syms, bench, earn, ds, agent, sday)
     else:
         body = _mag7(res, syms, bench, earn, ds, sday) if agent == "mag7" else _ai(res, syms, bench, earn, ds)
     return title, R.doc(title, note, body), missing, mode
@@ -450,6 +449,107 @@ def _modern(res, syms, bench, earn, ds, agent="modern", sday=None, context_html=
             + "".join(R.card(r, _ratings_extra(ds, r), brief=short) for r in top))
     out += f"<h3>{n + 1}. Risks / catalysts</h3>" + (_risks(res, syms, earn, 2, 1.0, 70, 30) if large
                                                      else _risks(res, syms, earn, 3, 1.2, 75, 25, day_only=agent == "ai100"))
+    return out
+
+
+# ---------------------------------------------------------------- short emails (Super 10, AI Sectors 100)
+def _brief_market(res, bench, ds, sday):
+    out = []
+    for b in bench:
+        r = res[b]
+        if not r["ok"]:
+            out.append(f"<li><b>{b}</b> {R.NA}</li>")
+            continue
+        vw = "" if not r["vwap"] else (" &middot; above VWAP" if r["price"] > r["vwap"] else " &middot; below VWAP")
+        out.append(f"<li><b>{b}</b> {R.num(r['price'])} {R.pct(r['day_pct'])} &middot; {R.bias(r)}{vw}</li>")
+    v = M.vix_analysis(ds, sday, res.get("SPY", {}), res.get("QQQ", {}))
+    if v and v.get("spy"):
+        m = v["spy"]
+        out.append(f"<li><b>SPY expected range today</b> &plusmn;{m['em']:.2f}% ({R.num(m['lo'])}&ndash;{R.num(m['hi'])}), from VIX</li>")
+    return out
+
+
+def _brief_sectors(res, secs):
+    rows, stats = [], []
+    for sec in secs:
+        live = [res[s] for s, k, _ in sec["members"] if k != "n/a" and s not in INVERSE and res[s]["ok"]]
+        a = _avg([r["day_pct"] for r in live])
+        vq = _avg([r["vs_qqq"] for r in live])
+        ab = _avg([r["bias"] for r in live])
+        best = max(live, key=lambda r: r["day_pct"]) if live else None
+        worst = min(live, key=lambda r: r["day_pct"]) if live else None
+        stats.append((sec, a))
+        rows.append([sec["num"], escape(sec["name"]), R.pct(a), R.pct(vq), R.score(ab),
+                     f"{best['sym']} {R.pct(best['day_pct'])}" if best else R.NA,
+                     f"{worst['sym']} {R.pct(worst['day_pct'])}" if worst else R.NA])
+    return R.table(["#", "Sector", "Day %", "vs QQQ", "Bias", "Best", "Worst"], rows, left=2), stats
+
+
+def _brief_setups(top, note):
+    rows = []
+    for i, r in enumerate(top, 1):
+        s = r["setup"]
+        rows.append([i, f"<b>{r['sym']}</b>", R.bias(r), f"{R.num(s['trigger'])} <i>{escape(s['trigger_label'])}</i>",
+                     R.num(s["target"]), R.num(s["stop"]), R.ratio(s["rr"]), f"{r.get('in_play', 0)}/4"])
+    out = (R.table(["#", "Stock", "Bias", "Entry trigger", "Target", "Invalid", "R/R", "In play"], rows, left=4)
+           if rows else "<p>No setups qualify: need a BULLISH or BEARISH bias and R/R &ge; 1.0.</p>")
+    return out + (f"<p><i>{note}</i></p>" if note else "")
+
+
+def _brief_watch(res, syms, earn, gap_thr, rsi=None):
+    ok = [res[s] for s in syms if res[s]["ok"]]
+
+    def names(rs, f, k=5):
+        if not rs:
+            return "none"
+        return ", ".join(f(r) for r in rs[:k]) + (f" (+{len(rs) - k})" if len(rs) > k else "")
+    ip = sorted([r for r in ok if r.get("in_play", 0) >= 3], key=lambda r: (-r["in_play"], -(r["rvol"] or 0)))
+    gaps = sorted([r for r in ok if r["gap_pct"] is not None and abs(r["gap_pct"]) > gap_thr], key=lambda r: -abs(r["gap_pct"]))
+    rs = sorted([r for r in ok if r.get("rs30") is not None], key=lambda r: -r["rs30"])
+    lead = [r for r in rs if r["rs30"] > 0][:3]
+    lag = [r for r in rs[::-1] if r["rs30"] < 0][:3]
+    e = [f"{s} {d:%m/%d}" for s, (d, t) in sorted(earn.items(), key=lambda x: x[1][0]) if s in syms][:6]
+    items = [
+        "<b>In play (3+ of 4):</b> " + names(ip, lambda r: f"{r['sym']} {r['in_play']}/4"),
+        f"<b>Gaps over {gap_thr:g}%:</b> " + names(gaps, lambda r: f"{r['sym']} {R.pct(r['gap_pct'], 1)}"),
+        "<b>Leaders vs QQQ (30m):</b> " + names(lead, lambda r: f"{r['sym']} {R.pct(r['rs30'])}")
+        + " &middot; <b>laggards:</b> " + names(lag, lambda r: f"{r['sym']} {R.pct(r['rs30'])}"),
+    ]
+    if rsi:  # day-trading signal: 5-minute RSI extremes (no daily RSI in the short email)
+        ext = [r for r in ok if r["rsi_5"] is not None and (r["rsi_5"] > rsi[0] or r["rsi_5"] < rsi[1])]
+        items.append(f"<b>5m RSI above {rsi[0]} or below {rsi[1]}:</b> "
+                     + names(ext, lambda r: f"{r['sym']} ({R.rsi(r['rsi_5'])})"))
+    items.append("<b>Earnings within 14 days:</b> " + (", ".join(e) if e else "none in universe"))
+    return "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
+
+
+def _brief_events(day, events_path):
+    flags = session_context(day)
+    events, _ = load_events(events_path, day)
+    items = [f"<li>{escape(f)}</li>" for f in flags[:2]]
+    for e in events[:4]:
+        note = f" &ndash; {escape(e['note'])}" if e.get("note") else ""
+        items.append(f"<li><b>{escape(e['time_ct'])} CT</b> {escape(e['event'])} ({escape(e['impact'])}){note} "
+                     f'<a href="{escape(e["source"])}">source</a></li>')
+    return ("<ul>" + "".join(items) + "</ul>") if items else "<p>No calendar flags and no policy or macro events filed.</p>"
+
+
+def _brief_body(agent, res, syms, bench, earn, ds, sday, ctx_day, events_path):
+    secs = modern_layout(agent)
+    table, stats = _brief_sectors(res, secs)
+    valid = [x for x in stats if x[1] is not None]
+    tape = ""
+    if valid:
+        lead, lag = max(valid, key=lambda x: x[1]), min(valid, key=lambda x: x[1])
+        tape = (f"<b>Leader:</b> {lead[0]['num']} {escape(lead[0]['name'])} {R.pct(lead[1])} &middot; "
+                f"<b>laggard:</b> {lag[0]['num']} {escape(lag[0]['name'])} {R.pct(lag[1])}")
+    top, note = _top(res, syms, 5)
+    out = "<h3>Market</h3><ul>" + "".join(_brief_market(res, bench, ds, sday) + _breadth(res, syms, ds, day_only=True)) + "</ul>"
+    out += f"<h3>Sectors</h3>{table}<p>{tape}</p>"
+    out += "<h3>Top 5 setups</h3>" + _brief_setups(top, note)
+    out += "<h3>Watch</h3>" + _brief_watch(res, syms, earn, 2 if agent == "super100" else 3,
+                                            rsi=None if agent == "super100" else (75, 25))
+    out += "<h3>Events and calendar</h3>" + _brief_events(ctx_day, events_path)
     return out
 
 

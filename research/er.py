@@ -464,16 +464,30 @@ def _plan_rows(picks, side, day):
 
 
 def _rank_rows(rk):
+    n = min(TOP_N, max(len(v) for v in rk.values()))  # no empty rows
     fmts = [("shares", lambda v: f"{v / 1e6:.1f}M sh" if v >= 1e6 else f"{v / 1e3:,.0f}K sh"),
             ("dollars", lambda v: f"${v / 1e6:,.0f}M"),
             ("options", lambda v: f"{v:,.0f} contracts"), ("mcap", lambda v: f"${v / 1e9:,.0f}B")]
     rows = []
-    for i in range(TOP_N):
+    for i in range(n):
         row = [i + 1]
         for key, fmt in fmts:
             items = rk[key]
             row.append(f"<b>{items[i][0]}</b> {fmt(items[i][1])}" if i < len(items) else "n/a")
         rows.append(row)
+    return rows
+
+
+def _side_rows(picks, side, day):
+    rows = []
+    for i, r in enumerate(picks, 1):
+        tp = trade_plan(r, side)
+        tag = " (partial data)" if r["partial"] else ""
+        eps = f"{r['act']:.2f} vs {r['est']:.2f} ({r['surprise']:+.0f}%)" if r["surprise"] is not None else "not yet"
+        rows.append([i, f"<b>{r['sym']}</b>{tag}<br>{_when(r, day)}", f"{_label(r)} {r['total']:+d}",
+                     R.pct(r["gap"], 1) if r["gap"] is not None else "n/a", eps,
+                     f"{tp['entry']:.2f}", f"{tp['stop']:.2f}", f"{tp['t1']:.2f}", f"{tp['t2']:.2f}",
+                     f"{tp['rr']:.1f}" if tp["rr"] else "n/a"])
     return rows
 
 
@@ -494,9 +508,14 @@ def build(ds, now, test=False):
             if r:
                 r["partial"] = True
                 scored.append(r)
-    scored.sort(key=lambda r: (-r["total"], short.index(r["sym"]) if r["sym"] in short else len(short)))
-    bull = scored[:TOP_N]
-    bear = sorted([r for r in scored if r not in bull], key=lambda r: (r["total"], short.index(r["sym"]) if r["sym"] in short else len(short)))[:TOP_N]
+    def tb(r):  # tie-break: most traded first
+        return short.index(r["sym"]) if r["sym"] in short else len(short)
+    scored.sort(key=lambda r: (-r["total"], tb(r)))
+    pos = [r for r in scored if r["total"] > 0]
+    neg = sorted((r for r in scored if r["total"] < 0), key=lambda r: (r["total"], tb(r)))
+    neu = [r for r in scored if r["total"] == 0]
+    bull = (pos + neu)[:TOP_N]  # a Bullish name never comes from the negative scores; neutrals only fill the gaps
+    bear = (neg + [r for r in neu if r not in bull])[:TOP_N]
     picked = bull + bear
     title = f"{'[TEST] ' if test else ''}ER Research - {now:%Y-%m-%d %H:%M} CT"
     if now.hour < 12:
@@ -508,42 +527,25 @@ def build(ds, now, test=False):
             f"{len(scored) - full} partial). Top {TOP_N} Bullish and top {TOP_N} Bearish by score. Filters: price >= ${MIN_PRICE:.0f}, "
             f">= ${MIN_DVOL / 1e6:.0f}M/day and >= {MIN_SHARES / 1e6:.0f}M shares/day, ATR >= {MIN_ATR}%, RSI "
             f"{RSI_BAND[0]}-{RSI_BAND[1]}, prior-day move <= {MAX_PRIOR_MOVE:.0f}%.")
-    head = ["#", "Stock", "Report", "Call", "Score", "Move", "EPS est", "EPS actual", "Beat rate (8q)", "Avg ER move", "ATR"]
-    plan_head = ["#", "Stock", "Strength", "Entry (break)", "Stop", "Target 1", "Target 2", "R:R", "IV rank", "Implied day move"]
+    head = ["#", "Stock", "Score", "Move", "EPS vs est", "Entry", "Stop", "Target 1", "Target 2", "R:R"]
     body = f"<h3>1. Top {TOP_N} Bullish</h3>"
-    body += R.table(head, _rows(bull, day), left=3, tint=3) if bull else "<p>No names in scope.</p>"
+    body += R.table(head, _side_rows(bull, "BULL", day), left=2, tint=2) if bull else "<p>No names in scope.</p>"
     body += f"<h3>2. Top {TOP_N} Bearish</h3>"
-    body += R.table(head, _rows(bear, day), left=3, tint=3) if bear else "<p>No names in scope.</p>"
-    body += "<h3>3. Trade plan (rule-based levels, next session)</h3>"
-    body += "<p><b>Bullish:</b> buy a break of the prior high; stop at the tighter of 20-day support or 1 ATR below the entry; targets at 20-day resistance or 1.5 / 2.5 ATR.</p>"
-    body += R.table(plan_head, _plan_rows(bull, "BULL", day), left=2, tint=2) if bull else ""
-    body += "<p><b>Bearish:</b> sell a break of the prior low; stop at the tighter of 20-day resistance or 1 ATR above the entry; targets at 20-day support or 1.5 / 2.5 ATR.</p>"
-    body += R.table(plan_head, _plan_rows(bear, "BEAR", day), left=2, tint=2) if bear else ""
+    body += R.table(head, _side_rows(bear, "BEAR", day), left=2, tint=2) if bear else "<p>No names in scope.</p>"
+    body += ("<p><i>Bullish: buy a break of the prior high. Bearish: sell a break of the prior low. Stop = the tighter of 20-day "
+             "support / resistance or 1 ATR; targets at 20-day levels or 1.5 / 2.5 ATR. Levels to watch, not advice.</i></p>")
     rk = rankings(ds, slots)
     rank_head = ["#", "Highest share volume (20d avg)", "Most liquid ($ 20d avg)", "Most popular (options, day)", "Biggest (market cap)"]
-    body += f"<h3>4. Most traded and biggest reporters in scope (top {TOP_N} each)</h3>"
-    body += R.table(rank_head, _rank_rows(rk), left=1, tint=None)
-    body += ("<p>Popular = options contracts traded on the day (calls + puts). The options scan covers reporters with a market cap "
-             "of $10B or more, so the popular and biggest columns rank only those names.</p>")
-    body += "<h3>5. Why</h3><ul>" + "".join(
+    body += f"<h3>3. Most traded and biggest in scope</h3>" + R.table(rank_head, _rank_rows(rk), left=1)
+    body += "<p><i>Popular = options contracts traded on the day. The options scan covers $10B+ reporters only, so the last two columns rank those.</i></p>"
+    body += "<h3>4. Why</h3><ul>" + "".join(
         f"<li><b>{r['sym']}</b> {_label(r)} ({r['total']:+d}): "
-        + "; ".join(f"{k} {r['pts'][k]:+d} ({escape(r['why'][k])})" for k in r["pts"]) + "</li>"
-        + (f"<li style='list-style:none;margin-left:-18px;color:#4b5563'>Levels: {escape(r['why']['levels'])}; "
-           f"{escape(r['why'].get('Bollinger', ''))}; {escape(r['why'].get('RVOL', ''))}</li>" if 'levels' in r['why'] else "")
+        + "; ".join(f"{k} {v:+d} ({escape(r['why'][k])})" for k, v in
+                    sorted(r["pts"].items(), key=lambda kv: -abs(kv[1]))[:3]) + "</li>"
         for r in picked) + "</ul>"
-    rest = [r for r in scored if r not in picked]
-    if rest:
-        body += "<h3>6. Rest of the scored list</h3><p>" + ", ".join(f"{r['sym']} {_label(r)} {r['total']:+d}" for r in rest) + "</p>"
-    body += ("<h3>Method</h3><p>Fixed-weight checklist, nothing tuned: reaction since the prior close in ATR units (BMO names that "
-             "have already reported, up to &plusmn;3), EPS surprise (&plusmn;1), 8-quarter beat rate (&plusmn;1), up-day rate after "
-             "past reports (&plusmn;1), 20-day return vs SPY (&plusmn;1), price vs 50-day average (&plusmn;1), analyst buy share and "
-             "target (&plusmn;1), VWAP, 200-day average, MACD, volume flow (up/down volume and OBV), option flow (call share of premium) "
-             "(&plusmn;1 each). Implied volatility and implied daily move are shown, not scored. Strength: Strong = score of at least 2 "
-             "in either direction, Lean = 1 or less. The top and bottom 5 are always shown; a name marked partial failed a liquidity, "
-             "technical or context filter or lacked data, so treat its call with more caution. <b>Not validated out of sample</b>: "
-             "post-earnings direction is close to a coin flip. Names reporting after the close, and next session's before-the-open "
-             "names, have no reaction yet, so their call rests on history, trend and analysts. Size positions for the average "
-             "earnings move shown.</p>")
+    body += ("<p><i>Fixed-weight checklist, not validated out of sample; post-earnings direction is close to a coin flip. "
+             "Names reporting after the close have no reaction yet. A partial-data name failed a liquidity or technical filter. "
+             "Size positions for the average earnings move in the scorecard (ATR).</i></p>")
     missing = [s for s in cands if s not in {r["sym"] for r in scored}]
     return title, R.doc(title, note, body), missing, scored
 

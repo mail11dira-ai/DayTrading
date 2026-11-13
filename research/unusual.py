@@ -283,18 +283,15 @@ def _rows(top):
     for i, r in enumerate(top, 1):
         cs = r.get("cs")
         c = cs["unusual"][0] if cs and cs["unusual"] else None
-        top_c = f"{c['type'][0].upper()} {c['strike']:g} vol {c['vol']:,} / OI {c['oi']:,}" if c else "none"
-        rows.append([i, f"<b>{r['sym']}</b>", _label(r), f"{r['total']:+d}", f"{r['price']:,.2f}", R.pct(r["chg"], 1),
-                     f"{_m(r['prem'])} ({r['share']:.0%} C)", f"{r['orvol']:.1f}x" if r["orvol"] else "n/a",
-                     f"{r['srvol']:.1f}x" if r["srvol"] else "n/a",
-                     f"{len(cs['unusual'])} / {_m(cs['ucall'] + cs['uput'])}" if cs else "n/a", top_c,
-                     (f"{r['iv'] * 100:.0f}%" if r["iv"] else "n/a") + (f" / {r['ivr'] * 100:.0f}" if r["ivr"] is not None else ""),
-                     _m(cs["gex"]) if cs else "n/a", escape(", ".join(r["flags"])) or "-"])
+        top_c = f"{c['type'][0].upper()} {c['strike']:g}: vol {c['vol']:,} / OI {c['oi']:,}" if c else "none"
+        rows.append([i, f"<b>{r['sym']}</b>", f"{_label(r)} {r['total']:+d}",
+                     f"{r['price']:,.2f} ({R.pct(r['chg'], 1)})", f"{_m(r['prem'])} ({r['share']:.0%} calls)",
+                     f"{r['orvol']:.1f}x" if r["orvol"] else "n/a", top_c,
+                     (f"{r['iv'] * 100:.0f}%" if r["iv"] else "n/a") + (f" / {r['ivr'] * 100:.0f}" if r["ivr"] is not None else "")])
     return rows
 
 
-HEAD = ["#", "Stock", "Call", "Score", "Price", "Chg", "Opt premium", "Opt RVOL", "Stock RVOL", "Unusual (n / $)",
-        "Top contract", "IV / rank", "GEX per 1%", "Catalyst"]
+HEAD = ["#", "Stock", "Call / score", "Price (chg)", "Premium", "Options RVOL", "Top contract", "IV / rank"]
 
 
 def build(fl, now, test=False):
@@ -313,28 +310,27 @@ def build(fl, now, test=False):
     body = ""
     for n, (name, lst) in enumerate((("Top 5 bullish flow", bull), ("Top 5 bearish flow", bear)), 1):
         body += f"<h3>{n}. {name}</h3>"
-        body += R.table(HEAD, _rows(lst), left=3, tint=3) if lst else "<p>None today.</p>"
-    body += "<h3>3. Why and the contracts</h3><ul>"
+        body += R.table(HEAD, _rows(lst), left=2, tint=2) if lst else "<p>None today.</p>"
+    body += "<h3>3. Why</h3><ul>"
     for r in bull + bear:
         cs = r.get("cs")
         body += (f"<li><b>{r['sym']}</b> {_label(r)} ({r['total']:+d}): "
-                 + "; ".join(f"{k} {r['pts'][k]:+d} ({escape(r['why'][k])})" for k in r["pts"]))
-        if cs:
-            body += (f". Walls ({cs['exp']}): call {cs['call_wall']:g} / put {cs['put_wall']:g}, GEX {_m(cs['gex'])} per 1% "
-                     f"({'dampening' if cs['gex'] > 0 else 'amplifying'})" if cs["call_wall"] and cs["put_wall"] else "")
-            body += "".join(f"<br>&nbsp;&nbsp;{escape(_contract(c, cs['exp']))}" for c in cs["unusual"][:3])
+                 + "; ".join(f"{k} {v:+d} ({escape(r['why'][k])})" for k, v in
+                             sorted(r["pts"].items(), key=lambda kv: -abs(kv[1]))[:3]))
+        if cs and cs["call_wall"] and cs["put_wall"]:
+            body += (f". Walls ({cs['exp']}): call {cs['call_wall']:g} / put {cs['put_wall']:g}; GEX {_m(cs['gex'])} per 1% "
+                     f"({'dampening' if cs['gex'] > 0 else 'amplifying'})")
+        if cs and cs["unusual"]:
+            body += f"<br>&nbsp;&nbsp;{escape(_contract(cs['unusual'][0], cs['exp']))}"
         body += "</li>"
     body += "</ul>"
     rest = [r for r in scored if r not in bull and r not in bear]
     if rest:
         body += "<h3>4. Also screened</h3><p>" + ", ".join(f"{r['sym']} {_label(r)} {r['total']:+d}" for r in rest) + "</p>"
-    body += ("<h3>Method</h3><p>Fixed-weight checklist, nothing tuned: call share of options premium (&plusmn;2), call share of "
-             "unusual-contract premium (volume &gt; open interest and &ge; $50K, nearest expiry, &plusmn;1), stock move "
-             "&ge; 1% (&plusmn;1). Score &ge; +2 Bullish, &le; -2 Bearish; ranked by options RVOL, stock RVOL, volume/OI and "
-             "premium size. RVOL is pace-adjusted to the time of day. GEX uses the nearest expiry's "
-             f"{STRIKES} strikes each side, assuming dealers are long calls and short puts (positive = moves dampened). "
-             "<b>Not available from Robinhood: sweeps and trade side</b> (no prints, only bid/ask quotes), so premium can be "
-             "sold as well as bought; a call-heavy mix can be covered-call writing. <b>Not validated out of sample.</b></p>")
+    body += ("<h3>Method</h3><p>Fixed-weight checklist, not validated out of sample. Score: call share of premium (&plusmn;2), "
+             "unusual-contract call share (volume &gt; open interest, &ge; $50K, &plusmn;1), stock move &ge; 1% (&plusmn;1). "
+             "Ranked by options RVOL, then premium. RVOL is pace-adjusted to the time of day. Sweeps and trade side are not "
+             "available from Robinhood, so premium can be sold as well as bought.</p>")
     missing = [r["sym"] for r in scored if not r["cs"]]
     return title, R.doc(title, note, body), missing, scored
 
