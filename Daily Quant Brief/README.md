@@ -18,4 +18,4 @@ the brief itself, so numbers are not computed by tested code; the silent researc
 
 **Connectors:** Robinhood_Agentic and Gmail were attached by the user in the claude.ai task settings (2026-10-30).
 
-**Recipients:** mail11dira@gmail.com, with CC to shanmugam.ts@gmail.com, ganeshjayar@gmail.com and pradeepr@live.com (added 2026-11-09).
+**Recipients:** mail11dira@gmail.com, with CC to shanmugam.ts@gmail.com, ganeshjayar@gmail.com, pradeepr@live.com (added 2026-11-09) and marudha.moorthy@gmail.com (added 2026-11-13).

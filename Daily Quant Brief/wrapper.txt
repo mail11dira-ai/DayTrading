@@ -10,7 +10,7 @@ EMAIL DESIGN (build the HTML yourself; inline styles only, Gmail strips <style>)
 - Colour ONLY the words Bullish/Bull (color:#0a7d2c;font-weight:700) and Bearish/Bear (color:#c0392b;font-weight:700). Everything else uncoloured. No emoji.
 - Footer: <div style="margin-top:22px;color:#6b7280;font-size:11px">...</div>.
 
-DELIVERY: send with mcp__Gmail__send_message (load it with ToolSearch "select:mcp__Gmail__send_message"): to ["mail11dira@gmail.com"], cc ["shanmugam.ts@gmail.com", "ganeshjayar@gmail.com", "pradeepr@live.com"], subject "Daily Quant Brief - <YYYY-MM-DD> - <RISK-ON|RISK-OFF|MIXED>, SPY <Bullish|Bearish|Neutral>", htmlBody = the HTML. Send to these addresses only, never to anyone else. If the Gmail tool is not available, put the brief in your final message instead.
+DELIVERY: send with mcp__Gmail__send_message (load it with ToolSearch "select:mcp__Gmail__send_message"): to ["mail11dira@gmail.com"], cc ["shanmugam.ts@gmail.com", "ganeshjayar@gmail.com", "pradeepr@live.com", "marudha.moorthy@gmail.com"], subject "Daily Quant Brief - <YYYY-MM-DD> - <RISK-ON|RISK-OFF|MIXED>, SPY <Bullish|Bearish|Neutral>", htmlBody = the HTML. Send to these addresses only, never to anyone else. If the Gmail tool is not available, put the brief in your final message instead.
 Final message: one line with the subject, "sent" (or "not sent: <reason>") and the word count.
 
 === BRIEF SPECIFICATION (follow exactly) ===
