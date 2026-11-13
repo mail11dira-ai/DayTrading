@@ -136,7 +136,8 @@ def _opt(ds, sym):
     cp, pp = col("Call prem") or 0, col("Put prem") or 0
     cv, pv = col("Total call volume", "Call vol") or 0, col("Total put volume", "Put vol") or 0
     return {"iv_rank": col("IV rank"), "iv30": iv30, "call_share": cp / (cp + pp) if cp + pp else None,
-            "pc_vol": pv / cv if cv else None, "oi": col("Total OI")}
+            "pc_vol": pv / cv if cv else None, "oi": col("Total OI"), "volume": cv + pv if cv + pv else None,
+            "mcap": col("Market cap")}
 
 
 def _ema(values, n):
@@ -338,6 +339,25 @@ def score(ds, sym, entry, today, reacted=True):
             "atr_abs": atr_pct / 100 * close, "prior_high": d[-1][2], "prior_low": d[-1][3], "partial": False}
 
 
+def rankings(ds, slots, n=TOP_N):
+    """Reporters in scope ranked four ways (top n each, all names with bars, not only the screened ones):
+    share volume and dollar volume (20-day averages), options contracts traded on the day (the scan's call + put
+    volume: the "popular" lens) and market cap (the scan only covers $10B+ names, so this ranks the large caps)."""
+    rows = {"shares": [], "dollars": [], "options": [], "mcap": []}
+    for s, (_, rd, _) in candidates(ds, slots).items():
+        liq = liquidity(ds, s, rd)
+        if not liq:
+            continue
+        rows["shares"].append((s, liq[2]))
+        rows["dollars"].append((s, liq[1]))
+        o = _opt(ds, s) or {}
+        if o.get("volume") is not None:
+            rows["options"].append((s, o["volume"]))
+        if o.get("mcap") is not None:
+            rows["mcap"].append((s, o["mcap"]))
+    return {k: sorted(v, key=lambda x: -x[1])[:n] for k, v in rows.items()}
+
+
 def shortlist(ds, slots, n=DETAIL_N):
     """Reporters in scope that pass the screen, most traded (by $ volume) first."""
     rows = []
@@ -359,7 +379,7 @@ def calls_options(slots):
     cols = [{"display_name": n, "expression": e} for n, e in [
         ("IV rank", "ivRank"), ("IV30", "atmIv30Day"), ("Call vol", "optionsCallDayVolume"), ("Put vol", "optionsPutDayVolume"),
         ("Total OI", "optionsTotalOpenInterest"), ("Call prem", 'optionsDayPremium(callput="C")'),
-        ("Put prem", 'optionsDayPremium(callput="P")')]]
+        ("Put prem", 'optionsDayPremium(callput="P")'), ("Market cap", "fundamental.marketCap")]]
     return [(P + "preview_scan", {"filters": [
         {"expression": "fundamental.earningsYmd", "predicate": "PREDICATE_EQUAL", "values": [d.strftime("%Y%m%d")], "display_title": "Earnings date"},
         {"expression": "fundamental.marketCap", "predicate": "PREDICATE_GREATER_THAN_OR_EQUAL", "values": ["10000000000"], "display_title": "Market cap"}],
@@ -443,6 +463,20 @@ def _plan_rows(picks, side, day):
     return rows
 
 
+def _rank_rows(rk):
+    fmts = [("shares", lambda v: f"{v / 1e6:.1f}M sh" if v >= 1e6 else f"{v / 1e3:,.0f}K sh"),
+            ("dollars", lambda v: f"${v / 1e6:,.0f}M"),
+            ("options", lambda v: f"{v:,.0f} contracts"), ("mcap", lambda v: f"${v / 1e9:,.0f}B")]
+    rows = []
+    for i in range(TOP_N):
+        row = [i + 1]
+        for key, fmt in fmts:
+            items = rk[key]
+            row.append(f"<b>{items[i][0]}</b> {fmt(items[i][1])}" if i < len(items) else "n/a")
+        rows.append(row)
+    return rows
+
+
 def build(ds, now, test=False):
     day, slots = plan(now)
     cands = candidates(ds, slots)
@@ -485,7 +519,13 @@ def build(ds, now, test=False):
     body += R.table(plan_head, _plan_rows(bull, "BULL", day), left=2, tint=2) if bull else ""
     body += "<p><b>Bearish:</b> sell a break of the prior low; stop at the tighter of 20-day resistance or 1 ATR above the entry; targets at 20-day support or 1.5 / 2.5 ATR.</p>"
     body += R.table(plan_head, _plan_rows(bear, "BEAR", day), left=2, tint=2) if bear else ""
-    body += "<h3>4. Why</h3><ul>" + "".join(
+    rk = rankings(ds, slots)
+    rank_head = ["#", "Highest share volume (20d avg)", "Most liquid ($ 20d avg)", "Most popular (options, day)", "Biggest (market cap)"]
+    body += f"<h3>4. Most traded and biggest reporters in scope (top {TOP_N} each)</h3>"
+    body += R.table(rank_head, _rank_rows(rk), left=1, tint=None)
+    body += ("<p>Popular = options contracts traded on the day (calls + puts). The options scan covers reporters with a market cap "
+             "of $10B or more, so the popular and biggest columns rank only those names.</p>")
+    body += "<h3>5. Why</h3><ul>" + "".join(
         f"<li><b>{r['sym']}</b> {_label(r)} ({r['total']:+d}): "
         + "; ".join(f"{k} {r['pts'][k]:+d} ({escape(r['why'][k])})" for k in r["pts"]) + "</li>"
         + (f"<li style='list-style:none;margin-left:-18px;color:#4b5563'>Levels: {escape(r['why']['levels'])}; "
@@ -493,7 +533,7 @@ def build(ds, now, test=False):
         for r in picked) + "</ul>"
     rest = [r for r in scored if r not in picked]
     if rest:
-        body += "<h3>5. Rest of the scored list</h3><p>" + ", ".join(f"{r['sym']} {_label(r)} {r['total']:+d}" for r in rest) + "</p>"
+        body += "<h3>6. Rest of the scored list</h3><p>" + ", ".join(f"{r['sym']} {_label(r)} {r['total']:+d}" for r in rest) + "</p>"
     body += ("<h3>Method</h3><p>Fixed-weight checklist, nothing tuned: reaction since the prior close in ATR units (BMO names that "
              "have already reported, up to &plusmn;3), EPS surprise (&plusmn;1), 8-quarter beat rate (&plusmn;1), up-day rate after "
              "past reports (&plusmn;1), 20-day return vs SPY (&plusmn;1), price vs 50-day average (&plusmn;1), analyst buy share and "

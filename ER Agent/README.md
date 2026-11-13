@@ -48,4 +48,9 @@ The email shows each name's average past earnings move so position size can matc
 First live test (2026-10-29 data, overnight quotes): 245 reporters, 15 scored; top 5 MA, LLY, LIN Bullish,
 COIN, INTC Bearish.
 
+**Most traded and biggest (section 4 of the email):** the top 5 reporters in scope on four lenses, all names with data (not only the
+screened ones): highest share volume (20-day average), most liquid (20-day average dollar volume), most popular (options contracts
+traded on the day, calls + puts from the scan) and biggest (market cap). The scan covers $10B+ names only, so the popular and biggest
+columns rank only those.
+
 **Trade plan (rule-based levels, next session):** Bullish: entry = break of the prior session's high; stop = the tighter of 20-day support or 1 ATR below the entry; Target 1 = 20-day resistance (or 1.5 ATR); Target 2 = 2.5 ATR. Bearish mirrors this from the prior low. The reward-to-risk ratio is shown. These are levels to watch, not advice; the email says so.

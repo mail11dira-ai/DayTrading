@@ -666,6 +666,24 @@ def test_er_report_html():
     assert "Not validated out of sample" in html and "No orders placed." in html
 
 
+def test_er_rankings():
+    from research import er
+    today = date(2026, 10, 29)
+    ds = _er_dataset(today)
+    ds.options = {"UP": {"Call vol": "900", "Put vol": "100", "Market cap": "5e10"},
+                  "DN": {"Call vol": "100", "Put vol": "50", "Market cap": "2e10"}}
+    slots = er.plan(datetime(2026, 10, 29, 8, 10, tzinfo=CT))[1]
+    rk = er.rankings(ds, slots)
+    assert rk["shares"][-1][0] == "THIN" and len(rk["shares"]) == 3          # THIN trades 10k shares a day
+    assert rk["dollars"][0][0] == "UP"                                        # same shares, higher price
+    assert rk["options"] == [("UP", 1000.0), ("DN", 150.0)]                   # calls + puts on the day
+    assert rk["mcap"] == [("UP", 5e10), ("DN", 2e10)]
+    title, html, missing, scored = er.build(ds, datetime(2026, 10, 29, 8, 10, tzinfo=CT), test=True)
+    text = re.sub(r"<[^>]+>", "", html)
+    assert "4. Most traded and biggest reporters" in text and "5. Why" in text
+    assert "<b>UP</b> 1,000 contracts" in html and "<b>UP</b> $50B" in html and "<b>THIN</b> 10K sh" in html and "<b>UP</b> 5.0M sh" in html
+
+
 def test_er_session_day():
     from research.er import session_day
     assert session_day(datetime(2026, 10, 29, 9, 0, tzinfo=CT)) == date(2026, 10, 29)    # Thursday morning
