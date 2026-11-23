@@ -26,3 +26,12 @@
 ## Next action
 User decision: add a multi-year intraday data source, then run 2 = capacity-bias fix + walk-forward
 retest of the RVOL filter.
+
+## Xers Stocks Analysis agent (2026-11-23)
+- **Built:** `xers/` pipeline (fetch → label → rank → levels → report), skill `xers-premarket`, 14 tests (62 total pass).
+- **Verified:** end-to-end on live Robinhood bars (NVDA, TSLA, 2026-11-20) with clearly-marked sample posts;
+  sample report kept out of the repo.
+- **Blocked:** X API — `api.x.com` not allowed by this environment and no bearer token; user declined a new
+  environment on 2026-11-23. Paste fallback (`data/xers/D/paste.txt`) works.
+- **Next action:** user decides on X access (paid API token + allow host) or the paste workflow; then optionally a
+  weekday ~08:45 ET scheduled run.
