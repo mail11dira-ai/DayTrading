@@ -55,3 +55,4 @@ _(none yet — only added after an out-of-sample pass)_
 - Relative-volume filter (RVOL ≥ 1.0) improved ORB in both train and test; worth retesting on more data.
 - Long-only ORB is regime-fitting: train Sharpe 1.23 → test -2.96.
 - With ~160 sessions, train-window improvements are not trustworthy on their own.
+- Run 2 iter_4 (VWAP reclaim + RVOL≥1.0): train Sharpe 1.57 → test -5.83. Threshold-sensitive on train (1.5 → -0.21). Not a rule.

@@ -7,6 +7,7 @@ from pathlib import Path
 
 from src.evaluate import report
 from src.strategies.orb import ORB
+from src.strategies.vwap import VWAPReclaim
 
 ITERATIONS = {
     "iter_1": dict(
@@ -34,6 +35,16 @@ ITERATIONS = {
                "(unchanged), so warm-up does not explain the gain. In the test window the filter can "
                "only trade the last 38 of 48 sessions."),
         strategies={"ORB 30m (baseline)": ORB(), "ORB 30m + RVOL>=1.0": ORB(min_rvol=1.0)},
+    ),
+    "iter_4": dict(
+        notes=("**Change:** new strategy family, VWAP reclaim (`src/strategies/vwap.py`): 5-min close crosses "
+               "session VWAP after 10:00 ET with cumulative relative volume >= threshold; stop at the last 6 bars' "
+               "extreme, target 2R. Compared with ORB baseline and the iter_3 volume filter.\n\n"
+               "**Hypothesis:** VWAP reclaims on participation show trend resumption better than opening-range breaks.\n\n"
+               "**Train-only tuning** (test untouched): rvol >= 1.0 Sharpe 1.57, 1.5 -> -0.21, 2.0 -> 0.53. 1.0 chosen "
+               "(the same threshold as iter_3). Note: this is one of 3 threshold trials on train."),
+        strategies={"ORB 30m (baseline)": ORB(), "ORB 30m + RVOL>=1.0": ORB(min_rvol=1.0),
+                    "VWAP reclaim + RVOL>=1.0": VWAPReclaim(min_rvol=1.0)},
     ),
 }
 

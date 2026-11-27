@@ -17,4 +17,5 @@ Completion checklist (Option A). Each item must point to observable evidence.
 | N6 iter_3 | ORB + RVOL≥1.0 beats baseline out-of-sample | fail | test -0.09% / Sharpe -0.08: beats ORB (-0.71), not SPY (1.27); max DD 2.24% — `backtests/iter_3.md` |
 | N7 | Report cites evidence; failed iterations listed | pass | `backtests/report.md` |
 | all | Order-placing tools blocked | pass | `.claude/settings.json` deny list |
-| all | Full test suite | pass | `python -m pytest -q` → 48 passed |
+| N6 iter_4 | VWAP reclaim + RVOL≥1.0 beats baseline out-of-sample | fail | test return -3.89%, Sharpe -5.83, PF 0.54 (train Sharpe 1.57) — `backtests/iter_4.md` |
+| all | Full test suite | pass | `python -m pytest -q` → 67 passed |

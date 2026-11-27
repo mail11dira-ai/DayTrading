@@ -35,3 +35,10 @@ retest of the RVOL filter.
   environment on 2026-11-23. Paste fallback (`data/xers/D/paste.txt`) works.
 - **Next action:** user decides on X access (paid API token + allow host) or the paste workflow; then optionally a
   weekday ~08:45 ET scheduled run.
+
+## Run 2 (2026-11-27): VWAP reclaim (iter_4)
+- **Built:** `src/strategies/vwap.py` (VWAP reclaim + cumulative RVOL), `tests/test_vwap.py` (5 tests). Full suite: 67 passed.
+- **Result:** train Sharpe 1.57 at RVOL≥1.0, but test -3.89% / Sharpe -5.83. **Rejected.** Recorded in `backtests/iter_4.md`
+  and `backtests/report.md`.
+- **Rule:** the test window was evaluated once for iter_4. Further tuning must use new data, not this test window.
+- **Next action:** wait for a longer intraday history source (user decision from run 1) before any more strategy tests.

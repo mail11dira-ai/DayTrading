@@ -1,6 +1,6 @@
 # Report — Run 1 (Option A: research & backtest)
 
-**Status: partial — run limit reached (3/3 iterations). No strategy passed the out-of-sample gate.**
+**Status: partial — run limit reached (3/3 iterations of run 1). Run 2 iter_4 (VWAP) also failed. No strategy passed the out-of-sample gate.**
 No rule was promoted to `graph.md` "Learned rules".
 
 ## Setup
@@ -22,6 +22,7 @@ No rule was promoted to `graph.md` "Learned rules".
 | iter_1 long-only | no shorts | 1.23 | -3.25% | -2.96 | 4.57% | **fail** — overfit to rising market | `backtests/iter_1.md` |
 | iter_2 ORB 60m | 60-min range | -0.04 | -1.46% | -1.77 | 3.44% | **fail** | `backtests/iter_2.md` |
 | iter_3 RVOL ≥ 1.0 | volume filter | 1.55 | -0.09% | -0.08 | 2.24% | **fail** — beats ORB, not SPY | `backtests/iter_3.md` |
+| iter_4 VWAP reclaim + RVOL ≥ 1.0 | new strategy family | 1.57 | -3.89% | -5.83 | 4.25% | **fail** — worst out-of-sample result; train edge did not carry over | `backtests/iter_4.md` |
 
 ## What we learned (observations, not proven rules)
 1. **Train-window wins don't transfer.** Two of three changes improved train Sharpe by ~1.7–2.0 and
@@ -47,3 +48,11 @@ No rule was promoted to `graph.md` "Learned rules".
 2. Fix the capacity bias: rank simultaneous signals by RVOL instead of alphabetically (a backtester change, N2).
 3. Re-test the RVOL filter with walk-forward windows and a bootstrap confidence interval.
 4. Keep live trading off. Nothing here justifies risking money.
+
+## Run 2 — iter_4: VWAP reclaim (2026-11-27)
+- Strategy: 5-minute close crosses session VWAP after 10:00 ET with cumulative relative volume ≥ threshold; stop = last 6 bars' extreme; target 2R.
+- Train tuning on 3 volume thresholds: 1.0 → Sharpe 1.57, 1.5 → -0.21, 2.0 → 0.53. Chose 1.0.
+- Test (evaluated once): -3.89%, Sharpe -5.83, profit factor 0.54, 130 trades, win rate 36%.
+- Reading: the train result was threshold-sensitive (Sharpe swung from +1.57 to -0.21 across nearby thresholds),
+  a sign of fitting noise rather than a stable edge. Do not tune further on the test window. Next, a
+  walk-forward test on more data (see the data decision in run 1).
