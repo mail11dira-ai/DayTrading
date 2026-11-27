@@ -533,15 +533,15 @@ def test_super100_universe_and_report():
     from research.plan import plan
     from research.universe import symbols
     syms, bench = symbols("super100")
-    assert len(syms) == 19 == len(set(syms)) and set(MAG7) <= set(syms) and "SPCX" in syms and "VRT" in syms
-    assert {"ANT", "NBIS", "MU", "PLTR", "BABA", "MRVL", "COHR"} <= set(syms)
+    assert len(syms) == 20 == len(set(syms)) and set(MAG7) <= set(syms) and "SPCX" in syms and "VRT" in syms
+    assert {"ANT", "NBIS", "MU", "PLTR", "BABA", "MRVL", "COHR", "ASML"} <= set(syms)
     assert "ABBV" not in syms  # the user's list only: nothing else is added
     calls = plan("super100", datetime(2026, 10, 27, 8, 30, tzinfo=CT))
     assert sum(t.endswith("get_index_historicals") for t, _ in calls) == 2
     ds = _synthetic_dataset(syms + bench, date(2026, 10, 12))
     title, html, missing, mode = build("super100", ds, datetime(2026, 10, 13, 1, 0, tzinfo=CT), test=True)
-    assert title.startswith("[TEST] Super 10 Research") and missing == []
-    assert ">Market</h3>" in html and ">Sectors</h3>" in html and "Top 5 setups</h3>" in html and "Weekend checklist" not in html
+    assert title.startswith("[TEST] Super 20 Stocks Research") and missing == []
+    assert ">Market</h3>" in html and ">Sectors</h3>" in html and "Top 10 setups</h3>" in html and "Weekend checklist" not in html and html.index("Top 10 setups") < html.index(">Sectors</h3>")
 
 
 def _er_dataset(today):

@@ -17,7 +17,7 @@ from .analyze import analyze, detect_mode, earnings_within, now_ct
 from .universe import (AI_SECTORS, EMPTY_LAYER_NOTE, INVERSE, modern_layout, symbols)
 
 TITLES = {"mag7": "MAG 7", "aisectors": "AI Sectors", "modern": "Modern AI Sectors", "ai100": "AI Sectors 100",
-          "super100": "Super 10"}
+          "super100": "Super 20 Stocks"}
 
 
 def build(agent, ds, now, test=False, events_path=None):
@@ -444,7 +444,7 @@ def _modern(res, syms, bench, earn, ds, agent="modern", sday=None, context_html=
     if context_html is not None:
         out += f"<h3>{n}. Session context and policy / macro</h3>" + context_html
         n += 1
-    top, note = _top(res, syms, {"ai100": 7, "super100": 7}.get(agent, 3 if short else 5))  # AI Sectors 100 and Super 100 show 7 setups
+    top, note = _top(res, syms, {"ai100": 7, "super100": 10}.get(agent, 3 if short else 5))  # AI Sectors 100 shows 7 setups, Super 20 Stocks 10
     out += (f"<h3>{n}. Top {len(top)} setups</h3>" + _top_html(top, note)
             + "".join(R.card(r, _ratings_extra(ds, r), brief=short) for r in top))
     out += f"<h3>{n + 1}. Risks / catalysts</h3>" + (_risks(res, syms, earn, 2, 1.0, 70, 30) if large
@@ -543,10 +543,11 @@ def _brief_body(agent, res, syms, bench, earn, ds, sday, ctx_day, events_path):
         lead, lag = max(valid, key=lambda x: x[1]), min(valid, key=lambda x: x[1])
         tape = (f"<b>Leader:</b> {lead[0]['num']} {escape(lead[0]['name'])} {R.pct(lead[1])} &middot; "
                 f"<b>laggard:</b> {lag[0]['num']} {escape(lag[0]['name'])} {R.pct(lag[1])}")
-    top, note = _top(res, syms, 5)
+    n_top = 10 if agent == "super100" else 5
+    top, note = _top(res, syms, n_top)
     out = "<h3>Market</h3><ul>" + "".join(_brief_market(res, bench, ds, sday) + _breadth(res, syms, ds, day_only=True)) + "</ul>"
+    out += f"<h3>Top {n_top} setups</h3>" + _brief_setups(top, note)
     out += f"<h3>Sectors</h3>{table}<p>{tape}</p>"
-    out += "<h3>Top 5 setups</h3>" + _brief_setups(top, note)
     out += "<h3>Watch</h3>" + _brief_watch(res, syms, earn, 2 if agent == "super100" else 3,
                                             rsi=None if agent == "super100" else (75, 25))
     out += "<h3>Events and calendar</h3>" + _brief_events(ctx_day, events_path)

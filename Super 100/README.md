@@ -1,15 +1,15 @@
-# Super 10 Research Agent
+# Super 20 Stocks Research Agent
 
-Research only - no orders. Named "Super 10" (was "Super 100"; the agent key stays `super100`). Emails mail11dira@gmail.com Mon-Fri at 8:45 and 9:45 CT. Code:
+Research only - no orders. Named "Super 20 Stocks" (was "Super 10", before that "Super 100"; the agent key stays `super100`). Emails mail11dira@gmail.com Mon-Fri at 8:45 and 9:45 CT. Code:
 `python3 -m research.plan --agent super100`, then `python3 -m research.report --agent super100`.
 
-**Universe: 19 stocks** (updated 2026-11-27): GOOGL, AAPL, MSFT, META, AMZN, NVDA, AVGO, AMD, MU, MRVL,
+**Universe: 20 stocks** (updated 2026-11-27): GOOGL, AAPL, MSFT, META, AMZN, NVDA, AVGO, AMD, MU, MRVL, ASML,
 VRT, COHR, CRWD, TSLA, SPCX, NBIS, PLTR, ANT, BABA. (2026-10-28 list: 12 stocks, the user's list only.) Nothing else is added and no day-trading screen is applied. Benchmarks SPY and QQQ.
 
 | # | Sector | Tickers |
 |---|---|---|
 | 01 | Mega-cap Tech | GOOGL, AAPL, MSFT, META, AMZN, NVDA |
-| 02 | Semiconductors | AVGO, AMD, MU, MRVL |
+| 02 | Semiconductors | AVGO, AMD, MU, MRVL, ASML |
 | 03 | AI Data Center Infrastructure | VRT, COHR |
 | 04 | Cybersecurity | CRWD |
 | 05 | Autos | TSLA |
@@ -17,8 +17,7 @@ VRT, COHR, CRWD, TSLA, SPCX, NBIS, PLTR, ANT, BABA. (2026-10-28 list: 12 stocks,
 | 07 | AI Cloud, Software & Platforms | NBIS, PLTR, ANT |
 | 08 | China Internet & E-commerce | BABA |
 
-**Email:** market deep dive (SPY / QQQ / VIX, implied move band, SPY and QQQ cards), sector scoreboard, top 3
-setups with cards, and risks / catalysts (gaps > 2%, RSI 70/30). Indicator rules: `../MAG 7/technical_analysis.md`
+**Email:** market, top 10 setups, sector scoreboard, and risks / catalysts (gaps > 2%, RSI 70/30). Indicator rules: `../MAG 7/technical_analysis.md`
 (same engine).
 
 ## Session context and policy / macro (added 2026-11-11)

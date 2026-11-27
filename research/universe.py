@@ -186,11 +186,12 @@ AI100 = [
 ]
 # Super 10 (formerly Super 100; 2026-10-27): the user's list of 100 large / liquid US-listed leaders (MSFT was listed twice; SPCX added as #100), grouped
 # 2026-11-27: user added ANT, CRWD (already listed), NBIS, MU, PLTR, BABA, MRVL, COHR - placed in sectors 02, 03, 07 and 08.
+# 2026-11-27: user added ASML (sector 02) and renamed the agent "Super 20 Stocks" (display name only; key stays super100).
 # by sector. Unlike the AI universes it INCLUDES the MAG 7 - this agent replaces the MAG 7 agent.
 SUPER100_BENCHMARKS = ["SPY", "QQQ"]
 SUPER100 = [
     ("01", "Mega-cap Tech", "Platforms | Devices | Cloud | Ads", [], ["GOOGL", "AAPL", "MSFT", "META", "AMZN", "NVDA"]),
-    ("02", "Semiconductors", "AI accelerators | CPUs | Memory | Custom silicon", [], ["AVGO", "AMD", "MU", "MRVL"]),
+    ("02", "Semiconductors", "AI accelerators | CPUs | Memory | Custom silicon | Lithography", [], ["AVGO", "AMD", "MU", "MRVL", "ASML"]),
     ("03", "AI Data Center Infrastructure", "Power & cooling for AI data centres | Optical networking", [], ["VRT", "COHR"]),
     ("04", "Cybersecurity", "Endpoint | Cloud security", [], ["CRWD"]),
     ("05", "Autos", "EVs | Energy storage", [], ["TSLA"]),
