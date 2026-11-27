@@ -45,7 +45,7 @@ retest of the RVOL filter.
 
 ## Run 2 iter_5 (2026-11-27): market-regime filter
 - **Built:** `src/strategies/regime.py` (SPY 20-day regime from the prior session's close, no lookahead), `tests/test_regime.py`.
-  Full suite: 72 passed.
+  Full suite: 69 passed.
 - **Choice:** the regime filter was picked over VWAP (rejected), daily trend alignment and S/R levels because it adds
   one fixed rule to the best prior candidate, and it was the only idea with a clear reason to matter (run 1 losses
   were mostly counter-trend trades).
