@@ -8,6 +8,8 @@ from pathlib import Path
 from src.evaluate import report
 from src.strategies.orb import ORB
 from src.strategies.vwap import VWAPReclaim
+from src.strategies.regime import RegimeFiltered, spy_regime
+from src.data import load as _load_bars
 
 ITERATIONS = {
     "iter_1": dict(
@@ -45,6 +47,15 @@ ITERATIONS = {
                "(the same threshold as iter_3). Note: this is one of 3 threshold trials on train."),
         strategies={"ORB 30m (baseline)": ORB(), "ORB 30m + RVOL>=1.0": ORB(min_rvol=1.0),
                     "VWAP reclaim + RVOL>=1.0": VWAPReclaim(min_rvol=1.0)},
+    ),
+    "iter_5": dict(
+        notes=("**Change:** market-regime filter on the best prior candidate (ORB 30m + RVOL>=1.0). Longs only when "
+               "SPY's previous close is above its 20-day average; shorts only when below (`src/strategies/regime.py`).\n\n"
+               "**Hypothesis:** breakouts fail against the broad trend; trading only with SPY should cut the losing "
+               "counter-trend trades that dominated run 1.\n\n"
+               "**Tuning:** none. The 20-day window was fixed before running, to avoid tuning on either window."),
+        strategies={"ORB 30m + RVOL>=1.0": ORB(min_rvol=1.0),
+                    "ORB 30m + RVOL>=1.0 + SPY regime": RegimeFiltered(ORB(min_rvol=1.0), spy_regime(_load_bars()))},
     ),
 }
 

@@ -49,7 +49,14 @@ N0, N1, N2, N3, N4, N6. Model is used only in N5 (idea) and N7 (write-up).
 - Train = first 112 sessions (2026-02-23 → ~2026-08-03), test = last 48 sessions.
 
 ## Learned rules
-_(none yet — only added after an out-of-sample pass)_
+_(candidate, pending confirmation — see below)_
+
+### Candidate rule (iter_5, passed the test window with caveats)
+- Trade ORB 30m breakouts with RVOL ≥ 1.0 **only in the direction of SPY's trend**: longs when SPY's previous
+  close is above its 20-day average, shorts when below. Code: `src/strategies/regime.py`.
+- Test: Sharpe 1.59 vs SPY 1.27 and the unfiltered ORB -0.08; max DD 1.09%. Return +0.85% is below SPY's +2.19%.
+- Caveats: 48 test sessions and 66 trades; the test window has now been used for 5 evaluations, so the result is
+  partly selected by looking at it. Confirm on new data before treating this as a rule.
 
 ### Run 1 observations (not rules — failed the out-of-sample gate)
 - Relative-volume filter (RVOL ≥ 1.0) improved ORB in both train and test; worth retesting on more data.

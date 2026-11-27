@@ -42,3 +42,13 @@ retest of the RVOL filter.
   and `backtests/report.md`.
 - **Rule:** the test window was evaluated once for iter_4. Further tuning must use new data, not this test window.
 - **Next action:** wait for a longer intraday history source (user decision from run 1) before any more strategy tests.
+
+## Run 2 iter_5 (2026-11-27): market-regime filter
+- **Built:** `src/strategies/regime.py` (SPY 20-day regime from the prior session's close, no lookahead), `tests/test_regime.py`.
+  Full suite: 72 passed.
+- **Choice:** the regime filter was picked over VWAP (rejected), daily trend alignment and S/R levels because it adds
+  one fixed rule to the best prior candidate, and it was the only idea with a clear reason to matter (run 1 losses
+  were mostly counter-trend trades).
+- **Result:** test Sharpe 1.59 vs SPY 1.27, max DD 1.09%, but return +0.85% vs SPY +2.19%. Passed with caveats.
+- **Rule:** the test window is now used for 5 evaluations; further results on it are not independent evidence.
+- **Next action:** confirm on new data (longer history or live paper trading) before any use in the agent.

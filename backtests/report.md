@@ -1,6 +1,6 @@
 # Report — Run 1 (Option A: research & backtest)
 
-**Status: partial — run limit reached (3/3 iterations of run 1). Run 2 iter_4 (VWAP) also failed. No strategy passed the out-of-sample gate.**
+**Status: run 1 limit reached (3/3). Run 2: iter_4 (VWAP) failed; iter_5 (ORB + RVOL + SPY regime) passed with caveats (see below).**
 No rule was promoted to `graph.md` "Learned rules".
 
 ## Setup
@@ -56,3 +56,13 @@ No rule was promoted to `graph.md` "Learned rules".
 - Reading: the train result was threshold-sensitive (Sharpe swung from +1.57 to -0.21 across nearby thresholds),
   a sign of fitting noise rather than a stable edge. Do not tune further on the test window. Next, a
   walk-forward test on more data (see the data decision in run 1).
+
+## Run 2 — iter_5: market-regime filter (2026-11-27)
+- Strategy: ORB 30m + RVOL ≥ 1.0 (iter_3 candidate), taken only in the direction of SPY's trend (SPY previous close
+  vs its 20-day average). Window fixed at 20 days before running; no tuning.
+- Train (sanity): Sharpe 1.55 → 2.94, max DD 4.68% → 3.38%.
+- Test (evaluated once for this strategy): +0.85%, Sharpe 1.59, max DD 1.09%, profit factor 1.26, 66 trades.
+  SPY buy & hold on the same window: +2.19%, Sharpe 1.27. Unfiltered ORB + RVOL: -0.09%, Sharpe -0.08.
+- Reading: risk-adjusted results beat SPY and the drawdown is far under the 10% gate, but raw return is below SPY.
+  The test window has now been used for 5 evaluations, so this result is partly selected. Treat as a candidate.
+- Next step: confirm on new data (more history or live paper trading), not by tuning on this window.
