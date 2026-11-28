@@ -20,3 +20,4 @@ Completion checklist (Option A). Each item must point to observable evidence.
 | N6 iter_4 | VWAP reclaim + RVOL≥1.0 beats baseline out-of-sample | fail | test return -3.89%, Sharpe -5.83, PF 0.54 (train Sharpe 1.57) — `backtests/iter_4.md` |
 | N5/N6 iter_5 | ORB+RVOL + SPY regime beats baseline out-of-sample (Sharpe > SPY 1.27, max DD < 10%) | pass (with caveats) | test +0.85%, Sharpe 1.59, max DD 1.09%, PF 1.26, 66 trades — `backtests/iter_5.md`. Return below SPY (+2.19%); 48 test sessions; test window used for 5 evaluations |
 | all | Full test suite | pass | `python -m pytest -q` → 69 passed |
+| LIVE gate | Live-trading gate in graph.md (8 items) | unresolved | 0 of 8 met; real-money trading not enabled; order tools still denied in `.claude/settings.json` |

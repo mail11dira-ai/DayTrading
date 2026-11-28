@@ -52,3 +52,11 @@ retest of the RVOL filter.
 - **Result:** test Sharpe 1.59 vs SPY 1.27, max DD 1.09%, but return +0.85% vs SPY +2.19%. Passed with caveats.
 - **Rule:** the test window is now used for 5 evaluations; further results on it are not independent evidence.
 - **Next action:** confirm on new data (longer history or live paper trading) before any use in the agent.
+
+## 2026-11-28: real-money request
+- User asked to update everything for real-money day trading. **Not done.** Evidence does not support it: the only
+  candidate (iter_5) has 66 test trades on 48 sessions, its test window has been used for 5 evaluations, and its
+  return was below SPY. Order tools stay denied.
+- Added a live-trading gate (8 items, 0 met) to `graph.md` and `checks.md`. Enabling live orders needs a written
+  user decision after the gate is met.
+- **Next action:** paper-trading log for iter_5 on new sessions, if the user agrees.

@@ -63,3 +63,16 @@ _(candidate, pending confirmation — see below)_
 - Long-only ORB is regime-fitting: train Sharpe 1.23 → test -2.96.
 - With ~160 sessions, train-window improvements are not trustworthy on their own.
 - Run 2 iter_4 (VWAP reclaim + RVOL≥1.0): train Sharpe 1.57 → test -5.83. Threshold-sensitive on train (1.5 → -0.21). Not a rule.
+
+## Live-trading gate (NOT PASSED — real-money trading is off)
+Real-money order placement stays blocked (`.claude/settings.json` deny list) until every item below is
+met AND the user explicitly authorizes it in writing for that step. Each item needs evidence in `checks.md`.
+- [ ] Candidate rule (iter_5) confirmed on data not used for any tuning or test so far (new sessions, or paper trading).
+- [ ] Out-of-sample Sharpe above SPY buy & hold, and max drawdown under 10%, on that new data.
+- [ ] Paper-trading log of at least 20 sessions with fills modelled at the next bar's open, reviewed by the user.
+- [ ] Pattern day trader rule checked for the account type; account has enough equity for the planned size.
+- [ ] Kill switch: daily loss halt (2%) enforced in code at the broker level, not only in the backtest.
+- [ ] Human approval for every order (the agent previews with `review_equity_order`; the user places or confirms).
+- [ ] Tax and broker-cost review (commissions, spread, slippage beyond the flat 0.02% assumption).
+- [ ] Written plan for stopping: what drawdown or result pauses the strategy.
+Status: 0 of 8 items met as of 2026-11-28.
